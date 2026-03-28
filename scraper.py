@@ -65,7 +65,11 @@ def scrape_stock(symbol: str) -> dict:
         result["pe_ratio"] = f"{info.get('trailingPE', 0):.2f}" if info.get("trailingPE") else None
         result["eps"] = f"{info.get('trailingEps', 0):.2f}" if info.get("trailingEps") else None
         result["market_cap"] = _fmt_cap(info.get("marketCap"))
-        result["dividend_yield"] = f"{info.get('dividendYield', 0) * 100:.2f}%" if info.get("dividendYield") else None
+        div = info.get("dividendYield")
+        if div:
+            # yfinance 1.x returns dividend yield already as a percentage (e.g. 3.54)
+            # older versions returned a decimal (e.g. 0.0354) — normalise both cases
+            result["dividend_yield"] = f"{div:.2f}%" if div > 1 else f"{div * 100:.2f}%"
 
         if price and prev_close:
             chg = price - prev_close
