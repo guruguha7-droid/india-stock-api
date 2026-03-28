@@ -1,4 +1,4 @@
-selenium
+yfinance
 flask
 flask-cors
 pandas
