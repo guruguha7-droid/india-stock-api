@@ -68,41 +68,21 @@ def quote():
 
 
 # ── Multiple stocks ───────────────────────────────────────────────────────────
-@app.route("/quotes")
-def quotes():
-    symbols_param = request.args.get("symbols", "")
-    symbols = [s.strip().upper() for s in symbols_param.split(",") if s.strip()]
-    if not symbols:
-        return jsonify({"error": "symbols parameter required (comma-separated)"}), 400
-
-    # Check cache first
-    results = []
-    to_fetch = []
-    for sym in symbols:
-        cached = get_cached(sym)
-        if cached:
-            results.append(cached)
-        else:
-            to_fetch.append(sym)
-
-    # Fetch missing ones
-    if to_fetch:
-        driver = create_driver(headless=True)
-        try:
-            for sym in to_fetch:
-                data = scrape_stock(driver, sym)
-                set_cached(sym, data)
-                results.append(data)
-                time.sleep(1.5)
-        finally:
-            driver.quit()
-
-    # Keep original order
-    order = {s: i for i, s in enumerate(symbols)}
-    results.sort(key=lambda x: order.get(x.get("symbol", ""), 999))
-
-    return jsonify({"status": "ok", "count": len(results), "data": results})
-
+@app.route("/quote")
+def quote():
+    symbol = request.args.get("symbol", "").upper().strip()
+    if not symbol:
+        return jsonify({"error": "symbol parameter required"}), 400
+    cached = get_cached(symbol)
+    if cached:
+        return jsonify({"status": "ok", "cached": True, "data": cached})
+    try:
+        from scraper import scrape_stock
+        data = scrape_stock(symbol)
+        set_cached(symbol, data)
+        return jsonify({"status": "ok", "cached": False, "data": data})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # ── Full watchlist ────────────────────────────────────────────────────────────
 @app.route("/watchlist")
