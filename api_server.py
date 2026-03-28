@@ -176,11 +176,21 @@ def get_risk_rating(score):
 
 
 def get_moat(d):
-    mktcap = None
-    try: mktcap = float(str(d.get('market_cap','')).replace(',','').replace('T','').replace('B','').replace('Cr',''))
-    except: pass
-    if mktcap and mktcap > 15: return 'Strong'
-    if mktcap and mktcap > 5:  return 'Moderate'
+    mcap_str = str(d.get('market_cap', ''))
+    try:
+        val = float(mcap_str.replace('₹','').replace(',','').replace('T','').replace('B','').replace('Cr','').strip())
+        if 'T' in mcap_str:
+            if val > 10: return 'Strong'
+            if val > 3:  return 'Moderate'
+            return 'Weak'
+        elif 'B' in mcap_str:
+            return 'Weak'
+        elif 'Cr' in mcap_str:
+            if val > 1000000: return 'Strong'
+            if val > 300000:  return 'Moderate'
+            return 'Weak'
+    except:
+        pass
     return 'Weak'
 
 
