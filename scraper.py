@@ -52,21 +52,26 @@ def nse_to_yahoo(symbol: str) -> str:
 # ── Setup Selenium ────────────────────────────────────────────────────────────
 def create_driver(headless: bool = True) -> webdriver.Chrome:
     options = Options()
-    if headless:
-        options.add_argument("--headless=new")
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1280,800")
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36")
+
+    import os
+    chrome_bin = os.environ.get("CHROME_BIN", None)
+    chromedriver_path = os.environ.get("CHROMEDRIVER_PATH", None)
+
+    if chrome_bin:
+        options.binary_location = chrome_bin
+
+    if chromedriver_path:
+        driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
+    else:
+        from webdriver_manager.chrome import ChromeDriverManager
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
     return driver
 
 

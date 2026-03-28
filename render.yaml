@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: india-stock-api
+    runtime: python
+    buildCommand: |
+      apt-get update && apt-get install -y chromium chromium-driver && pip install -r requirements.txt
+    startCommand: python api_server.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: CHROME_BIN
+        value: /usr/bin/chromium
+      - key: CHROMEDRIVER_PATH
+        value: /usr/bin/chromedriver
