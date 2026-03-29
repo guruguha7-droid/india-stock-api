@@ -19,7 +19,12 @@ Endpoints:
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
-from ml_screener import run_ml_screen
+try:
+    from ml_screener import run_ml_screen
+    ML_AVAILABLE = True
+except Exception as e:
+    ML_AVAILABLE = False
+    print(f"ML screener not available: {e}")
 import threading
 import time
 from datetime import datetime
@@ -440,6 +445,9 @@ def health():
 # ── ML Screener ───────────────────────────────────────────────────────────────
 @app.route("/ml-screen")
 def ml_screen():
+    if not ML_AVAILABLE:
+        return jsonify({"status": "error",
+                        "message": "ML libraries not installed"}), 503
     try:
         top_n = int(request.args.get('top', 10))
         result = run_ml_screen(top_n=top_n)
