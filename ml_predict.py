@@ -14,6 +14,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 NSE_STOCKS = [
+    # ── Nifty 50 ──────────────────────────────────────────────
     "HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN",
     "BAJFINANCE", "BAJAJFINSV", "SHRIRAMFIN",
     "TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "LTIM",
@@ -23,8 +24,17 @@ NSE_STOCKS = [
     "MARUTI", "M&M", "BAJAJ-AUTO", "HEROMOTOCO", "EICHERMOT",
     "SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "APOLLOHOSP",
     "TATASTEEL", "JSWSTEEL", "HINDALCO", "COALINDIA", "VEDL",
-    "LT", "ULTRACEMCO", "GRASIM",
-    "BHARTIARTL", "ASIANPAINT", "TITAN",
+    "LT", "ULTRACEMCO", "GRASIM", "BHARTIARTL",
+    "ASIANPAINT", "TITAN",
+    # ── New additions ─────────────────────────────────────────
+    "BANKBARODA", "PNB", "CANBK", "MUTHOOTFIN",
+    "CHOLAFIN", "MANAPPURAM",
+    "MARICO", "DABUR", "COLPAL", "GODREJCP", "EMAMILTD",
+    "TORNTPHARM", "LUPIN", "AUROPHARMA", "ALKEM",
+    "PERSISTENT", "MPHASIS", "COFORGE", "KPITTECH",
+    "TVSMOTOR", "MOTHERSON", "BALKRISIND", "APOLLOTYRE",
+    "SIEMENS", "HAVELLS", "ABB", "CUMMINSIND",
+    "DLF", "OBEROIRLTY", "RAMCOCEM",
 ]
 
 
