@@ -9,6 +9,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import joblib
+import time
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
@@ -143,9 +144,28 @@ def run_predictions():
     print(f"  Model accuracy: {accuracy*100:.1f}%")
     print(f"  Trained on:     {trained[:10]}")
 
+    # Download Nifty benchmark with retry
     print("\n Downloading Nifty benchmark...")
-    nifty_df = yf.download("^NSEI", period="2y", interval="1d",
-                            auto_adjust=True, progress=False)
+    nifty_df = None
+    for attempt in range(3):
+        try:
+            nifty_df = yf.download("^NSEI", period="2y", interval="1d",
+                                   auto_adjust=True, progress=False)
+            if len(nifty_df) > 100:
+                print(f"  Got {len(nifty_df)} days of Nifty data")
+                break
+            else:
+                print(f"  Attempt {attempt+1} failed — retrying in 30s...")
+                time.sleep(30)
+        except Exception as e:
+            print(f"  Attempt {attempt+1} error: {e} — retrying in 30s...")
+            time.sleep(30)
+
+    if nifty_df is None or len(nifty_df) < 100:
+        print("Could not download Nifty data after 3 attempts.")
+        print("   Wait 10 minutes and try again — Yahoo Finance rate limits heavy usage.")
+        exit(1)
+
     if hasattr(nifty_df.columns, 'levels'):
         nifty_df.columns = nifty_df.columns.get_level_values(0)
     nifty_close = nifty_df['Close'].squeeze()
@@ -162,86 +182,106 @@ def run_predictions():
 
     print(f"\n  Got features for {len(all_features)} stocks")
 
-    print("\n Fetching fundamentals for post-filter...")
-    fund_data = {}
-    for i, sym in enumerate(NSE_STOCKS, 1):
+    # ── Fetch fundamentals ─────────────────────────────────────────────
+    print("\n Fetching fundamentals for all stocks...")
+    fundamentals = {}
+    for f in all_features:
+        sym = f['symbol']
         try:
             info = yf.Ticker(f"{sym}.NS").info
-            fund_data[sym] = {
-                'pe':              float(info.get('trailingPE')    or 25.0),
-                'revenue_growth':  float(info.get('revenueGrowth') or 0.0),
-                'earnings_growth': float(info.get('earningsGrowth')or 0.0),
-                'debt_to_equity':  float(info.get('debtToEquity')  or 0.5),
+            fundamentals[sym] = {
+                'pe':  float(info.get('trailingPE')    or 20),
+                'pm':  float(info.get('profitMargins') or 0.10),
+                'rg':  float(info.get('revenueGrowth') or 0.10),
+                'eg':  float(info.get('earningsGrowth')or 0.10),
+                'de':  float(info.get('debtToEquity')  or 50),
             }
         except Exception:
-            fund_data[sym] = {'pe': 25.0, 'revenue_growth': 0.0,
-                              'earnings_growth': 0.0, 'debt_to_equity': 0.5}
+            fundamentals[sym] = {'pe':20,'pm':0.10,'rg':0.10,'eg':0.10,'de':50}
 
-    print("\n Running ML predictions...")
+    # ── Run predictions ────────────────────────────────────────────────
+    print("\n Running ML + Fundamental predictions...")
     results = []
     for f in all_features:
         sym = f['symbol']
         X   = pd.DataFrame([{k: f[k] for k in features}])
-
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
 
-        # Fundamental post-filter: boost/penalise the raw ML probability
-        fd = fund_data.get(sym, {})
-        pe             = fd.get('pe', 25.0)
-        rev_growth     = fd.get('revenue_growth', 0.0)
-        earn_growth    = fd.get('earnings_growth', 0.0)
-        debt_to_equity = fd.get('debt_to_equity', 0.5)
+        # Fundamental quality score
+        fd = fundamentals.get(sym, {})
+        pe,pm,rg,eg,de = fd['pe'],fd['pm'],fd['rg'],fd['eg'],fd['de']
+        fq = 50
+        if pe < 12:     fq += 20
+        elif pe < 18:   fq += 12
+        elif pe < 25:   fq += 5
+        elif pe > 40:   fq -= 15
+        if pm > 0.20:   fq += 15
+        elif pm > 0.12: fq += 8
+        elif pm < 0:    fq -= 20
+        if rg > 0.20:   fq += 12
+        elif rg > 0.10: fq += 7
+        elif rg < -0.05:fq -= 10
+        if eg > 0.20:   fq += 10
+        elif eg > 0.05: fq += 5
+        elif eg < -0.10:fq -= 10
+        if de < 20:     fq += 10
+        elif de < 50:   fq += 5
+        elif de > 150:  fq -= 10
+        fq = max(0, min(100, fq))
 
-        if pe < 20 and rev_growth > 0.10:
-            prob *= 1.15   # +15% boost: cheap + growing revenue
-        if debt_to_equity > 100 or earn_growth < -0.10:
-            prob *= 0.85   # -15% penalty: over-leveraged or shrinking earnings
-
-        prob = min(prob, 1.0)  # cap at 100%
+        ml_raw   = round(prob * 100, 1)
+        combined = round(ml_raw * 0.70 + fq * 0.30, 1)
+        grade    = 'A' if fq>=75 else 'B' if fq>=60 else 'C' if fq>=45 else 'D'
 
         results.append({
-            'symbol':       sym,
-            'price':        f['current_price'],
-            'ml_score':     round(prob * 100, 1),
-            'prediction':   'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
-            'ret_1m_pct':   round(f['ret_1m'] * 100, 1),
-            'ret_3m_pct':   round(f['ret_3m'] * 100, 1),
-            'rs_3m_pct':    round(f['rs_3m'] * 100, 1),
-            'rsi':          round(f['rsi'], 1),
-            'pos52':        round(f['pos52'] * 100, 1),
-            'golden_cross': 'YES' if f['golden_cross'] else 'NO',
-            'vol_3m_pct':   round(f['vol_3m'] * 100, 1),
+            'symbol':        sym,
+            'price':         f['current_price'],
+            'ml_score':      ml_raw,
+            'fund_score':    fq,
+            'fund_grade':    grade,
+            'combined':      combined,
+            'prediction':    'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
+            'pe':            round(pe, 1),
+            'profit_margin': round(pm * 100, 1),
+            'rev_growth':    round(rg * 100, 1),
+            'rsi':           round(f['rsi'], 1),
+            'pos52':         round(f['pos52'] * 100, 1),
+            'golden_cross':  bool(f['golden_cross']),
         })
 
-    results.sort(key=lambda x: x['ml_score'], reverse=True)
+    results.sort(key=lambda x: x['combined'], reverse=True)
 
-    print("\n" + "="*60)
-    print("  TOP 10 — Most likely to outperform Nifty (3 months)")
-    print("="*60)
-    print(f"\n{'#':<4} {'SYMBOL':<14} {'PRICE':<12} {'ML SCORE':<12} "
-          f"{'PREDICTION':<14} {'RSI':<8} {'52W POS'}")
-    print("-"*70)
-
+    # Display
+    print("\n" + "="*75)
+    print("  TOP 10 — Combined ML + Fundamental Score")
+    print("="*75)
+    print(f"\n{'#':<4}{'SYMBOL':<14}{'PRICE':<13}{'ML%':<8}{'FUND':<6}"
+          f"{'GRD':<5}{'COMB':<8}{'PE':<7}{'REV GR':<9}{'RSI':<7}{'52W'}")
+    print("-"*75)
     for i, r in enumerate(results[:10], 1):
-        print(f"{i:<4} {r['symbol']:<14} "
-              f"Rs{r['price']:<11,.2f} "
-              f"{r['ml_score']:<12.1f} "
-              f"{r['prediction']:<14} "
-              f"{r['rsi']:<8.1f} "
-              f"{r['pos52']}%")
+        print(f"{i:<4}{r['symbol']:<14}"
+              f"₹{r['price']:<12,.0f}"
+              f"{r['ml_score']:<8.1f}"
+              f"{r['fund_score']:<6}"
+              f"{r['fund_grade']:<5}"
+              f"{r['combined']:<8.1f}"
+              f"{r['pe']:<7.1f}"
+              f"{r['rev_growth']:>+.1f}%    "
+              f"{r['rsi']:<7.1f}"
+              f"{r['pos52']:.1f}%")
 
-    print("\n" + "="*60)
-    print("  BOTTOM 5 — Likely to underperform")
-    print("="*60)
+    print("\n" + "="*75)
+    print("  BOTTOM 5 — Avoid these")
+    print("="*75)
     for r in results[-5:]:
-        print(f"  {r['symbol']:<14} Score: {r['ml_score']:.1f}  "
-              f"RSI: {r['rsi']:.1f}  52W: {r['pos52']}%")
+        print(f"  {r['symbol']:<14} ML:{r['ml_score']:.1f}% "
+              f"Fund:{r['fund_score']} Grade:{r['fund_grade']} "
+              f"Combined:{r['combined']:.1f}%")
 
-    df = pd.DataFrame(results)
-    df.to_csv('ml_predictions.csv', index=False)
-    print(f"\n Predictions saved to ml_predictions.csv")
-    print(f" Model accuracy: {accuracy*100:.1f}% (vs 50% random chance)")
+    pd.DataFrame(results).to_csv('ml_predictions.csv', index=False)
+    print(f"\n Saved to ml_predictions.csv")
+    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 70% ML + 30% Fundamentals")
 
     return results
 
