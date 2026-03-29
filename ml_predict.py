@@ -162,6 +162,21 @@ def run_predictions():
 
     print(f"\n  Got features for {len(all_features)} stocks")
 
+    print("\n Fetching fundamentals for post-filter...")
+    fund_data = {}
+    for i, sym in enumerate(NSE_STOCKS, 1):
+        try:
+            info = yf.Ticker(f"{sym}.NS").info
+            fund_data[sym] = {
+                'pe':              float(info.get('trailingPE')    or 25.0),
+                'revenue_growth':  float(info.get('revenueGrowth') or 0.0),
+                'earnings_growth': float(info.get('earningsGrowth')or 0.0),
+                'debt_to_equity':  float(info.get('debtToEquity')  or 0.5),
+            }
+        except Exception:
+            fund_data[sym] = {'pe': 25.0, 'revenue_growth': 0.0,
+                              'earnings_growth': 0.0, 'debt_to_equity': 0.5}
+
     print("\n Running ML predictions...")
     results = []
     for f in all_features:
@@ -170,6 +185,20 @@ def run_predictions():
 
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
+
+        # Fundamental post-filter: boost/penalise the raw ML probability
+        fd = fund_data.get(sym, {})
+        pe             = fd.get('pe', 25.0)
+        rev_growth     = fd.get('revenue_growth', 0.0)
+        earn_growth    = fd.get('earnings_growth', 0.0)
+        debt_to_equity = fd.get('debt_to_equity', 0.5)
+
+        if pe < 20 and rev_growth > 0.10:
+            prob *= 1.15   # +15% boost: cheap + growing revenue
+        if debt_to_equity > 100 or earn_growth < -0.10:
+            prob *= 0.85   # -15% penalty: over-leveraged or shrinking earnings
+
+        prob = min(prob, 1.0)  # cap at 100%
 
         results.append({
             'symbol':       sym,

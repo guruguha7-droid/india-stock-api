@@ -400,8 +400,8 @@ async function runML(){
       <table>
         <thead><tr>
           <th>#</th><th>Symbol</th><th>Price (₹)</th>
-          <th>ML Score</th><th>RSI</th><th>52W Position</th>
-          <th>1M Return</th><th>3M Return</th><th>Golden Cross</th>
+          <th>ML Score</th><th>Fund Grade</th><th>Combined</th>
+          <th>P/E</th><th>Rev Growth</th><th>RSI</th><th>52W Pos</th>
         </tr></thead>
         <tbody>
           ${top10.map((s,i)=>`
@@ -412,26 +412,29 @@ async function runML(){
               <td>
                 <div style="display:flex;align-items:center;gap:6px">
                   <div style="width:${s.ml_score}px;max-width:80px;height:6px;background:${s.ml_score>70?'var(--green)':s.ml_score>50?'#d97706':'var(--red)'};border-radius:3px"></div>
-                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500">${s.ml_score}%</span>
+                  <span style="font-size:11px;font-weight:500">${s.ml_score}%</span>
                 </div>
               </td>
+              <td><span class="badge ${s.fund_grade==='A'?'b-green':s.fund_grade==='B'?'b-amber':s.fund_grade==='C'?'b-hold':'b-sell'}">${s.fund_grade}</span></td>
+              <td><strong>${s.combined_score}%</strong></td>
+              <td>${s.pe_ratio}</td>
+              <td class="${s.revenue_growth>=10?'up':s.revenue_growth<0?'dn':''}">${s.revenue_growth}%</td>
               <td class="${s.rsi<30?'up':s.rsi>70?'dn':''}">${s.rsi}</td>
               <td>${s.pos52_pct}%</td>
-              <td class="${s.ret_1m_pct>=0?'up':'dn'}">${s.ret_1m_pct}%</td>
-              <td class="${s.ret_3m_pct>=0?'up':'dn'}">${s.ret_3m_pct}%</td>
-              <td>${s.golden_cross?'<span class="badge b-green">YES</span>':'<span class="badge b-red">NO</span>'}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       <h3>Bottom 5 — Likely to underperform</h3>
       <table>
-        <thead><tr><th>Symbol</th><th>ML Score</th><th>RSI</th><th>52W Position</th></tr></thead>
+        <thead><tr><th>Symbol</th><th>ML Score</th><th>Fund Grade</th><th>Combined</th><th>RSI</th><th>52W Pos</th></tr></thead>
         <tbody>
           ${d.bottom5.map(s=>`
             <tr>
               <td><strong>${s.symbol}</strong></td>
               <td style="color:var(--red)">${s.ml_score}%</td>
+              <td><span class="badge ${s.fund_grade==='A'?'b-green':s.fund_grade==='B'?'b-amber':s.fund_grade==='C'?'b-hold':'b-sell'}">${s.fund_grade}</span></td>
+              <td style="color:var(--red)">${s.combined_score}%</td>
               <td>${s.rsi}</td>
               <td>${s.pos52_pct}%</td>
             </tr>

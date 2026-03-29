@@ -126,21 +126,87 @@ def run_ml_screen(top_n=10):
         X    = pd.DataFrame([{k: f[k] for k in features}])
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
+
+        # ── Fetch fundamentals ────────────────────────────────────────
+        try:
+            info = yf.Ticker(f"{sym}.NS").info
+            pe    = float(info.get('trailingPE')    or 20)
+            pb    = float(info.get('priceToBook')   or 2)
+            de    = float(info.get('debtToEquity')  or 50)
+            pm    = float(info.get('profitMargins') or 0.10)
+            rg    = float(info.get('revenueGrowth') or 0.10)
+            eg    = float(info.get('earningsGrowth')or 0.10)
+        except Exception:
+            pe,pb,de,pm,rg,eg = 20,2,50,0.10,0.10,0.10
+
+        # ── Fundamental quality score (0-100) ─────────────────────────
+        fq = 50  # start neutral
+
+        # Valuation — lower P/E is better
+        if   pe < 12:  fq += 20
+        elif pe < 18:  fq += 12
+        elif pe < 25:  fq += 5
+        elif pe > 40:  fq -= 15
+        elif pe > 60:  fq -= 25
+
+        # Profitability — higher margin is better
+        if   pm > 0.20: fq += 15
+        elif pm > 0.12: fq += 8
+        elif pm > 0.06: fq += 3
+        elif pm < 0:    fq -= 20
+
+        # Growth — revenue growing is good
+        if   rg > 0.20: fq += 12
+        elif rg > 0.10: fq += 7
+        elif rg > 0:    fq += 2
+        elif rg < -0.05:fq -= 10
+
+        # Earnings growth
+        if   eg > 0.20: fq += 10
+        elif eg > 0.05: fq += 5
+        elif eg < -0.10:fq -= 10
+
+        # Debt — lower is better
+        if   de < 20:   fq += 10
+        elif de < 50:   fq += 5
+        elif de > 150:  fq -= 10
+        elif de > 100:  fq -= 5
+
+        fq = max(0, min(100, fq))
+
+        # ── Combined score = 70% ML + 30% Fundamentals ────────────────
+        ml_raw   = round(prob * 100, 1)
+        combined = round(ml_raw * 0.70 + fq * 0.30, 1)
+
+        # ── Fundamental grade ──────────────────────────────────────────
+        if fq >= 75:   grade = 'A'
+        elif fq >= 60: grade = 'B'
+        elif fq >= 45: grade = 'C'
+        else:          grade = 'D'
+
         results.append({
-            'symbol':       sym,
-            'price':        f['price'],
-            'ml_score':     round(prob * 100, 1),
-            'prediction':   'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
-            'rsi':          round(f['rsi'], 1),
-            'pos52_pct':    round(f['pos52'] * 100, 1),
-            'ret_1m_pct':   round(f['ret_1m'] * 100, 1),
-            'ret_3m_pct':   round(f['ret_3m'] * 100, 1),
-            'rs_3m_pct':    round(f['rs_3m'] * 100, 1),
-            'golden_cross': bool(f['golden_cross']),
-            'vol_3m_pct':   round(f['vol_3m'] * 100, 1),
+            'symbol':           sym,
+            'price':            f['price'],
+            'ml_score':         ml_raw,
+            'fund_score':       fq,
+            'fund_grade':       grade,
+            'combined_score':   combined,
+            'prediction':       'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
+            'pe_ratio':         round(pe, 1),
+            'pb_ratio':         round(pb, 2),
+            'profit_margin':    round(pm * 100, 1),
+            'revenue_growth':   round(rg * 100, 1),
+            'earnings_growth':  round(eg * 100, 1),
+            'rsi':              round(f['rsi'], 1),
+            'pos52_pct':        round(f['pos52'] * 100, 1),
+            'ret_1m_pct':       round(f['ret_1m'] * 100, 1),
+            'ret_3m_pct':       round(f['ret_3m'] * 100, 1),
+            'rs_3m_pct':        round(f['rs_3m'] * 100, 1),
+            'golden_cross':     bool(f['golden_cross']),
+            'vol_3m_pct':       round(f['vol_3m'] * 100, 1),
         })
 
-    results.sort(key=lambda x: x['ml_score'], reverse=True)
+    results.sort(key=lambda x: x['combined_score'], reverse=True)
 
     output = {
         'generated_at':    datetime.now().isoformat(),
