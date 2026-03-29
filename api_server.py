@@ -96,7 +96,10 @@ def score_stock(d, focus, risk):
 
     def n(val, default=None):
         if val is None: return default
-        try: return float(str(val).replace(',','').replace('%','').replace('₹','').replace('T','').replace('B','').replace('Cr',''))
+        try:
+            s = str(val).replace(',','').replace('%','').replace('₹','')
+            s = s.replace('T','').replace('B','').replace('Cr','').strip()
+            return float(s)
         except: return default
 
     price     = n(d.get('price'))
@@ -105,74 +108,160 @@ def score_stock(d, focus, risk):
     high52    = n(d.get('week52_high'))
     low52     = n(d.get('week52_low'))
     div_yield = n(d.get('dividend_yield'))
-    mktcap    = n(d.get('market_cap'))
     chg_pct   = n(d.get('change_pct'))
+    mcap_str  = str(d.get('market_cap',''))
 
-    if focus in ['value', 'dividend']:
-        if pe:
-            if pe < 12:   score += 25; reasons.append('Very cheap P/E')
-            elif pe < 18: score += 20; reasons.append('Attractive P/E')
-            elif pe < 25: score += 12; reasons.append('Fair P/E')
-            elif pe < 35: score += 5
-            else:         score -= 5;  reasons.append('Expensive P/E')
+    mcap_t = None
+    try:
+        val = float(mcap_str.replace('₹','').replace(',','').replace('T','').replace('B','').replace('Cr','').strip())
+        if 'T' in mcap_str:    mcap_t = val
+        elif 'B' in mcap_str:  mcap_t = val / 1000
+        elif 'Cr' in mcap_str: mcap_t = val / 100000
+    except: pass
 
-    if focus in ['growth', 'momentum']:
-        if eps:
-            if eps > 100:  score += 20; reasons.append('High EPS')
-            elif eps > 50: score += 15; reasons.append('Good EPS')
-            elif eps > 20: score += 10
-            elif eps > 0:  score += 5
-
-    if high52 and low52 and price and high52 != low52:
+    momentum = None
+    if high52 and low52 and price and high52 > low52:
         momentum = (price - low52) / (high52 - low52)
-        if focus == 'momentum':
-            if momentum > 0.8:   score += 25; reasons.append('Near 52W high — strong momentum')
-            elif momentum > 0.6: score += 18
-            elif momentum > 0.4: score += 10
-            elif momentum > 0.2: score += 5
-            else:                score -= 5;  reasons.append('Near 52W low')
-        elif focus == 'value':
-            if momentum < 0.3:   score += 20; reasons.append('Trading at discount to 52W high')
-            elif momentum < 0.5: score += 12
-            elif momentum < 0.7: score += 6
 
-    if focus == 'dividend':
+    if focus == 'value':
+        if pe:
+            if pe < 10:        score += 30; reasons.append(f'Very cheap P/E {pe:.1f}')
+            elif pe < 15:      score += 25; reasons.append(f'Cheap P/E {pe:.1f}')
+            elif pe < 20:      score += 18; reasons.append(f'Fair P/E {pe:.1f}')
+            elif pe < 28:      score += 10
+            elif pe < 40:      score += 3
+            else:              score -= 8;  reasons.append(f'Expensive P/E {pe:.1f}')
+        if momentum is not None:
+            if momentum < 0.25:   score += 20; reasons.append('Deep discount to 52W high')
+            elif momentum < 0.45: score += 14; reasons.append('Trading at discount')
+            elif momentum < 0.65: score += 7
+            elif momentum > 0.85: score -= 5
         if div_yield:
-            if div_yield > 4:    score += 30; reasons.append(f'High dividend {div_yield:.1f}%')
-            elif div_yield > 2:  score += 20; reasons.append(f'Good dividend {div_yield:.1f}%')
-            elif div_yield > 1:  score += 10; reasons.append(f'Moderate dividend {div_yield:.1f}%')
-            else:                score += 3
-    elif div_yield and div_yield > 1:
-        score += 5
+            if div_yield > 3:   score += 15; reasons.append(f'Good dividend {div_yield:.1f}%')
+            elif div_yield > 1: score += 8
+
+    elif focus == 'growth':
+        if eps:
+            if eps > 150:      score += 30; reasons.append(f'Very high EPS ₹{eps:.0f}')
+            elif eps > 80:     score += 24; reasons.append(f'High EPS ₹{eps:.0f}')
+            elif eps > 40:     score += 18; reasons.append(f'Good EPS ₹{eps:.0f}')
+            elif eps > 15:     score += 12; reasons.append(f'Moderate EPS ₹{eps:.0f}')
+            elif eps > 0:      score += 5
+            else:              score -= 10; reasons.append('Negative EPS — unprofitable')
+        if momentum is not None:
+            if momentum > 0.75:   score += 25; reasons.append('Strong price momentum')
+            elif momentum > 0.55: score += 18; reasons.append('Good momentum')
+            elif momentum > 0.35: score += 10
+            elif momentum < 0.2:  score -= 8;  reasons.append('Weak momentum')
+        if pe:
+            if 15 <= pe <= 35:  score += 12; reasons.append('Healthy growth P/E')
+            elif pe < 15:       score += 8
+            elif pe > 60:       score -= 8;  reasons.append('Very expensive')
+
+    elif focus == 'dividend':
+        if div_yield:
+            if div_yield > 6:    score += 35; reasons.append(f'Very high dividend {div_yield:.1f}%')
+            elif div_yield > 4:  score += 28; reasons.append(f'High dividend {div_yield:.1f}%')
+            elif div_yield > 2:  score += 18; reasons.append(f'Good dividend {div_yield:.1f}%')
+            elif div_yield > 1:  score += 8;  reasons.append(f'Moderate dividend {div_yield:.1f}%')
+            else:                score -= 5;  reasons.append('Very low dividend')
+        else:
+            score -= 15; reasons.append('No dividend data')
+        if pe:
+            if pe < 12:   score += 20; reasons.append(f'Very cheap P/E {pe:.1f}')
+            elif pe < 18: score += 14
+            elif pe < 25: score += 7
+            elif pe > 40: score -= 8
+        if momentum is not None:
+            if momentum > 0.3: score += 8
+            else: score -= 5
+
+    elif focus == 'momentum':
+        if momentum is not None:
+            if momentum > 0.85:   score += 40; reasons.append('Near 52W high — very strong momentum')
+            elif momentum > 0.70: score += 32; reasons.append('Strong momentum')
+            elif momentum > 0.55: score += 22; reasons.append('Good momentum')
+            elif momentum > 0.40: score += 12
+            elif momentum > 0.25: score += 4
+            else:                 score -= 10; reasons.append('Weak — near 52W low')
+        if chg_pct:
+            if chg_pct > 2:    score += 12; reasons.append(f'Up {chg_pct:.1f}% today')
+            elif chg_pct > 0:  score += 5
+            elif chg_pct < -3: score -= 8
+        if eps and eps > 0:
+            score += 8; reasons.append('Profitable company')
 
     if risk == 'conservative':
-        if mktcap:
-            if mktcap > 10:   score += 15; reasons.append('Large cap — lower risk')
-            elif mktcap > 5:  score += 8
-            elif mktcap < 1:  score -= 10; reasons.append('Small cap — higher risk')
-        if chg_pct and chg_pct < -3:
-            score -= 10; reasons.append('High volatility today')
-    elif risk == 'aggressive':
-        if chg_pct and chg_pct > 1:
-            score += 10; reasons.append('Positive momentum today')
-        if pe and pe > 30:
-            score += 5
+        if mcap_t:
+            if mcap_t > 8:    score += 20; reasons.append('Very large cap — low risk')
+            elif mcap_t > 3:  score += 12; reasons.append('Large cap — stable')
+            elif mcap_t < 1:  score -= 15; reasons.append('Small cap — high risk')
+        if chg_pct and abs(chg_pct) > 4:
+            score -= 12; reasons.append('High volatility today')
+        if pe and pe > 40:
+            score -= 10
     elif risk == 'moderate':
-        if mktcap and mktcap > 5:
-            score += 8; reasons.append('Mid-large cap stability')
+        if mcap_t:
+            if mcap_t > 5:    score += 10; reasons.append('Large cap stability')
+            elif mcap_t > 2:  score += 6
+            elif mcap_t < 0.5: score -= 8
+        if chg_pct and abs(chg_pct) > 6:
+            score -= 8
+    elif risk == 'aggressive':
+        if mcap_t and mcap_t < 0.5:
+            score -= 5
+        if momentum and momentum > 0.7:
+            score += 8
+        if chg_pct and chg_pct > 3:
+            score += 10; reasons.append(f'Strong move today +{chg_pct:.1f}%')
 
     if eps and eps > 0:
-        score += 5; reasons.append('Profitable company')
+        score += 5
 
     score = max(0, min(100, score))
-    return score, reasons[:3]
+    return round(score, 1), reasons[:3]
 
 
-def get_risk_rating(score):
-    if score >= 75: return 3
-    if score >= 55: return 5
-    if score >= 35: return 7
-    return 9
+def get_risk_rating(d, focus, risk):
+    base = 5
+
+    def n(val):
+        try: return float(str(val).replace(',','').replace('%','').replace('₹','').replace('T','').replace('B','').replace('Cr','').strip())
+        except: return None
+
+    pe       = n(d.get('pe_ratio'))
+    chg_pct  = n(d.get('change_pct'))
+    mcap_str = str(d.get('market_cap',''))
+
+    mcap_t = None
+    try:
+        val = float(mcap_str.replace('₹','').replace(',','').replace('T','').replace('B','').replace('Cr','').strip())
+        if 'T' in mcap_str:    mcap_t = val
+        elif 'B' in mcap_str:  mcap_t = val / 1000
+        elif 'Cr' in mcap_str: mcap_t = val / 100000
+    except: pass
+
+    if mcap_t:
+        if mcap_t > 10:    base -= 3
+        elif mcap_t > 5:   base -= 2
+        elif mcap_t > 2:   base -= 1
+        elif mcap_t < 0.5: base += 3
+        elif mcap_t < 1:   base += 1
+    if pe:
+        if pe > 60:   base += 3
+        elif pe > 40: base += 2
+        elif pe > 25: base += 1
+        elif pe < 12: base -= 1
+    if chg_pct:
+        if abs(chg_pct) > 5: base += 2
+        elif abs(chg_pct) > 3: base += 1
+    if focus == 'momentum': base += 1
+    if focus == 'dividend': base -= 1
+    if focus == 'value':    base -= 1
+    if risk == 'conservative': base -= 1
+    if risk == 'aggressive':   base += 1
+
+    return max(1, min(10, base))
 
 
 def get_moat(d):
@@ -255,7 +344,7 @@ def screen():
             'score':          round(score, 1),
             'reasons':        reasons,
             'moat':           get_moat(d),
-            'risk_rating':    get_risk_rating(score),
+            'risk_rating':    get_risk_rating(d, focus, risk),
         })
 
     scored.sort(key=lambda x: x['score'], reverse=True)
