@@ -39,6 +39,21 @@ _cache = {'predictions': None, 'ts': 0}
 CACHE_TTL = 3600
 
 
+def load_screener_fundamentals() -> dict:
+    """Load pre-scraped Screener.in fundamental data."""
+    path = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
+    if not os.path.exists(path):
+        print("  Warning: screener_fundamentals.csv not found — run screener_scraper.py first")
+        return {}
+    try:
+        df = pd.read_csv(path)
+        df = df[df['status'] == 'ok']
+        return df.set_index('symbol').to_dict(orient='index')
+    except Exception as e:
+        print(f"  Warning: Could not load screener data — {e}")
+        return {}
+
+
 def get_features(sym, nifty_close):
     try:
         df = yf.download(f"{sym}.NS", period="2y", interval="1d",
@@ -118,6 +133,11 @@ def run_ml_screen(top_n=10):
     nifty = pd.Series(nf['Close'].squeeze().values,
                       index=nf.index, dtype=float)
 
+    # Load Screener.in fundamentals
+    print("  Loading Screener.in fundamental data...")
+    screener_data = load_screener_fundamentals()
+    print(f"  Loaded data for {len(screener_data)} stocks")
+
     results = []
     for sym in NSE_STOCKS:
         f = get_features(sym, nifty)
@@ -126,84 +146,94 @@ def run_ml_screen(top_n=10):
         X    = pd.DataFrame([{k: f[k] for k in features}])
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
+        ml_raw = round(prob * 100, 1)
 
-        # ── Fetch fundamentals ────────────────────────────────────────
+        # ── yfinance quick fundamentals ───────────────────────────────
         try:
             info = yf.Ticker(f"{sym}.NS").info
             pe    = float(info.get('trailingPE')    or 20)
-            pb    = float(info.get('priceToBook')   or 2)
-            de    = float(info.get('debtToEquity')  or 50)
             pm    = float(info.get('profitMargins') or 0.10)
             rg    = float(info.get('revenueGrowth') or 0.10)
             eg    = float(info.get('earningsGrowth')or 0.10)
         except Exception:
-            pe,pb,de,pm,rg,eg = 20,2,50,0.10,0.10,0.10
+            pe,pm,rg,eg = 20,0.10,0.10,0.10
 
-        # ── Fundamental quality score (0-100) ─────────────────────────
-        fq = 50  # start neutral
+        # ── Screener.in fundamentals ──────────────────────────────────
+        sc             = screener_data.get(sym, {})
+        screener_score = float(sc.get('investment_score', 50) or 50)
+        screener_grade = sc.get('investment_grade', 'C') or 'C'
+        roce           = float(sc.get('roce_latest_pct', 10) or 10)
+        sales_cagr_5y  = float(sc.get('sales_cagr_5y', 10) or 10)
+        profit_cagr_5y = float(sc.get('profit_cagr_5y', 10) or 10)
+        promoter_pct   = float(sc.get('promoter_pct', 30) or 30)
+        fcf_positive   = bool(sc.get('fcf_positive_3y', False))
+        debt_reducing  = bool(sc.get('debt_reducing', False))
 
-        # Valuation — lower P/E is better
-        if   pe < 12:  fq += 20
-        elif pe < 18:  fq += 12
-        elif pe < 25:  fq += 5
-        elif pe > 40:  fq -= 15
-        elif pe > 60:  fq -= 25
+        # ── yfinance valuation score (0-100) ──────────────────────────
+        yfin_score = 50
+        if pe < 12:     yfin_score += 20
+        elif pe < 18:   yfin_score += 12
+        elif pe < 25:   yfin_score += 5
+        elif pe > 40:   yfin_score -= 15
+        if pm > 0.20:   yfin_score += 10
+        elif pm > 0.12: yfin_score += 5
+        elif pm < 0:    yfin_score -= 15
+        if rg > 0.20:   yfin_score += 10
+        elif rg > 0.10: yfin_score += 5
+        elif rg < -0.05:yfin_score -= 8
+        if eg > 0.20:   yfin_score += 8
+        elif eg > 0.05: yfin_score += 4
+        elif eg < -0.10:yfin_score -= 8
+        yfin_score = max(0, min(100, yfin_score))
 
-        # Profitability — higher margin is better
-        if   pm > 0.20: fq += 15
-        elif pm > 0.12: fq += 8
-        elif pm > 0.06: fq += 3
-        elif pm < 0:    fq -= 20
+        # ── Combined score ────────────────────────────────────────────
+        # 50% ML technical signal
+        # 30% Screener.in 10-year fundamentals
+        # 20% yfinance current valuation
+        combined = round(
+            ml_raw         * 0.50 +
+            screener_score * 0.30 +
+            yfin_score     * 0.20,
+            1
+        )
 
-        # Growth — revenue growing is good
-        if   rg > 0.20: fq += 12
-        elif rg > 0.10: fq += 7
-        elif rg > 0:    fq += 2
-        elif rg < -0.05:fq -= 10
-
-        # Earnings growth
-        if   eg > 0.20: fq += 10
-        elif eg > 0.05: fq += 5
-        elif eg < -0.10:fq -= 10
-
-        # Debt — lower is better
-        if   de < 20:   fq += 10
-        elif de < 50:   fq += 5
-        elif de > 150:  fq -= 10
-        elif de > 100:  fq -= 5
-
-        fq = max(0, min(100, fq))
-
-        # ── Combined score = 70% ML + 30% Fundamentals ────────────────
-        ml_raw   = round(prob * 100, 1)
-        combined = round(ml_raw * 0.70 + fq * 0.30, 1)
-
-        # ── Fundamental grade ──────────────────────────────────────────
-        if fq >= 75:   grade = 'A'
-        elif fq >= 60: grade = 'B'
-        elif fq >= 45: grade = 'C'
-        else:          grade = 'D'
+        # ── Overall investment grade ──────────────────────────────────
+        if combined >= 80:   inv_grade = 'A+'
+        elif combined >= 70: inv_grade = 'A'
+        elif combined >= 60: inv_grade = 'B'
+        elif combined >= 50: inv_grade = 'C'
+        else:                inv_grade = 'D'
 
         results.append({
-            'symbol':           sym,
-            'price':            f['price'],
-            'ml_score':         ml_raw,
-            'fund_score':       fq,
-            'fund_grade':       grade,
-            'combined_score':   combined,
-            'prediction':       'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
-            'pe_ratio':         round(pe, 1),
-            'pb_ratio':         round(pb, 2),
-            'profit_margin':    round(pm * 100, 1),
-            'revenue_growth':   round(rg * 100, 1),
-            'earnings_growth':  round(eg * 100, 1),
-            'rsi':              round(f['rsi'], 1),
-            'pos52_pct':        round(f['pos52'] * 100, 1),
-            'ret_1m_pct':       round(f['ret_1m'] * 100, 1),
-            'ret_3m_pct':       round(f['ret_3m'] * 100, 1),
-            'rs_3m_pct':        round(f['rs_3m'] * 100, 1),
-            'golden_cross':     bool(f['golden_cross']),
-            'vol_3m_pct':       round(f['vol_3m'] * 100, 1),
+            'symbol':          sym,
+            'price':           f['price'],
+            # Scores
+            'ml_score':        ml_raw,
+            'screener_score':  round(screener_score, 1),
+            'yfin_score':      round(yfin_score, 1),
+            'combined_score':  combined,
+            'prediction':      'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
+            'inv_grade':       inv_grade,
+            # Screener fundamentals
+            'roce':            roce,
+            'sales_cagr_5y':   sales_cagr_5y,
+            'profit_cagr_5y':  profit_cagr_5y,
+            'promoter_pct':    promoter_pct,
+            'fcf_positive':    fcf_positive,
+            'debt_reducing':   debt_reducing,
+            'screener_grade':  screener_grade,
+            # yfinance
+            'pe_ratio':        round(pe, 1),
+            'profit_margin':   round(pm * 100, 1),
+            'revenue_growth':  round(rg * 100, 1),
+            # Technical
+            'rsi':             round(f['rsi'], 1),
+            'pos52_pct':       round(f['pos52'] * 100, 1),
+            'ret_1m_pct':      round(f['ret_1m'] * 100, 1),
+            'ret_3m_pct':      round(f['ret_3m'] * 100, 1),
+            'rs_3m_pct':       round(f['rs_3m'] * 100, 1),
+            'golden_cross':    bool(f['golden_cross']),
+            'vol_3m_pct':      round(f['vol_3m'] * 100, 1),
         })
 
     results.sort(key=lambda x: x['combined_score'], reverse=True)

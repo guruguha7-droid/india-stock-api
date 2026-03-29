@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import time
+import os
 from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
@@ -144,6 +145,16 @@ def run_predictions():
     print(f"  Model accuracy: {accuracy*100:.1f}%")
     print(f"  Trained on:     {trained[:10]}")
 
+    # Load Screener fundamentals
+    screener_data = {}
+    try:
+        sdf = pd.read_csv('screener_fundamentals.csv')
+        sdf = sdf[sdf['status'] == 'ok']
+        screener_data = sdf.set_index('symbol').to_dict(orient='index')
+        print(f"  Loaded Screener data for {len(screener_data)} stocks")
+    except Exception:
+        print("  Warning: screener_fundamentals.csv not found")
+
     # Download Nifty benchmark with retry
     print("\n Downloading Nifty benchmark...")
     nifty_df = None
@@ -200,88 +211,108 @@ def run_predictions():
             fundamentals[sym] = {'pe':20,'pm':0.10,'rg':0.10,'eg':0.10,'de':50}
 
     # ── Run predictions ────────────────────────────────────────────────
-    print("\n Running ML + Fundamental predictions...")
+    print("\n Running ML + Screener + yfinance predictions...")
     results = []
     for f in all_features:
         sym = f['symbol']
         X   = pd.DataFrame([{k: f[k] for k in features}])
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
+        ml_raw = round(prob * 100, 1)
 
-        # Fundamental quality score
+        # Screener data
+        sc             = screener_data.get(sym, {})
+        screener_score = float(sc.get('investment_score', 50) or 50)
+        screener_grade = sc.get('investment_grade', 'C') or 'C'
+        roce           = float(sc.get('roce_latest_pct', 10) or 10)
+        sales_cagr     = float(sc.get('sales_cagr_5y', 10) or 10)
+        profit_cagr    = float(sc.get('profit_cagr_5y', 10) or 10)
+        promoter       = float(sc.get('promoter_pct', 30) or 30)
+        fcf_ok         = bool(sc.get('fcf_positive_3y', False))
+
+        # yfinance fundamentals
         fd = fundamentals.get(sym, {})
-        pe,pm,rg,eg,de = fd['pe'],fd['pm'],fd['rg'],fd['eg'],fd['de']
-        fq = 50
-        if pe < 12:     fq += 20
-        elif pe < 18:   fq += 12
-        elif pe < 25:   fq += 5
-        elif pe > 40:   fq -= 15
-        if pm > 0.20:   fq += 15
-        elif pm > 0.12: fq += 8
-        elif pm < 0:    fq -= 20
-        if rg > 0.20:   fq += 12
-        elif rg > 0.10: fq += 7
-        elif rg < -0.05:fq -= 10
-        if eg > 0.20:   fq += 10
-        elif eg > 0.05: fq += 5
-        elif eg < -0.10:fq -= 10
-        if de < 20:     fq += 10
-        elif de < 50:   fq += 5
-        elif de > 150:  fq -= 10
-        fq = max(0, min(100, fq))
+        pe = fd.get('pe', 20)
+        pm = fd.get('pm', 0.10)
+        rg = fd.get('rg', 0.10)
+        eg = fd.get('eg', 0.10)
 
-        ml_raw   = round(prob * 100, 1)
-        combined = round(ml_raw * 0.70 + fq * 0.30, 1)
-        grade    = 'A' if fq>=75 else 'B' if fq>=60 else 'C' if fq>=45 else 'D'
+        yfin_score = 50
+        if pe < 12:     yfin_score += 20
+        elif pe < 18:   yfin_score += 12
+        elif pe < 25:   yfin_score += 5
+        elif pe > 40:   yfin_score -= 15
+        if pm > 0.20:   yfin_score += 10
+        elif pm > 0.12: yfin_score += 5
+        elif pm < 0:    yfin_score -= 15
+        if rg > 0.20:   yfin_score += 10
+        elif rg > 0.10: yfin_score += 5
+        elif rg < -0.05:yfin_score -= 8
+        yfin_score = max(0, min(100, yfin_score))
+
+        combined = round(ml_raw * 0.50 + screener_score * 0.30 + yfin_score * 0.20, 1)
+
+        if combined >= 80:   inv_grade = 'A+'
+        elif combined >= 70: inv_grade = 'A'
+        elif combined >= 60: inv_grade = 'B'
+        elif combined >= 50: inv_grade = 'C'
+        else:                inv_grade = 'D'
 
         results.append({
-            'symbol':        sym,
-            'price':         f['current_price'],
-            'ml_score':      ml_raw,
-            'fund_score':    fq,
-            'fund_grade':    grade,
-            'combined':      combined,
-            'prediction':    'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
-            'pe':            round(pe, 1),
-            'profit_margin': round(pm * 100, 1),
-            'rev_growth':    round(rg * 100, 1),
-            'rsi':           round(f['rsi'], 1),
-            'pos52':         round(f['pos52'] * 100, 1),
-            'golden_cross':  bool(f['golden_cross']),
+            'symbol':         sym,
+            'price':          f['current_price'],
+            'ml_score':       ml_raw,
+            'screener_score': screener_score,
+            'screener_grade': screener_grade,
+            'yfin_score':     round(yfin_score, 1),
+            'combined':       combined,
+            'inv_grade':      inv_grade,
+            'roce':           roce,
+            'sales_cagr_5y':  sales_cagr,
+            'profit_cagr_5y': profit_cagr,
+            'promoter_pct':   promoter,
+            'fcf_positive':   fcf_ok,
+            'pe':             round(pe, 1),
+            'profit_margin':  round(pm * 100, 1),
+            'rev_growth':     round(rg * 100, 1),
+            'rsi':            round(f['rsi'], 1),
+            'pos52':          round(f['pos52'] * 100, 1),
+            'golden_cross':   bool(f['golden_cross']),
         })
 
     results.sort(key=lambda x: x['combined'], reverse=True)
 
     # Display
-    print("\n" + "="*75)
-    print("  TOP 10 — Combined ML + Fundamental Score")
-    print("="*75)
-    print(f"\n{'#':<4}{'SYMBOL':<14}{'PRICE':<13}{'ML%':<8}{'FUND':<6}"
-          f"{'GRD':<5}{'COMB':<8}{'PE':<7}{'REV GR':<9}{'RSI':<7}{'52W'}")
-    print("-"*75)
+    print("\n" + "="*85)
+    print("  TOP 10 — Combined ML + Screener + yfinance Score")
+    print("="*85)
+    print(f"\n{'#':<4}{'SYMBOL':<14}{'PRICE':<13}{'ML%':<8}{'SCR':<6}"
+          f"{'YFIN':<6}{'COMB':<8}{'GRD':<5}{'ROCE':<7}{'SCR_GRD':<9}{'PROMO':<8}{'RSI'}")
+    print("-"*85)
     for i, r in enumerate(results[:10], 1):
         print(f"{i:<4}{r['symbol']:<14}"
               f"₹{r['price']:<12,.0f}"
               f"{r['ml_score']:<8.1f}"
-              f"{r['fund_score']:<6}"
-              f"{r['fund_grade']:<5}"
+              f"{r['screener_score']:<6.0f}"
+              f"{r['yfin_score']:<6.0f}"
               f"{r['combined']:<8.1f}"
-              f"{r['pe']:<7.1f}"
-              f"{r['rev_growth']:>+.1f}%    "
-              f"{r['rsi']:<7.1f}"
-              f"{r['pos52']:.1f}%")
+              f"{r['inv_grade']:<5}"
+              f"{r['roce']:<7.0f}"
+              f"{r['screener_grade']:<9}"
+              f"{r['promoter_pct']:<8.1f}"
+              f"{r['rsi']:.1f}")
 
-    print("\n" + "="*75)
+    print("\n" + "="*85)
     print("  BOTTOM 5 — Avoid these")
-    print("="*75)
+    print("="*85)
     for r in results[-5:]:
         print(f"  {r['symbol']:<14} ML:{r['ml_score']:.1f}% "
-              f"Fund:{r['fund_score']} Grade:{r['fund_grade']} "
-              f"Combined:{r['combined']:.1f}%")
+              f"Screener:{r['screener_score']:.0f} Grade:{r['screener_grade']} "
+              f"Combined:{r['combined']:.1f}% [{r['inv_grade']}]")
 
     pd.DataFrame(results).to_csv('ml_predictions.csv', index=False)
     print(f"\n Saved to ml_predictions.csv")
-    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 70% ML + 30% Fundamentals")
+    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 50% ML + 30% Screener + 20% yfinance")
 
     return results
 
