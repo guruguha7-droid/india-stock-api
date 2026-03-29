@@ -305,15 +305,15 @@ def screen():
 
     if sector != 'any':
         sector_map = {
-            'it': ['technology','information technology','it services','software'],
-            'banking': ['banking','financial services','finance','bank'],
-            'fmcg': ['consumer','fmcg','consumer staples','consumer defensive'],
-            'pharma': ['pharma','healthcare','health care','drug'],
-            'auto': ['auto','automobile','automotive'],
-            'energy': ['energy','oil','gas','petroleum'],
-            'infrastructure': ['infrastructure','construction','industrial'],
-            'metals': ['metals','mining','steel','aluminium'],
-            'chemicals': ['chemicals','specialty chemicals'],
+            'it': ['technology','information technology','it services','software','tech mahindra','tcs','infosys','wipro','hcltech','ltim','techm'],
+            'banking': ['banking','financial services','finance','bank','nbfc','insurance'],
+            'fmcg': ['consumer','fmcg','consumer staples','consumer defensive','household'],
+            'pharma': ['pharma','healthcare','health care','drug','pharmaceutical','biotech'],
+            'auto': ['auto','automobile','automotive','motor','2 wheeler'],
+            'energy': ['energy','oil','gas','petroleum','power','coal','refin'],
+            'infrastructure': ['infrastructure','construction','industrial','cement','engineer'],
+            'metals': ['metals','mining','steel','aluminium','copper'],
+            'chemicals': ['chemicals','specialty chemicals','agrochem'],
         }
         keywords = sector_map.get(sector, [sector])
         filtered = [d for d in all_data if any(
