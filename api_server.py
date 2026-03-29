@@ -304,25 +304,22 @@ def screen():
                 pass
 
     if sector != 'any':
-        sector_map = {
-            'it': ['technology','information technology','it services','software','tech mahindra','tcs','infosys','wipro','hcltech','ltim','techm'],
-            'banking': ['banking','financial services','finance','bank','nbfc','insurance'],
-            'fmcg': ['consumer','fmcg','consumer staples','consumer defensive','household'],
-            'pharma': ['pharma','healthcare','health care','drug','pharmaceutical','biotech'],
-            'auto': ['auto','automobile','automotive','motor','2 wheeler'],
-            'energy': ['energy','oil','gas','petroleum','power','coal','refin'],
-            'infrastructure': ['infrastructure','construction','industrial','cement','engineer'],
-            'metals': ['metals','mining','steel','aluminium','copper'],
-            'chemicals': ['chemicals','specialty chemicals','agrochem'],
+        sector_symbols = {
+            'it':             ['TCS','INFY','WIPRO','HCLTECH','TECHM','LTIM'],
+            'banking':        ['HDFCBANK','ICICIBANK','SBIN','AXISBANK','KOTAKBANK','INDUSINDBK','BAJFINANCE','BAJAJFINSV','SHRIRAMFIN'],
+            'fmcg':           ['HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM'],
+            'pharma':         ['SUNPHARMA','DRREDDY','CIPLA','DIVISLAB','APOLLOHOSP'],
+            'auto':           ['MARUTI','TATAMOTORS','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
+            'energy':         ['RELIANCE','ONGC','BPCL','IOC','TATAPOWER','ADANIGREEN','NTPC','POWERGRID','COALINDIA'],
+            'infrastructure': ['LT','ULTRACEMCO','GRASIM','ADANIPORTS','ADANIENT'],
+            'metals':         ['TATASTEEL','JSWSTEEL','HINDALCO','VEDL','COALINDIA'],
+            'chemicals':      ['DIVISLAB','CIPLA'],
         }
-        keywords = sector_map.get(sector, [sector])
-        filtered = [d for d in all_data if any(
-            kw in str(d.get('sector','')).lower() or
-            kw in str(d.get('industry','')).lower()
-            for kw in keywords
-        )]
-        if len(filtered) >= 3:
-            all_data = filtered
+        allowed = sector_symbols.get(sector.lower(), [])
+        if allowed:
+            filtered = [d for d in all_data if d.get('symbol','') in allowed]
+            if len(filtered) >= 2:
+                all_data = filtered
 
     scored = []
     for d in all_data:
