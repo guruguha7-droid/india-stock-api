@@ -210,7 +210,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 
 <div id="pg-ml" class="pg">
   <div style="margin-bottom:14px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.7;color:var(--text2)">
-    <strong style="color:var(--text)">How this works:</strong> A Gradient Boosting ML model trained on 5 years of NSE data predicts which stocks are most likely to outperform Nifty 50 in the next 3 months. Model accuracy: <strong style="color:var(--orange)">57.7%</strong> (vs 50% random chance). Results are cached for 1 hour.
+    <strong style="color:var(--text)">How this works:</strong> A Gradient Boosting ML model trained on 5 years of NSE data predicts which stocks are most likely to outperform Nifty 50 in the next 3 months. Model accuracy: <strong style="color:var(--orange)">${d.model_accuracy}%</strong> (vs 50% random chance). Results are cached for 1 hour.
   </div>
   <div class="sbar">
     <span class="sbar-label" id="ml-label">Click to run ML predictions</span>
@@ -400,7 +400,7 @@ async function runML(){
       <table>
         <thead><tr>
           <th>#</th><th>Symbol</th><th>Price (₹)</th>
-          <th>ML Score</th><th>Fund Grade</th><th>Combined</th>
+          <th>ML Score</th><th>Fundamentals</th><th>Combined</th>
           <th>P/E</th><th>Rev Growth</th><th>RSI</th><th>52W Pos</th>
         </tr></thead>
         <tbody>
@@ -415,7 +415,7 @@ async function runML(){
                   <span style="font-size:11px;font-weight:500">${s.ml_score}%</span>
                 </div>
               </td>
-              <td><span class="badge ${s.fund_grade==='A'?'b-green':s.fund_grade==='B'?'b-amber':s.fund_grade==='C'?'b-hold':'b-sell'}">${s.fund_grade}</span></td>
+              <td><span class="badge ${s.inv_grade==='A+'?'b-green':s.inv_grade==='A'?'b-green':s.inv_grade==='B'?'b-amber':'b-red'}">${s.inv_grade}</span></td>
               <td><strong>${s.combined_score}%</strong></td>
               <td>${s.pe_ratio}</td>
               <td class="${s.revenue_growth>=10?'up':s.revenue_growth<0?'dn':''}">${s.revenue_growth}%</td>
@@ -427,13 +427,13 @@ async function runML(){
       </table>
       <h3>Bottom 5 — Likely to underperform</h3>
       <table>
-        <thead><tr><th>Symbol</th><th>ML Score</th><th>Fund Grade</th><th>Combined</th><th>RSI</th><th>52W Pos</th></tr></thead>
+        <thead><tr><th>Symbol</th><th>ML Score</th><th>Fundamentals</th><th>Combined</th><th>RSI</th><th>52W Pos</th></tr></thead>
         <tbody>
           ${d.bottom5.map(s=>`
             <tr>
               <td><strong>${s.symbol}</strong></td>
               <td style="color:var(--red)">${s.ml_score}%</td>
-              <td><span class="badge ${s.fund_grade==='A'?'b-green':s.fund_grade==='B'?'b-amber':s.fund_grade==='C'?'b-hold':'b-sell'}">${s.fund_grade}</span></td>
+              <td><span class="badge ${s.inv_grade==='A+'?'b-green':s.inv_grade==='A'?'b-green':s.inv_grade==='B'?'b-amber':'b-red'}">${s.inv_grade}</span></td>
               <td style="color:var(--red)">${s.combined_score}%</td>
               <td>${s.rsi}</td>
               <td>${s.pos52_pct}%</td>
