@@ -124,7 +124,7 @@ def engineer_features(prices: dict) -> pd.DataFrame:
         stock_s = close.loc[common_idx].reset_index(drop=True)
         nifty_s = nifty.loc[common_idx].reset_index(drop=True)
 
-        step = 21
+        step = 15  # every 3 weeks — more samples
 
         for i in range(200, len(stock_s) - FORWARD_DAYS, step):
             try:
@@ -242,9 +242,10 @@ def train_model(df: pd.DataFrame):
     rf = Pipeline([
         ('scaler', StandardScaler()),
         ('model', RandomForestClassifier(
-            n_estimators=200,
-            max_depth=8,
-            min_samples_leaf=20,
+            n_estimators=300,
+            max_depth=10,
+            min_samples_leaf=15,
+            max_features='sqrt',
             class_weight='balanced',
             random_state=42,
             n_jobs=-1
@@ -258,10 +259,12 @@ def train_model(df: pd.DataFrame):
     gb = Pipeline([
         ('scaler', StandardScaler()),
         ('model', GradientBoostingClassifier(
-            n_estimators=200,
-            max_depth=4,
-            learning_rate=0.05,
-            subsample=0.8,
+            n_estimators=300,
+            max_depth=5,
+            learning_rate=0.03,
+            subsample=0.7,
+            min_samples_leaf=15,
+            max_features=0.8,
             random_state=42
         ))
     ])
