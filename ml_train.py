@@ -19,19 +19,34 @@ warnings.filterwarnings('ignore')
 
 # ── All Nifty 50 stocks ───────────────────────────────────────────────────────
 NSE_STOCKS = [
+    # ── Nifty 50 ──────────────────────────────────────────────
     "HDFCBANK.NS", "ICICIBANK.NS", "KOTAKBANK.NS", "AXISBANK.NS", "SBIN.NS",
     "BAJFINANCE.NS", "BAJAJFINSV.NS", "SHRIRAMFIN.NS",
     "TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTIM.NS",
     "RELIANCE.NS", "ONGC.NS", "BPCL.NS", "IOC.NS", "POWERGRID.NS", "NTPC.NS",
     "ADANIPORTS.NS", "ADANIENT.NS", "TATAPOWER.NS",
     "HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "TATACONSUM.NS",
-    "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS",
-    "HEROMOTOCO.NS", "EICHERMOT.NS",
+    "MARUTI.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS",
     "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "APOLLOHOSP.NS",
     "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "COALINDIA.NS", "VEDL.NS",
-    "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS",
-    "BHARTIARTL.NS",
+    "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "BHARTIARTL.NS",
     "ASIANPAINT.NS", "TITAN.NS",
+    # ── New additions ─────────────────────────────────────────
+    # Banking & Finance
+    "BANKBARODA.NS", "PNB.NS", "CANBK.NS", "MUTHOOTFIN.NS",
+    "CHOLAFIN.NS", "MANAPPURAM.NS",
+    # FMCG & Consumer
+    "MARICO.NS", "DABUR.NS", "COLPAL.NS", "GODREJCP.NS", "EMAMILTD.NS",
+    # Pharma
+    "TORNTPHARM.NS", "LUPIN.NS", "AUROPHARMA.NS", "ALKEM.NS",
+    # IT
+    "PERSISTENT.NS", "MPHASIS.NS", "COFORGE.NS", "KPITTECH.NS",
+    # Auto
+    "TVSMOTOR.NS", "MOTHERSON.NS", "BALKRISIND.NS", "APOLLOTYRE.NS",
+    # Industrials
+    "SIEMENS.NS", "HAVELLS.NS", "ABB.NS", "CUMMINSIND.NS",
+    # Real Estate & Cement
+    "DLF.NS", "OBEROIRLTY.NS", "RAMCOCEM.NS",
 ]
 
 NIFTY = "^NSEI"

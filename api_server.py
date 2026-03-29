@@ -311,15 +311,24 @@ def screen():
 
     if sector != 'any':
         sector_symbols = {
-            'it':             ['TCS','INFY','WIPRO','HCLTECH','TECHM','LTIM'],
-            'banking':        ['HDFCBANK','ICICIBANK','SBIN','AXISBANK','KOTAKBANK','INDUSINDBK','BAJFINANCE','BAJAJFINSV','SHRIRAMFIN'],
-            'fmcg':           ['HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM'],
-            'pharma':         ['SUNPHARMA','DRREDDY','CIPLA','DIVISLAB','APOLLOHOSP'],
-            'auto':           ['MARUTI','TATAMOTORS','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
-            'energy':         ['RELIANCE','ONGC','BPCL','IOC','TATAPOWER','ADANIGREEN','NTPC','POWERGRID','COALINDIA'],
-            'infrastructure': ['LT','ULTRACEMCO','GRASIM','ADANIPORTS','ADANIENT'],
-            'metals':         ['TATASTEEL','JSWSTEEL','HINDALCO','VEDL','COALINDIA'],
-            'chemicals':      ['DIVISLAB','CIPLA'],
+            'it': ['TCS','INFY','WIPRO','HCLTECH','TECHM','LTIM',
+                'PERSISTENT','MPHASIS','COFORGE','KPITTECH'],
+            'banking': ['HDFCBANK','ICICIBANK','SBIN','AXISBANK','KOTAKBANK',
+                        'INDUSINDBK','BAJFINANCE','BAJAJFINSV','SHRIRAMFIN',
+                        'BANKBARODA','PNB','CANBK','CHOLAFIN','MUTHOOTFIN','MANAPPURAM'],
+            'fmcg': ['HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM',
+                    'MARICO','DABUR','COLPAL','GODREJCP','EMAMILTD'],
+            'pharma': ['SUNPHARMA','DRREDDY','CIPLA','DIVISLAB','APOLLOHOSP',
+                    'TORNTPHARM','LUPIN','AUROPHARMA','ALKEM'],
+            'auto': ['MARUTI','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT',
+                    'TVSMOTOR','MOTHERSON','BALKRISIND','APOLLOTYRE'],
+            'energy': ['RELIANCE','ONGC','BPCL','IOC','TATAPOWER',
+                    'ADANIGREEN','NTPC','POWERGRID','COALINDIA'],
+            'infrastructure': ['LT','ULTRACEMCO','GRASIM','ADANIPORTS',
+                            'ADANIENT','SIEMENS','ABB','CUMMINSIND',
+                            'HAVELLS','DLF','OBEROIRLTY','RAMCOCEM'],
+            'metals': ['TATASTEEL','JSWSTEEL','HINDALCO','VEDL','COALINDIA'],
+            'chemicals': ['DIVISLAB','CIPLA','AUROPHARMA'],
         }
         allowed = sector_symbols.get(sector.lower(), [])
         if allowed:

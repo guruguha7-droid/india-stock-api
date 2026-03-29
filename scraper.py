@@ -10,18 +10,34 @@ from datetime import datetime
 
 
 NSE_STOCKS = [
+    # ── Nifty 50 ──────────────────────────────────────────────
     "HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN",
     "BAJFINANCE", "BAJAJFINSV", "SHRIRAMFIN",
     "TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "LTIM",
     "RELIANCE", "ONGC", "BPCL", "IOC", "POWERGRID", "NTPC",
-    "ADANIGREEN", "ADANIPORTS", "ADANIENT", "TATAPOWER",
+    "ADANIPORTS", "ADANIENT", "TATAPOWER",
     "HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "TATACONSUM",
     "MARUTI", "M&M", "BAJAJ-AUTO", "HEROMOTOCO", "EICHERMOT",
     "SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "APOLLOHOSP",
     "TATASTEEL", "JSWSTEEL", "HINDALCO", "COALINDIA", "VEDL",
-    "LT", "ULTRACEMCO", "GRASIM",
-    "BHARTIARTL",
-    "ASIANPAINT", "TITAN", "INDUSINDBK",
+    "LT", "ULTRACEMCO", "GRASIM", "BHARTIARTL",
+    "ASIANPAINT", "TITAN",
+    # ── New additions ─────────────────────────────────────────
+    # Banking & Finance
+    "BANKBARODA", "PNB", "CANBK", "MUTHOOTFIN",
+    "CHOLAFIN", "MANAPPURAM",
+    # FMCG & Consumer
+    "MARICO", "DABUR", "COLPAL", "GODREJCP", "EMAMILTD",
+    # Pharma
+    "TORNTPHARM", "LUPIN", "AUROPHARMA", "ALKEM",
+    # IT
+    "PERSISTENT", "MPHASIS", "COFORGE", "KPITTECH",
+    # Auto
+    "TVSMOTOR", "MOTHERSON", "BALKRISIND", "APOLLOTYRE",
+    # Industrials
+    "SIEMENS", "HAVELLS", "ABB", "CUMMINSIND",
+    # Real Estate & Cement
+    "DLF", "OBEROIRLTY", "RAMCOCEM",
 ]
 
 

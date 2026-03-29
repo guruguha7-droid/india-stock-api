@@ -101,8 +101,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 
 <div class="tabs">
   <button class="tab on" onclick="goTab('wl',this)">Watchlist</button>
-  <button class="tab" onclick="goTab('sc',this)">AI Screener</button>
+  <button class="tab" onclick="goTab('sc',this)">Quant Screener</button>
   <button class="tab" onclick="goTab('rr',this)">Deep Research</button>
+  <button class="tab" onclick="goTab('ml',this)">AI Screener</button>
 </div>
 
 <!-- WATCHLIST -->
@@ -207,11 +208,28 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
   </div>
 </div>
 
-<div class="disc">⚠ Live data from Yahoo Finance via your API at india-stock-api.onrender.com. Prices may be 15 min delayed. AI analysis via Anthropic. Educational use only — not financial advice. Consult a SEBI-registered advisor before investing.</div>
+<div id="pg-ml" class="pg">
+  <div style="margin-bottom:14px;padding:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.7;color:var(--text2)">
+    <strong style="color:var(--text)">How this works:</strong> A Gradient Boosting ML model trained on 5 years of NSE data predicts which stocks are most likely to outperform Nifty 50 in the next 3 months. Model accuracy: <strong style="color:var(--orange)">57.7%</strong> (vs 50% random chance). Results are cached for 1 hour.
+  </div>
+  <div class="sbar">
+    <span class="sbar-label" id="ml-label">Click to run ML predictions</span>
+    <button class="btn" id="ml-btn" onclick="runML()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>
+      Run ML Screener
+    </button>
+  </div>
+  <div id="ml-out" class="empty-card">
+    Click <strong>Run ML Screener</strong> to get AI predictions.<br>
+    Takes 3–4 minutes first time (downloading live data).
+  </div>
+</div>
+
+<div class="disc">⚠ Live data scraped from Yahoo Finance via your own Selenium API at india-stock-api.onrender.com. Prices may be 15 min delayed. Stock screening powered by a custom rule-based quantitative engine. Educational use only — not financial advice. Consult a SEBI-registered advisor before investing.</div>
 
 <script>
 const API = 'https://india-stock-api.onrender.com';
-const ANTHROPIC_API_KEY = 'YOUR_API_KEY_HERE'; // ← paste your Anthropic API key (never commit the real key)
+const GEMINI_KEY = 'AIzaSyBqyUbw0MzXPFIOnF7BnBH_MlG__ywgEkg'; // ← Gemini API key
 
 function goTab(id,el){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
@@ -279,28 +297,32 @@ async function loadIndices(){
     const j = await apiFetch(`${API}/indices`);
     if(j.status==='ok'&&j.data){
       const d=j.data;
-      const set=(id,obj)=>{if(!obj)return;const el=document.getElementById(id);el.textContent=obj.price+(obj.change_pct?' '+obj.change_pct:'');el.className=obj.change_pct&&obj.change_pct.includes('-')?'dn':'up';};
+      const set=(id,obj)=>{if(!obj)return;const el=document.getElementById(id);el.textContent=(obj.price||'—')+(obj.change_pct&&obj.change_pct!=='undefined'?' '+obj.change_pct:'');el.className=obj.change_pct&&obj.change_pct.includes('-')?'dn':'up';};
       set('v-nifty',d.NIFTY_50);set('v-sensex',d.SENSEX);set('v-bnifty',d.BANK_NIFTY);
       if(d.USD_INR)document.getElementById('v-fx').textContent='₹'+d.USD_INR.price;
     }
   }catch(e){console.log('Indices:',e.message);}
 }
 
-async function claudeCall(system,user){
-  if(ANTHROPIC_API_KEY==='YOUR_API_KEY_HERE') throw new Error('Anthropic API key not set — add it to the ANTHROPIC_API_KEY constant in the script');
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,system,messages:[{role:'user',content:user}]})
-  });
-  if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error?.message||`Anthropic API error ${r.status}`);}
-  const j=await r.json();
-  return j.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+async function claudeCall(system, user) {
+    const prompt = system + '\n\n' + user;
+    const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 2000
+                }
+            })
+        }
+    );
+    const j = await r.json();
+    if (j.error) throw new Error(j.error.message);
+    return j.candidates[0].content.parts[0].text;
 }
 
 async function runSC(){
@@ -308,16 +330,31 @@ async function runSC(){
   const out=document.getElementById('sc-out');
   out.className='rbox';out.innerHTML=shims(5);
   const risk=document.getElementById('s-risk').value,focus=document.getElementById('s-focus').value;
-  const sec=document.getElementById('s-sec').value,amt=document.getElementById('s-amt').value||'5,00,000';
-  let ctx='';
+  const sec=document.getElementById('s-sec').value,amt=(document.getElementById('s-amt').value||'500000').replace(/,/g,'');
   try{
-    const j=await apiFetch(`${API}/quotes?symbols=RELIANCE,TCS,HDFCBANK,INFY,ICICIBANK`);
-    if(j.data) ctx='Live NSE prices: '+j.data.map(d=>`${d.symbol} ₹${d.price} ${d.change_pct||''}`).join(' | ');
-  }catch(e){}
-  try{
-    const txt=await claudeCall('You are a senior equity analyst for Indian stock markets. Only recommend NSE/BSE-listed Indian companies. All values in INR.',
-      `${ctx}\n\nInvestor: Risk=${risk}, Focus=${focus}, Sector=${sec==='any'?'all sectors':sec}, Amount=₹${amt}\n\nFind top 10 Indian stocks.\n\n### Top 10 Indian Stocks — ${sec==='any'?'All Sectors':sec} | ${focus} | ${risk}\n\nTable: Ticker | Company | Sector | CMP (₹) | P/E | Mkt Cap | Div Yield | 52W High | Moat | Risk (1–10)\n\n### Investment thesis\n2–3 sentences.\n\n### Key India-specific risks\n3 bullets (RBI, FII, INR, SEBI).\n\n### Portfolio allocation — ₹${amt}\nHow to split.`);
-    out.innerHTML=toHtml(txt);attachCopy(out,txt);
+    const j=await apiFetch(`${API}/screen?risk=${risk}&focus=${focus}&sector=${sec}&amount=${amt}`);
+    if(j.status!=='ok') throw new Error(j.message||'Screening failed');
+    const top=j.top10;
+    let html=`<h3>Top ${top.length} Stocks — Quantitative Analysis | ${sec==='any'?'All Sectors':sec} | ${focus} | ${risk}</h3>`;
+    html+=`<table><thead><tr><th>Ticker</th><th>Price</th><th>P/E</th><th>Mkt Cap</th><th>Div Yield</th><th>Moat</th><th>Score</th><th>Risk</th><th>Allocation</th><th>Why</th></tr></thead><tbody>`;
+    top.forEach(s=>{
+      const up=s.change_pct&&!s.change_pct.includes('-'),cls=up?'up':'dn';
+      html+=`<tr>
+        <td><strong>${s.symbol}</strong></td>
+        <td class="${cls}">₹${s.price||'—'}</td>
+        <td>${s.pe_ratio||'—'}</td>
+        <td>${s.market_cap||'—'}</td>
+        <td>${s.dividend_yield||'—'}</td>
+        <td><span class="badge ${s.moat==='Strong'?'b-green':s.moat==='Moderate'?'b-amber':'b-red'}">${s.moat}</span></td>
+        <td><strong>${s.score}</strong></td>
+        <td>${s.risk_rating}/10</td>
+        <td><strong>${s.allocation||'—'}</strong> <span style="color:var(--text2)">(${s.allocation_pct||''})</span></td>
+        <td style="color:var(--text2);font-size:11px">${(s.reasons||[]).join(' · ')}</td>
+      </tr>`;
+    });
+    html+=`</tbody></table>`;
+    html+=`<p style="color:var(--text2);font-size:11px">Screened ${j.total_screened} NSE stocks using a quantitative rule-based algorithm. Scored by P/E, EPS, momentum, dividend &amp; market cap.</p>`;
+    out.innerHTML=html;
   }catch(e){out.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">Error: ${e.message}</div>`;}
   unspinBtn('sc-btn',`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,'Screen');
 }
@@ -340,6 +377,78 @@ async function runRR(){
     out.innerHTML=toHtml(txt);attachCopy(out,txt);
   }catch(e){out.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">Error: ${e.message}</div>`;}
   unspinBtn('rr-btn',`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,'Analyse');
+}
+
+async function runML(){
+  spinBtn('ml-btn','Running ML model… (3-4 mins)');
+  document.getElementById('ml-label').textContent='Fetching predictions from ML model…';
+  const out=document.getElementById('ml-out');
+  out.className='rbox';out.innerHTML=shims(7);
+  try{
+    const r=await fetch(`${API}/ml-screen`);
+    const j=await r.json();
+    if(j.status!=='ok') throw new Error(j.data?.error||j.message||'API error');
+    const d=j.data;
+    const top10=d.top10;
+    let html=`
+      <h3>Top 10 — Most likely to outperform Nifty (next 3 months)</h3>
+      <p style="font-size:11px;color:var(--text2);margin-bottom:10px">
+        Model accuracy: <strong>${d.model_accuracy}%</strong> ·
+        Stocks screened: <strong>${d.stocks_screened}</strong> ·
+        Generated: <strong>${new Date(d.generated_at).toLocaleTimeString()}</strong>
+      </p>
+      <table>
+        <thead><tr>
+          <th>#</th><th>Symbol</th><th>Price (₹)</th>
+          <th>ML Score</th><th>RSI</th><th>52W Position</th>
+          <th>1M Return</th><th>3M Return</th><th>Golden Cross</th>
+        </tr></thead>
+        <tbody>
+          ${top10.map((s,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td><strong>${s.symbol}</strong></td>
+              <td>₹${parseFloat(s.price).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="width:${s.ml_score}px;max-width:80px;height:6px;background:${s.ml_score>70?'var(--green)':s.ml_score>50?'#d97706':'var(--red)'};border-radius:3px"></div>
+                  <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500">${s.ml_score}%</span>
+                </div>
+              </td>
+              <td class="${s.rsi<30?'up':s.rsi>70?'dn':''}">${s.rsi}</td>
+              <td>${s.pos52_pct}%</td>
+              <td class="${s.ret_1m_pct>=0?'up':'dn'}">${s.ret_1m_pct}%</td>
+              <td class="${s.ret_3m_pct>=0?'up':'dn'}">${s.ret_3m_pct}%</td>
+              <td>${s.golden_cross?'<span class="badge b-green">YES</span>':'<span class="badge b-red">NO</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <h3>Bottom 5 — Likely to underperform</h3>
+      <table>
+        <thead><tr><th>Symbol</th><th>ML Score</th><th>RSI</th><th>52W Position</th></tr></thead>
+        <tbody>
+          ${d.bottom5.map(s=>`
+            <tr>
+              <td><strong>${s.symbol}</strong></td>
+              <td style="color:var(--red)">${s.ml_score}%</td>
+              <td>${s.rsi}</td>
+              <td>${s.pos52_pct}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <h3>What the model learned</h3>
+      <p>Top features: 3-month volatility, 1-year return, relative strength vs Nifty, price vs 50-day MA. The model picks oversold quality stocks near 52W lows that have historically bounced back.</p>
+      <p style="font-size:11px;color:var(--text2);margin-top:8px">⚠ ML predictions are not financial advice. Past patterns don't guarantee future returns.</p>
+    `;
+    out.innerHTML=html;
+    attachCopy(out,JSON.stringify(d,null,2));
+    document.getElementById('ml-label').textContent=`${top10.length} predictions · Accuracy ${d.model_accuracy}% · Cached 1hr`;
+  }catch(e){
+    out.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text2);font-size:12px">Error: ${e.message}<br><br>The ML endpoint may still be loading. Wait 30 seconds and try again.</div>`;
+  }
+  unspinBtn('ml-btn',`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/></svg>`,'Refresh ML Predictions');
 }
 
 function attachCopy(box,txt){
