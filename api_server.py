@@ -345,6 +345,7 @@ def screen():
         })
 
     scored.sort(key=lambda x: x['score'], reverse=True)
+    scored = [s for s in scored if s['score'] > 0]
     top10 = scored[:10]
 
     try:
