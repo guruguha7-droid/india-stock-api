@@ -19,6 +19,7 @@ Endpoints:
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
+from ml_screener import run_ml_screen
 import threading
 import time
 from datetime import datetime
@@ -434,6 +435,17 @@ def health():
         "cached_symbols": len(cache),
         "timestamp": datetime.now().isoformat()
     })
+
+
+# ── ML Screener ───────────────────────────────────────────────────────────────
+@app.route("/ml-screen")
+def ml_screen():
+    try:
+        top_n = int(request.args.get('top', 10))
+        result = run_ml_screen(top_n=top_n)
+        return jsonify({"status": "ok", "data": result})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
