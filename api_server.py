@@ -458,8 +458,21 @@ def ml_screen():
         return jsonify({"status": "error",
                         "message": "ML libraries not installed"}), 503
     try:
+        import math
         top_n = int(request.args.get('top', 10))
         result = run_ml_screen(top_n=top_n)
+
+        # Fix NaN values before JSON serialization
+        def fix_nan(obj):
+            if isinstance(obj, dict):
+                return {k: fix_nan(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [fix_nan(v) for v in obj]
+            elif isinstance(obj, float) and math.isnan(obj):
+                return None
+            return obj
+
+        result = fix_nan(result)
         return jsonify({"status": "ok", "data": result})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500

@@ -247,6 +247,19 @@ def run_ml_screen(top_n=10):
         'all':             results,
     }
 
+    # ── Fix NaN values — JSON doesn't support NaN, only null ─────────
+    import math
+    def fix_nan(obj):
+        if isinstance(obj, dict):
+            return {k: fix_nan(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [fix_nan(v) for v in obj]
+        elif isinstance(obj, float) and math.isnan(obj):
+            return None
+        return obj
+
+    output = fix_nan(output)
+
     _cache['predictions'] = output
     _cache['ts'] = now
     return output
