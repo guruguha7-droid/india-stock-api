@@ -16,7 +16,7 @@ NSE_STOCKS = [
     "RELIANCE", "ONGC", "BPCL", "IOC", "POWERGRID", "NTPC",
     "ADANIGREEN", "ADANIPORTS", "ADANIENT", "TATAPOWER",
     "HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "TATACONSUM",
-    "MARUTI", "TATAMOTORS", "M&M", "BAJAJ-AUTO", "HEROMOTOCO", "EICHERMOT",
+    "MARUTI", "TMPV", "TMCV", "M&M", "BAJAJ-AUTO", "HEROMOTOCO", "EICHERMOT",
     "SUNPHARMA", "DRREDDY", "CIPLA", "DIVISLAB", "APOLLOHOSP",
     "TATASTEEL", "JSWSTEEL", "HINDALCO", "COALINDIA", "VEDL",
     "LT", "ULTRACEMCO", "GRASIM",
@@ -94,7 +94,7 @@ def _fmt_cap(val):
     return f"₹{val:,.0f}"
 
 
-def scrape_all(symbols=None, **kwargs):
+def scrape_all(symbols=None):
     symbols = symbols or NSE_STOCKS
     results = []
     print(f"\nFetching {len(symbols)} NSE stocks via yfinance...\n")
@@ -104,7 +104,7 @@ def scrape_all(symbols=None, **kwargs):
     return pd.DataFrame(results)
 
 
-def create_driver(**kwargs):
+def create_driver():
     """Kept for compatibility — not used with yfinance."""
     return None
 

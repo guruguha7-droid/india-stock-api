@@ -18,7 +18,7 @@ Endpoints:
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from scraper import scrape_stock, scrape_all, NSE_STOCKS
+from scraper import scrape_stock, NSE_STOCKS
 import threading
 import time
 from datetime import datetime
@@ -309,7 +309,7 @@ def screen():
             'banking':        ['HDFCBANK','ICICIBANK','SBIN','AXISBANK','KOTAKBANK','INDUSINDBK','BAJFINANCE','BAJAJFINSV','SHRIRAMFIN'],
             'fmcg':           ['HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM'],
             'pharma':         ['SUNPHARMA','DRREDDY','CIPLA','DIVISLAB','APOLLOHOSP'],
-            'auto':           ['MARUTI','TATAMOTORS','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
+            'auto':           ['MARUTI','TMPV','TMCV','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
             'energy':         ['RELIANCE','ONGC','BPCL','IOC','TATAPOWER','ADANIGREEN','NTPC','POWERGRID','COALINDIA'],
             'infrastructure': ['LT','ULTRACEMCO','GRASIM','ADANIPORTS','ADANIENT'],
             'metals':         ['TATASTEEL','JSWSTEEL','HINDALCO','VEDL','COALINDIA'],
