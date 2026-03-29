@@ -309,7 +309,7 @@ def screen():
             'banking':        ['HDFCBANK','ICICIBANK','SBIN','AXISBANK','KOTAKBANK','INDUSINDBK','BAJFINANCE','BAJAJFINSV','SHRIRAMFIN'],
             'fmcg':           ['HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM'],
             'pharma':         ['SUNPHARMA','DRREDDY','CIPLA','DIVISLAB','APOLLOHOSP'],
-            'auto':           ['MARUTI','TMPV','TMCV','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
+            'auto':           ['MARUTI','TATAMOTORS','M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT'],
             'energy':         ['RELIANCE','ONGC','BPCL','IOC','TATAPOWER','ADANIGREEN','NTPC','POWERGRID','COALINDIA'],
             'infrastructure': ['LT','ULTRACEMCO','GRASIM','ADANIPORTS','ADANIENT'],
             'metals':         ['TATASTEEL','JSWSTEEL','HINDALCO','VEDL','COALINDIA'],
