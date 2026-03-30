@@ -9,6 +9,7 @@ import numpy as np
 import joblib
 import os
 from datetime import datetime
+from news_sentiment import get_sentiment_score
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -138,6 +139,14 @@ def run_ml_screen(top_n=10):
     screener_data = load_screener_fundamentals()
     print(f"  Loaded data for {len(screener_data)} stocks")
 
+    # ── Fetch news sentiment ──────────────────────────────────────────
+    print("  Fetching news sentiment for all stocks...")
+    sentiment_data = {}
+    for sym in NSE_STOCKS:
+        sentiment_data[sym] = get_sentiment_score(sym)
+        time.sleep(0.5)
+    print(f"  Fetched sentiment for {len(sentiment_data)} stocks")
+
     results = []
     for sym in NSE_STOCKS:
         f = get_features(sym, nifty)
@@ -188,12 +197,19 @@ def run_ml_screen(top_n=10):
 
         # ── Combined score ────────────────────────────────────────────
         # 50% ML technical signal
-        # 30% Screener.in 10-year fundamentals
-        # 20% yfinance current valuation
+        # ── News sentiment ────────────────────────────────────────────
+        sent       = sentiment_data.get(sym, {})
+        sent_raw   = float(sent.get('sentiment_score', 0) or 0)
+        sent_label = sent.get('sentiment_label', 'neutral')
+        sent_score = round(50 + sent_raw * 0.5, 1)
+        sent_score = max(0, min(100, sent_score))
+
+        # 40% ML + 25% Screener + 15% yfinance + 20% Sentiment
         combined = round(
-            ml_raw         * 0.50 +
-            screener_score * 0.30 +
-            yfin_score     * 0.20,
+            ml_raw         * 0.40 +
+            screener_score * 0.25 +
+            yfin_score     * 0.15 +
+            sent_score     * 0.20,
             1
         )
 
@@ -234,6 +250,9 @@ def run_ml_screen(top_n=10):
             'rs_3m_pct':       round(f['rs_3m'] * 100, 1),
             'golden_cross':    bool(f['golden_cross']),
             'vol_3m_pct':      round(f['vol_3m'] * 100, 1),
+            'sentiment_score': sent_raw,
+            'sentiment_label': sent_label,
+            'top_headlines':   sent.get('top_headlines', []),
         })
 
     results.sort(key=lambda x: x['combined_score'], reverse=True)
