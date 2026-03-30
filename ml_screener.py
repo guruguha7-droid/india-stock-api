@@ -10,6 +10,7 @@ import joblib
 import os
 from datetime import datetime
 from news_sentiment import get_sentiment_score
+from macro_sentiment import get_macro_sentiment, apply_macro_to_stock
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -147,6 +148,11 @@ def run_ml_screen(top_n=10):
         time.sleep(0.5)
     print(f"  Fetched sentiment for {len(sentiment_data)} stocks")
 
+    # ── Fetch macro sentiment (once for all stocks) ───────────────────
+    print("  Fetching macro/economic sentiment...")
+    macro_data = get_macro_sentiment()
+    print(f"  Fetched {len(macro_data)} macro topics")
+
     results = []
     for sym in NSE_STOCKS:
         f = get_features(sym, nifty)
@@ -204,12 +210,20 @@ def run_ml_screen(top_n=10):
         sent_score = round(50 + sent_raw * 0.5, 1)
         sent_score = max(0, min(100, sent_score))
 
-        # 40% ML + 25% Screener + 15% yfinance + 20% Sentiment
+        # ── Macro sentiment for this stock ────────────────────────────
+        macro       = apply_macro_to_stock(sym, macro_data)
+        macro_raw   = float(macro.get('macro_score', 0) or 0)
+        macro_label = macro.get('macro_label', 'neutral')
+        macro_score = round(50 + macro_raw * 0.5, 1)
+        macro_score = max(0, min(100, macro_score))
+
+        # 35% ML + 20% Screener + 15% yfinance + 15% Company News + 15% Macro
         combined = round(
-            ml_raw         * 0.40 +
-            screener_score * 0.25 +
+            ml_raw         * 0.35 +
+            screener_score * 0.20 +
             yfin_score     * 0.15 +
-            sent_score     * 0.20,
+            sent_score     * 0.15 +
+            macro_score    * 0.15,
             1
         )
 
@@ -253,6 +267,9 @@ def run_ml_screen(top_n=10):
             'sentiment_score': sent_raw,
             'sentiment_label': sent_label,
             'top_headlines':   sent.get('top_headlines', []),
+            'macro_score':     macro_raw,
+            'macro_label':     macro_label,
+            'macro_topics':    macro.get('topics', []),
         })
 
     results.sort(key=lambda x: x['combined_score'], reverse=True)

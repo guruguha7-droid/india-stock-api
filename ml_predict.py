@@ -193,6 +193,12 @@ def run_predictions():
 
     print(f"\n  Got features for {len(all_features)} stocks")
 
+    # ── Fetch macro sentiment ─────────────────────────────────────────
+    print("\n Fetching macro/economic sentiment...")
+    from macro_sentiment import get_macro_sentiment, apply_macro_to_stock
+    macro_data = get_macro_sentiment()
+    print(f"  Fetched {len(macro_data)} macro topics")
+
     # ── Fetch news sentiment ──────────────────────────────────────────
     print("\n Fetching news sentiment for all 79 stocks (takes ~2 mins)...")
     from news_sentiment import get_sentiment_score
@@ -269,12 +275,20 @@ def run_predictions():
         sent_score = round(50 + sent_raw * 0.5, 1)
         sent_score = max(0, min(100, sent_score))
 
-        # 40% ML + 25% Screener + 15% yfinance + 20% Sentiment
+        # ── Macro sentiment for this stock ────────────────────────────
+        macro       = apply_macro_to_stock(sym, macro_data)
+        macro_raw   = float(macro.get('macro_score', 0) or 0)
+        macro_label = macro.get('macro_label', 'neutral')
+        macro_score = round(50 + macro_raw * 0.5, 1)
+        macro_score = max(0, min(100, macro_score))
+
+        # 35% ML + 20% Screener + 15% yfinance + 15% Company News + 15% Macro
         combined = round(
-            ml_raw         * 0.40 +
-            screener_score * 0.25 +
+            ml_raw         * 0.35 +
+            screener_score * 0.20 +
             yfin_score     * 0.15 +
-            sent_score     * 0.20,
+            sent_score     * 0.15 +
+            macro_score    * 0.15,
             1
         )
 
@@ -303,6 +317,8 @@ def run_predictions():
             'rev_growth':     round(rg * 100, 1),
             'sentiment_score': sent_raw,
             'sentiment_label': sent_label,
+            'macro_score':     macro_raw,
+            'macro_label':     macro_label,
             'rsi':             round(f['rsi'], 1),
             'pos52':           round(f['pos52'] * 100, 1),
             'golden_cross':    bool(f['golden_cross']),
@@ -338,7 +354,7 @@ def run_predictions():
 
     pd.DataFrame(results).to_csv('ml_predictions.csv', index=False)
     print(f"\n Saved to ml_predictions.csv")
-    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 40% ML + 25% Screener + 15% yfinance + 20% Sentiment")
+    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 35% ML + 20% Screener + 15% yfinance + 15% Sentiment + 15% Macro")
 
     return results
 
