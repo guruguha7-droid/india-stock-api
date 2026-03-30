@@ -193,6 +193,18 @@ def run_predictions():
 
     print(f"\n  Got features for {len(all_features)} stocks")
 
+    # ── Fetch news sentiment ──────────────────────────────────────────
+    print("\n Fetching news sentiment for all 79 stocks (takes ~2 mins)...")
+    from news_sentiment import get_sentiment_score
+    sentiment_data = {}
+    for i, f in enumerate(all_features, 1):
+        sym = f['symbol']
+        print(f"  [{i:2d}/{len(all_features)}] {sym}...", end=' ', flush=True)
+        sent = get_sentiment_score(sym)
+        sentiment_data[sym] = sent
+        print(f"{sent['sentiment_label']} ({sent['sentiment_score']:+.0f})")
+        time.sleep(0.8)
+
     # ── Fetch fundamentals ─────────────────────────────────────────────
     print("\n Fetching fundamentals for all stocks...")
     fundamentals = {}
@@ -250,7 +262,21 @@ def run_predictions():
         elif rg < -0.05:yfin_score -= 8
         yfin_score = max(0, min(100, yfin_score))
 
-        combined = round(ml_raw * 0.50 + screener_score * 0.30 + yfin_score * 0.20, 1)
+        # ── News sentiment ────────────────────────────────────────────
+        sent       = sentiment_data.get(sym, {})
+        sent_raw   = float(sent.get('sentiment_score', 0) or 0)
+        sent_label = sent.get('sentiment_label', 'neutral')
+        sent_score = round(50 + sent_raw * 0.5, 1)
+        sent_score = max(0, min(100, sent_score))
+
+        # 40% ML + 25% Screener + 15% yfinance + 20% Sentiment
+        combined = round(
+            ml_raw         * 0.40 +
+            screener_score * 0.25 +
+            yfin_score     * 0.15 +
+            sent_score     * 0.20,
+            1
+        )
 
         if combined >= 80:   inv_grade = 'A+'
         elif combined >= 70: inv_grade = 'A'
@@ -275,32 +301,32 @@ def run_predictions():
             'pe':             round(pe, 1),
             'profit_margin':  round(pm * 100, 1),
             'rev_growth':     round(rg * 100, 1),
-            'rsi':            round(f['rsi'], 1),
-            'pos52':          round(f['pos52'] * 100, 1),
-            'golden_cross':   bool(f['golden_cross']),
+            'sentiment_score': sent_raw,
+            'sentiment_label': sent_label,
+            'rsi':             round(f['rsi'], 1),
+            'pos52':           round(f['pos52'] * 100, 1),
+            'golden_cross':    bool(f['golden_cross']),
         })
 
     results.sort(key=lambda x: x['combined'], reverse=True)
 
     # Display
-    print("\n" + "="*85)
-    print("  TOP 10 — Combined ML + Screener + yfinance Score")
-    print("="*85)
+    print("\n" + "="*75)
+    print("  TOP 10 — Combined ML + Screener + yfinance + Sentiment Score")
+    print("="*75)
     print(f"\n{'#':<4}{'SYMBOL':<14}{'PRICE':<13}{'ML%':<8}{'SCR':<6}"
-          f"{'YFIN':<6}{'COMB':<8}{'GRD':<5}{'ROCE':<7}{'SCR_GRD':<9}{'PROMO':<8}{'RSI'}")
-    print("-"*85)
+          f"{'SENT':<8}{'COMB':<8}{'GRD':<5}{'SENTIMENT'}")
+    print("-"*75)
     for i, r in enumerate(results[:10], 1):
+        sent_icon = 'POS' if r['sentiment_label'] == 'positive' else 'NEG' if r['sentiment_label'] == 'negative' else 'NEU'
         print(f"{i:<4}{r['symbol']:<14}"
               f"₹{r['price']:<12,.0f}"
               f"{r['ml_score']:<8.1f}"
               f"{r['screener_score']:<6.0f}"
-              f"{r['yfin_score']:<6.0f}"
+              f"{r['sentiment_score']:+.0f}    "
               f"{r['combined']:<8.1f}"
               f"{r['inv_grade']:<5}"
-              f"{r['roce']:<7.0f}"
-              f"{r['screener_grade']:<9}"
-              f"{r['promoter_pct']:<8.1f}"
-              f"{r['rsi']:.1f}")
+              f"[{sent_icon}] {r['sentiment_label']}")
 
     print("\n" + "="*85)
     print("  BOTTOM 5 — Avoid these")
@@ -312,7 +338,7 @@ def run_predictions():
 
     pd.DataFrame(results).to_csv('ml_predictions.csv', index=False)
     print(f"\n Saved to ml_predictions.csv")
-    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 50% ML + 30% Screener + 20% yfinance")
+    print(f" Model: {accuracy*100:.1f}% accuracy | Combined = 40% ML + 25% Screener + 15% yfinance + 20% Sentiment")
 
     return results
 
