@@ -251,6 +251,113 @@ MACRO_TOPICS = {
             'budget cut', 'reduced allocation', 'price control'
         ],
     },
+
+    'monsoon': {
+        'query': 'India monsoon rainfall 2026 IMD forecast agriculture',
+        'affects': [
+            'HINDUNILVR', 'ITC', 'MARICO', 'DABUR', 'COLPAL',
+            'GODREJCP', 'EMAMILTD', 'TATACONSUM', 'BRITANNIA',
+            'MARUTI', 'HEROMOTOCO', 'BAJAJ-AUTO'
+        ],
+        'weight': 0.7,
+        'invert': False,
+        'extra_positive': [
+            'normal monsoon', 'above normal', 'good rainfall',
+            'adequate rain', 'bumper crop', 'kharif'
+        ],
+        'extra_negative': [
+            'deficient monsoon', 'drought', 'below normal',
+            'poor rainfall', 'el nino', 'crop failure'
+        ],
+    },
+
+    'gst_collections': {
+        'query': 'India GST collection revenue 2026',
+        'affects': 'all',
+        'weight': 0.5,
+        'invert': False,
+        'extra_positive': [
+            'record gst', 'high collection', 'growth', 'buoyant',
+            'strong revenue', 'exceeds target'
+        ],
+        'extra_negative': [
+            'gst miss', 'low collection', 'decline', 'below target',
+            'shortfall', 'weak revenue'
+        ],
+    },
+
+    'china_slowdown': {
+        'query': 'China economy slowdown PMI demand 2026',
+        'affects': [
+            'TATASTEEL', 'JSWSTEEL', 'HINDALCO', 'VEDL',
+            'COALINDIA', 'ADANIPORTS'
+        ],
+        'weight': 0.8,
+        'invert': True,  # China slowdown = less demand for metals = bad
+        'extra_positive': ['china growth', 'stimulus', 'recovery', 'demand surge'],
+        'extra_negative': ['china slowdown', 'contraction', 'property crisis', 'weak demand'],
+    },
+
+    'us_recession': {
+        'query': 'US recession economy slowdown 2026',
+        'affects': [
+            'TCS', 'INFY', 'WIPRO', 'HCLTECH', 'TECHM',
+            'LTIM', 'PERSISTENT', 'MPHASIS', 'COFORGE',
+            'SUNPHARMA', 'DRREDDY', 'CIPLA', 'LUPIN'
+        ],
+        'weight': 0.9,
+        'invert': False,
+        'extra_positive': ['soft landing', 'recovery', 'strong jobs', 'gdp growth'],
+        'extra_negative': ['recession', 'slowdown', 'job cuts', 'gdp contraction', 'tariff'],
+    },
+
+    'dollar_index': {
+        'query': 'US dollar index DXY strength India emerging markets 2026',
+        'affects': 'all',
+        'weight': 0.5,
+        'invert': True,  # strong dollar = bad for emerging markets like India
+        'extra_positive': ['dollar weakens', 'dxy falls', 'emerging market rally'],
+        'extra_negative': ['dollar strengthens', 'dxy rises', 'capital outflow', 'fii selling'],
+    },
+
+    'iip_pmi': {
+        'query': 'India IIP PMI manufacturing industrial production 2026',
+        'affects': [
+            'LT', 'SIEMENS', 'ABB', 'CUMMINSIND', 'HAVELLS',
+            'TATASTEEL', 'JSWSTEEL', 'ULTRACEMCO', 'GRASIM',
+            'MOTHERSON', 'BALKRISIND', 'APOLLOTYRE'
+        ],
+        'weight': 0.7,
+        'invert': False,
+        'extra_positive': ['pmi expansion', 'iip growth', 'manufacturing growth',
+                           'above 50', 'record output'],
+        'extra_negative': ['pmi contraction', 'iip decline', 'below 50',
+                           'manufacturing slowdown', 'weak output'],
+    },
+
+    'geopolitical': {
+        'query': 'India geopolitical war conflict tension 2026',
+        'affects': 'all',
+        'weight': 0.6,
+        'invert': False,
+        'extra_positive': ['peace', 'ceasefire', 'resolution', 'trade deal', 'diplomacy'],
+        'extra_negative': ['war', 'conflict', 'tension', 'sanctions', 'attack',
+                           'escalation', 'missile', 'border'],
+    },
+
+    'npa_banking': {
+        'query': 'India NPA gross bad loans banking sector RBI 2026',
+        'affects': [
+            'HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK',
+            'BANKBARODA', 'PNB', 'CANBK', 'BAJFINANCE', 'CHOLAFIN'
+        ],
+        'weight': 0.8,
+        'invert': False,
+        'extra_positive': ['npa declines', 'asset quality improves', 'recovery',
+                           'provision coverage', 'clean books'],
+        'extra_negative': ['npa rises', 'bad loans increase', 'stress',
+                           'restructuring', 'write-off'],
+    },
 }
 
 
