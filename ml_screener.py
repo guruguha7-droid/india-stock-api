@@ -10,7 +10,6 @@ import joblib
 import os
 from datetime import datetime
 from news_sentiment import get_sentiment_score
-from macro_sentiment import get_macro_sentiment, apply_macro_to_stock
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -36,9 +35,18 @@ NSE_STOCKS = [
     "DLF", "OBEROIRLTY", "RAMCOCEM",
 ]
 
-# Cache predictions for 1 hour
-_cache = {'predictions': None, 'ts': 0}
-CACHE_TTL = 3600
+# Separate caches for different data types
+_cache = {
+    'ml_features':  {'data': None, 'ts': 0},  # ML + Screener + yfinance
+    'company_news': {'data': None, 'ts': 0},  # Company sentiment
+    'macro_news':   {'data': None, 'ts': 0},  # Macro sentiment
+    'combined':     {'data': None, 'ts': 0},  # Final combined output
+}
+
+ML_TTL       = 21600  # 6 hours  — ML features don't change fast
+NEWS_TTL     = 1800   # 30 mins  — Company news changes fast
+MACRO_TTL    = 7200   # 2 hours  — Macro news changes moderately
+COMBINED_TTL = 1800   # 30 mins  — Combined refreshes when news refreshes
 
 
 def load_screener_fundamentals() -> dict:
@@ -112,68 +120,172 @@ def get_features(sym, nifty_close):
         return None
 
 
-def run_ml_screen(top_n=10):
+def get_ml_features(nifty_close):
+    """Compute ML features for all stocks. Cached 6 hours."""
     import time
-    now = time.time()
+    now   = time.time()
+    cache = _cache['ml_features']
 
-    if _cache['predictions'] and (now - _cache['ts']) < CACHE_TTL:
-        return _cache['predictions']
+    if cache['data'] and (now - cache['ts']) < ML_TTL:
+        print("  ML features: using cache")
+        return cache['data']
 
+    print("  ML features: computing fresh...")
     model_path = os.path.join(os.path.dirname(__file__), 'ml_model.pkl')
     if not os.path.exists(model_path):
-        return {'error': 'Model not trained yet. Run ml_train.py first.'}
+        return None
 
     saved    = joblib.load(model_path)
     model    = saved['model']
     features = saved['features']
     accuracy = saved['accuracy']
 
-    nf = yf.download("^NSEI", period="2y", interval="1d",
-                     auto_adjust=True, progress=False)
-    if hasattr(nf.columns, 'levels'):
-        nf.columns = nf.columns.get_level_values(0)
-    nifty = pd.Series(nf['Close'].squeeze().values,
-                      index=nf.index, dtype=float)
-
-    # Load Screener.in fundamentals
-    print("  Loading Screener.in fundamental data...")
-    screener_data = load_screener_fundamentals()
-    print(f"  Loaded data for {len(screener_data)} stocks")
-
-    # ── Fetch news sentiment ──────────────────────────────────────────
-    print("  Fetching news sentiment for all stocks...")
-    sentiment_data = {}
+    all_features = []
     for sym in NSE_STOCKS:
+        f = get_features(sym, nifty_close)
+        if f:
+            all_features.append(f)
+
+    # Screener fundamentals
+    screener_data = load_screener_fundamentals()
+
+    # yfinance fundamentals
+    yfin_data = {}
+    for sym in NSE_STOCKS:
+        try:
+            info = yf.Ticker(f"{sym}.NS").info
+            yfin_data[sym] = {
+                'pe': float(info.get('trailingPE')    or 20),
+                'pm': float(info.get('profitMargins') or 0.10),
+                'rg': float(info.get('revenueGrowth') or 0.10),
+                'eg': float(info.get('earningsGrowth')or 0.10),
+            }
+        except Exception:
+            yfin_data[sym] = {'pe': 20, 'pm': 0.10, 'rg': 0.10, 'eg': 0.10}
+
+    result = {
+        'model':         model,
+        'features':      features,
+        'accuracy':      accuracy,
+        'all_features':  all_features,
+        'screener_data': screener_data,
+        'yfin_data':     yfin_data,
+    }
+    cache['data'] = result
+    cache['ts']   = now
+    return result
+
+
+def get_company_news(all_features):
+    """Fetch company news sentiment. Cached 30 minutes."""
+    import time
+    now   = time.time()
+    cache = _cache['company_news']
+
+    if cache['data'] and (now - cache['ts']) < NEWS_TTL:
+        print("  Company news: using cache (refreshes every 30 mins)")
+        return cache['data']
+
+    print("  Company news: fetching fresh...")
+    sentiment_data = {}
+    for f in all_features:
+        sym = f['symbol']
         sentiment_data[sym] = get_sentiment_score(sym)
         time.sleep(0.5)
-    print(f"  Fetched sentiment for {len(sentiment_data)} stocks")
 
-    # ── Fetch macro sentiment (once for all stocks) ───────────────────
-    print("  Fetching macro/economic sentiment...")
+    cache['data'] = sentiment_data
+    cache['ts']   = now
+    return sentiment_data
+
+
+def get_macro_news():
+    """Fetch macro sentiment. Cached 2 hours."""
+    import time
+    now   = time.time()
+    cache = _cache['macro_news']
+
+    if cache['data'] and (now - cache['ts']) < MACRO_TTL:
+        print("  Macro news: using cache (refreshes every 2 hrs)")
+        return cache['data']
+
+    print("  Macro news: fetching fresh...")
+    from macro_sentiment import get_macro_sentiment
     macro_data = get_macro_sentiment()
-    print(f"  Fetched {len(macro_data)} macro topics")
 
+    cache['data'] = macro_data
+    cache['ts']   = now
+    return macro_data
+
+
+def run_ml_screen(top_n=10):
+    """
+    Main screening function with separate caches:
+    - ML features:    6 hours
+    - Company news:   30 minutes
+    - Macro news:     2 hours
+    - Combined score: recalculated when any cache is fresh
+    """
+    import time, math
+    now = time.time()
+
+    # Invalidate combined if news cache is stale
+    combined_cache = _cache['combined']
+    news_cache     = _cache['company_news']
+    if news_cache['ts'] > combined_cache['ts']:
+        combined_cache['data'] = None
+
+    if combined_cache['data'] and (now - combined_cache['ts']) < COMBINED_TTL:
+        print("  Combined: using cache")
+        return combined_cache['data']
+
+    # ── Download Nifty benchmark ──────────────────────────────────────
+    print("  Downloading Nifty benchmark...")
+    nifty_df = None
+    for _ in range(3):
+        try:
+            nifty_df = yf.download("^NSEI", period="2y", interval="1d",
+                                   auto_adjust=True, progress=False)
+            if len(nifty_df) > 100:
+                break
+            time.sleep(15)
+        except Exception:
+            time.sleep(15)
+
+    if nifty_df is None or len(nifty_df) < 100:
+        return {'error': 'Could not download Nifty data'}
+
+    if hasattr(nifty_df.columns, 'levels'):
+        nifty_df.columns = nifty_df.columns.get_level_values(0)
+    nifty_close = pd.Series(nifty_df['Close'].squeeze().values,
+                            index=nifty_df.index, dtype=float)
+
+    # ── Get all data layers ───────────────────────────────────────────
+    ml_data = get_ml_features(nifty_close)
+    if not ml_data:
+        return {'error': 'Model not trained yet. Run ml_train.py first.'}
+
+    company_news = get_company_news(ml_data['all_features'])
+    macro_data   = get_macro_news()
+
+    model         = ml_data['model']
+    features      = ml_data['features']
+    accuracy      = ml_data['accuracy']
+    all_features  = ml_data['all_features']
+    screener_data = ml_data['screener_data']
+    yfin_data     = ml_data['yfin_data']
+
+    # ── Score all stocks ──────────────────────────────────────────────
+    from macro_sentiment import apply_macro_to_stock
     results = []
-    for sym in NSE_STOCKS:
-        f = get_features(sym, nifty)
-        if not f:
-            continue
+
+    for f in all_features:
+        sym  = f['symbol']
         X    = pd.DataFrame([{k: f[k] for k in features}])
         prob = float(model.predict_proba(X)[0][1])
         pred = int(model.predict(X)[0])
         ml_raw = round(prob * 100, 1)
 
-        # ── yfinance quick fundamentals ───────────────────────────────
-        try:
-            info = yf.Ticker(f"{sym}.NS").info
-            pe    = float(info.get('trailingPE')    or 20)
-            pm    = float(info.get('profitMargins') or 0.10)
-            rg    = float(info.get('revenueGrowth') or 0.10)
-            eg    = float(info.get('earningsGrowth')or 0.10)
-        except Exception:
-            pe,pm,rg,eg = 20,0.10,0.10,0.10
-
-        # ── Screener.in fundamentals ──────────────────────────────────
+        # Screener fundamentals
         sc             = screener_data.get(sym, {})
         screener_score = float(sc.get('investment_score', 50) or 50)
         screener_grade = sc.get('investment_grade', 'C') or 'C'
@@ -184,7 +296,13 @@ def run_ml_screen(top_n=10):
         fcf_positive   = bool(sc.get('fcf_positive_3y', False))
         debt_reducing  = bool(sc.get('debt_reducing', False))
 
-        # ── yfinance valuation score (0-100) ──────────────────────────
+        # yfinance fundamentals
+        yf_d = yfin_data.get(sym, {})
+        pe = float(yf_d.get('pe', 20) or 20)
+        pm = float(yf_d.get('pm', 0.10) or 0.10)
+        rg = float(yf_d.get('rg', 0.10) or 0.10)
+        eg = float(yf_d.get('eg', 0.10) or 0.10)
+
         yfin_score = 50
         if pe < 12:     yfin_score += 20
         elif pe < 18:   yfin_score += 12
@@ -201,23 +319,21 @@ def run_ml_screen(top_n=10):
         elif eg < -0.10:yfin_score -= 8
         yfin_score = max(0, min(100, yfin_score))
 
-        # ── Combined score ────────────────────────────────────────────
-        # 50% ML technical signal
-        # ── News sentiment ────────────────────────────────────────────
-        sent       = sentiment_data.get(sym, {})
+        # Company news sentiment
+        sent       = company_news.get(sym, {})
         sent_raw   = float(sent.get('sentiment_score', 0) or 0)
         sent_label = sent.get('sentiment_label', 'neutral')
         sent_score = round(50 + sent_raw * 0.5, 1)
         sent_score = max(0, min(100, sent_score))
 
-        # ── Macro sentiment for this stock ────────────────────────────
+        # Macro sentiment
         macro       = apply_macro_to_stock(sym, macro_data)
         macro_raw   = float(macro.get('macro_score', 0) or 0)
         macro_label = macro.get('macro_label', 'neutral')
         macro_score = round(50 + macro_raw * 0.5, 1)
         macro_score = max(0, min(100, macro_score))
 
-        # 35% ML + 20% Screener + 15% yfinance + 15% Company News + 15% Macro
+        # 5-layer combined score
         combined = round(
             ml_raw         * 0.35 +
             screener_score * 0.20 +
@@ -227,7 +343,6 @@ def run_ml_screen(top_n=10):
             1
         )
 
-        # ── Overall investment grade ──────────────────────────────────
         if combined >= 80:   inv_grade = 'A+'
         elif combined >= 70: inv_grade = 'A'
         elif combined >= 60: inv_grade = 'B'
@@ -237,26 +352,26 @@ def run_ml_screen(top_n=10):
         results.append({
             'symbol':          sym,
             'price':           f['price'],
-            # Scores
             'ml_score':        ml_raw,
             'screener_score':  round(screener_score, 1),
+            'screener_grade':  screener_grade,
             'yfin_score':      round(yfin_score, 1),
+            'sentiment_score': sent_raw,
+            'sentiment_label': sent_label,
+            'macro_score':     macro_raw,
+            'macro_label':     macro_label,
             'combined_score':  combined,
             'prediction':      'OUTPERFORM' if pred == 1 else 'UNDERPERFORM',
             'inv_grade':       inv_grade,
-            # Screener fundamentals
             'roce':            roce,
             'sales_cagr_5y':   sales_cagr_5y,
             'profit_cagr_5y':  profit_cagr_5y,
             'promoter_pct':    promoter_pct,
             'fcf_positive':    fcf_positive,
             'debt_reducing':   debt_reducing,
-            'screener_grade':  screener_grade,
-            # yfinance
             'pe_ratio':        round(pe, 1),
             'profit_margin':   round(pm * 100, 1),
             'revenue_growth':  round(rg * 100, 1),
-            # Technical
             'rsi':             round(f['rsi'], 1),
             'pos52_pct':       round(f['pos52'] * 100, 1),
             'ret_1m_pct':      round(f['ret_1m'] * 100, 1),
@@ -264,27 +379,12 @@ def run_ml_screen(top_n=10):
             'rs_3m_pct':       round(f['rs_3m'] * 100, 1),
             'golden_cross':    bool(f['golden_cross']),
             'vol_3m_pct':      round(f['vol_3m'] * 100, 1),
-            'sentiment_score': sent_raw,
-            'sentiment_label': sent_label,
             'top_headlines':   sent.get('top_headlines', []),
-            'macro_score':     macro_raw,
-            'macro_label':     macro_label,
             'macro_topics':    macro.get('topics', []),
         })
 
     results.sort(key=lambda x: x['combined_score'], reverse=True)
 
-    output = {
-        'generated_at':    datetime.now().isoformat(),
-        'model_accuracy':  round(accuracy * 100, 1),
-        'stocks_screened': len(results),
-        'top10':           results[:top_n],
-        'bottom5':         results[-5:],
-        'all':             results,
-    }
-
-    # ── Fix NaN values — JSON doesn't support NaN, only null ─────────
-    import math
     def fix_nan(obj):
         if isinstance(obj, dict):
             return {k: fix_nan(v) for k, v in obj.items()}
@@ -294,8 +394,20 @@ def run_ml_screen(top_n=10):
             return None
         return obj
 
-    output = fix_nan(output)
+    output = fix_nan({
+        'generated_at':    datetime.now().isoformat(),
+        'model_accuracy':  round(accuracy * 100, 1),
+        'stocks_screened': len(results),
+        'cache_info': {
+            'ml_features_age_mins':  round((now - _cache['ml_features']['ts']) / 60, 1),
+            'company_news_age_mins': round((now - _cache['company_news']['ts']) / 60, 1),
+            'macro_news_age_mins':   round((now - _cache['macro_news']['ts']) / 60, 1),
+        },
+        'top10':   results[:top_n],
+        'bottom5': results[-5:],
+        'all':     results,
+    })
 
-    _cache['predictions'] = output
-    _cache['ts'] = now
+    combined_cache['data'] = output
+    combined_cache['ts']   = now
     return output
