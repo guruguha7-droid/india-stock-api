@@ -16,6 +16,7 @@ Endpoints:
     GET /health                         — health check
 """
 
+import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
@@ -476,6 +477,189 @@ def ml_screen():
         return jsonify({"status": "ok", "data": result})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+
+# ── Single-stock deep analysis ────────────────────────────────────────────────
+@app.route("/stock-analysis")
+def stock_analysis():
+    symbol = request.args.get("symbol", "").upper().strip()
+    if not symbol:
+        return jsonify({"error": "symbol required"}), 400
+
+    import math
+    import yfinance as yf
+    from news_sentiment import get_sentiment_score
+    from macro_sentiment import get_macro_sentiment, apply_macro_to_stock
+
+    result = {"symbol": symbol, "status": "ok"}
+
+    # ── 1. Live quote (fast) ──────────────────────────────────────────
+    try:
+        result["quote"] = scrape_stock(symbol)
+    except Exception as e:
+        result["quote"] = {"error": str(e)}
+
+    # ── 2. ML prediction for this stock only ─────────────────────────
+    try:
+        import joblib
+        import pandas as pd
+
+        model_path = os.path.join(os.path.dirname(__file__), 'ml_model.pkl')
+        saved    = joblib.load(model_path)
+        model    = saved['model']
+        features = saved['features']
+        accuracy = saved['accuracy']
+
+        nifty_df = yf.download("^NSEI", period="2y", interval="1d",
+                               auto_adjust=True, progress=False)
+        if hasattr(nifty_df.columns, 'levels'):
+            nifty_df.columns = nifty_df.columns.get_level_values(0)
+        nifty_close = pd.Series(nifty_df['Close'].squeeze().values,
+                                index=nifty_df.index, dtype=float)
+
+        from ml_screener import get_features
+        f = get_features(symbol, nifty_close)
+
+        if f:
+            X    = pd.DataFrame([{k: f[k] for k in features}])
+            prob = float(model.predict_proba(X)[0][1])
+            pred = int(model.predict(X)[0])
+            result["ml"] = {
+                "ml_score":     round(prob * 100, 1),
+                "prediction":   "OUTPERFORM" if pred == 1 else "UNDERPERFORM",
+                "accuracy":     round(accuracy * 100, 1),
+                "rsi":          round(f['rsi'], 1),
+                "pos52_pct":    round(f['pos52'] * 100, 1),
+                "ret_1m_pct":   round(f['ret_1m'] * 100, 1),
+                "ret_3m_pct":   round(f['ret_3m'] * 100, 1),
+                "golden_cross": bool(f['golden_cross']),
+            }
+        else:
+            result["ml"] = {"error": "Could not compute features"}
+
+    except Exception as e:
+        result["ml"] = {"error": str(e)}
+
+    # ── 3. Screener fundamentals (from CSV cache) ─────────────────────
+    try:
+        import pandas as pd
+        sdf = pd.read_csv(
+            os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+        row = sdf[sdf['symbol'] == symbol]
+        if not row.empty:
+            r = row.iloc[0].to_dict()
+            result["fundamentals"] = {
+                "roce":             r.get('roce_latest_pct'),
+                "sales_cagr_5y":    r.get('sales_cagr_5y'),
+                "profit_cagr_5y":   r.get('profit_cagr_5y'),
+                "promoter_pct":     r.get('promoter_pct'),
+                "fcf_positive_3y":  r.get('fcf_positive_3y'),
+                "debt_reducing":    r.get('debt_reducing'),
+                "investment_score": r.get('investment_score'),
+                "investment_grade": r.get('investment_grade'),
+                "opm_latest_pct":   r.get('opm_latest_pct'),
+                "roce_avg_5y":      r.get('roce_avg_5y'),
+            }
+        else:
+            result["fundamentals"] = {"error": "Not in screener data"}
+    except Exception as e:
+        result["fundamentals"] = {"error": str(e)}
+
+    # ── 4. yfinance current valuation ─────────────────────────────────
+    try:
+        info = yf.Ticker(f"{symbol}.NS").info
+        result["valuation"] = {
+            "pe_ratio":       info.get('trailingPE'),
+            "pb_ratio":       info.get('priceToBook'),
+            "profit_margin":  info.get('profitMargins'),
+            "revenue_growth": info.get('revenueGrowth'),
+            "earnings_growth":info.get('earningsGrowth'),
+            "debt_to_equity": info.get('debtToEquity'),
+        }
+    except Exception as e:
+        result["valuation"] = {"error": str(e)}
+
+    # ── 5. Company news sentiment ─────────────────────────────────────
+    try:
+        result["sentiment"] = get_sentiment_score(symbol)
+    except Exception as e:
+        result["sentiment"] = {"error": str(e)}
+
+    # ── 6. Macro sentiment (use ml_screener cache if warm) ────────────
+    try:
+        from ml_screener import _cache
+        macro_cache = _cache.get('macro_news', {})
+        if macro_cache.get('data'):
+            macro_data = macro_cache['data']
+        else:
+            macro_data = get_macro_sentiment()
+        result["macro"] = apply_macro_to_stock(symbol, macro_data)
+    except Exception as e:
+        result["macro"] = {"error": str(e)}
+
+    # ── 7. Combined score ─────────────────────────────────────────────
+    try:
+        ml_raw  = result.get("ml", {}).get("ml_score", 50) or 50
+        scr_raw = result.get("fundamentals", {}).get("investment_score", 50) or 50
+
+        pe = result.get("valuation", {}).get("pe_ratio") or 20
+        pm = result.get("valuation", {}).get("profit_margin") or 0.10
+        rg = result.get("valuation", {}).get("revenue_growth") or 0.10
+
+        yfin_score = 50
+        if pe < 12:      yfin_score += 20
+        elif pe < 18:    yfin_score += 12
+        elif pe < 25:    yfin_score += 5
+        elif pe > 40:    yfin_score -= 15
+        if pm > 0.20:    yfin_score += 10
+        elif pm > 0.12:  yfin_score += 5
+        elif pm < 0:     yfin_score -= 15
+        if rg > 0.15:    yfin_score += 10
+        elif rg > 0.08:  yfin_score += 5
+        elif rg < -0.05: yfin_score -= 8
+        yfin_score = max(0, min(100, yfin_score))
+
+        sent_raw   = result.get("sentiment", {}).get("sentiment_score", 0) or 0
+        sent_score = max(0, min(100, 50 + sent_raw * 0.5))
+
+        macro_raw   = result.get("macro", {}).get("macro_score", 0) or 0
+        macro_score = max(0, min(100, 50 + macro_raw * 0.5))
+
+        combined = round(
+            ml_raw      * 0.35 +
+            scr_raw     * 0.20 +
+            yfin_score  * 0.15 +
+            sent_score  * 0.15 +
+            macro_score * 0.15, 1)
+
+        if combined >= 80:   grade = 'A+'
+        elif combined >= 70: grade = 'A'
+        elif combined >= 60: grade = 'B'
+        elif combined >= 50: grade = 'C'
+        else:                grade = 'D'
+
+        result["combined"] = {
+            "score":       combined,
+            "grade":       grade,
+            "ml_weight":   ml_raw,
+            "scr_weight":  scr_raw,
+            "yfin_score":  round(yfin_score, 1),
+            "sent_score":  round(sent_score, 1),
+            "macro_score": round(macro_score, 1),
+        }
+    except Exception as e:
+        result["combined"] = {"error": str(e)}
+
+    def fix_nan(obj):
+        if isinstance(obj, dict):
+            return {k: fix_nan(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [fix_nan(v) for v in obj]
+        elif isinstance(obj, float) and math.isnan(obj):
+            return None
+        return obj
+
+    return jsonify(fix_nan(result))
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────

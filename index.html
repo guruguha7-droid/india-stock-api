@@ -353,17 +353,18 @@ async function doSearch() {
   showLoading(sym);
 
   try {
-    // Fetch all data in parallel
-    const [quoteRes, mlRes] = await Promise.all([
-      fetch(`${API}/quote?symbol=${sym}`).then(r => r.json()).catch(() => null),
-      fetch(`${API}/ml-screen`).then(r => r.json()).catch(() => null),
-    ]);
+    const analysisRes = await fetch(`${API}/stock-analysis?symbol=${sym}`)
+      .then(r => r.json()).catch(() => null);
 
-    const quote = quoteRes?.data || null;
-    const mlAll = mlRes?.data?.all || [];
-    const mlStock = mlAll.find(s => s.symbol === sym) || null;
+    const quote     = analysisRes?.quote     || null;
+    const ml        = analysisRes?.ml        || null;
+    const fund      = analysisRes?.fundamentals || null;
+    const valuation = analysisRes?.valuation || null;
+    const sentiment = analysisRes?.sentiment || null;
+    const macro     = analysisRes?.macro     || null;
+    const combined  = analysisRes?.combined  || null;
 
-    renderResult(sym, quote, mlStock);
+    renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined);
   } catch(e) {
     showError(e.message);
   }
@@ -410,14 +411,14 @@ function showError(msg) {
 }
 
 // ── Render the full result ────────────────────────────────────────────────────
-function renderResult(sym, quote, ml) {
+function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined) {
   const up = q => q && parseFloat(q.toString().replace(/[^0-9.-]/g,'')) >= 0;
 
   // Price data
-  const price     = quote?.price || ml?.price || '—';
+  const price     = quote?.price || '—';
   const change    = quote?.change || '—';
   const changePct = quote?.change_pct || '—';
-  const pe        = quote?.pe_ratio || ml?.pe_ratio || '—';
+  const pe        = quote?.pe_ratio || valuation?.pe_ratio || '—';
   const eps       = quote?.eps ? `₹${quote.eps}` : '—';
   const high52    = quote?.week52_high ? `₹${quote.week52_high}` : '—';
   const low52     = quote?.week52_low  ? `₹${quote.week52_low}`  : '—';
@@ -426,24 +427,24 @@ function renderResult(sym, quote, ml) {
   const isUp      = change !== '—' && !change.toString().includes('-');
 
   // ML scores
-  const mlScore   = ml?.ml_score ?? '—';
-  const combined  = ml?.combined_score ?? '—';
-  const grade     = ml?.inv_grade || 'C';
-  const scrScore  = ml?.screener_score ?? '—';
-  const sentScore = ml?.sentiment_score ?? 0;
-  const sentLabel = ml?.sentiment_label || 'neutral';
-  const macroScore= ml?.macro_score ?? 0;
-  const macroLabel= ml?.macro_label || 'neutral';
-  const headlines = ml?.top_headlines || [];
-  const macroTopics = ml?.macro_topics || [];
+  const mlScore    = ml?.ml_score ?? '—';
+  const combScore  = combined?.score ?? '—';
+  const grade      = combined?.grade || 'C';
+  const scrScore   = fund?.investment_score ?? '—';
+  const sentScore  = sentiment?.sentiment_score ?? 0;
+  const sentLabel  = sentiment?.sentiment_label || 'neutral';
+  const macroScore = macro?.macro_score ?? 0;
+  const macroLabel = macro?.macro_label || 'neutral';
+  const headlines  = sentiment?.top_headlines || [];
+  const macroTopics = macro?.topics || [];
 
   // Screener data
-  const roce        = ml?.roce ?? '—';
-  const salesCagr   = ml?.sales_cagr_5y ?? '—';
-  const profitCagr  = ml?.profit_cagr_5y ?? '—';
-  const promoter    = ml?.promoter_pct ?? '—';
-  const fcf         = ml?.fcf_positive === true ? '✓ Positive 3yr' : ml?.fcf_positive === false ? '✗ Not all positive' : '—';
-  const debtRed     = ml?.debt_reducing === true ? '✓ Reducing' : ml?.debt_reducing === false ? '✗ Not reducing' : '—';
+  const roce        = fund?.roce ?? '—';
+  const salesCagr   = fund?.sales_cagr_5y ?? '—';
+  const profitCagr  = fund?.profit_cagr_5y ?? '—';
+  const promoter    = fund?.promoter_pct ?? '—';
+  const fcf         = fund?.fcf_positive_3y === true ? '✓ Positive 3yr' : fund?.fcf_positive_3y === false ? '✗ Not all positive' : '—';
+  const debtRed     = fund?.debt_reducing === true ? '✓ Reducing' : fund?.debt_reducing === false ? '✗ Not reducing' : '—';
   const rsi         = ml?.rsi ?? '—';
   const pos52       = ml?.pos52_pct ?? '—';
   const ret1m       = ml?.ret_1m_pct ?? '—';
@@ -518,9 +519,9 @@ function renderResult(sym, quote, ml) {
           <div class="score-item">
             <div class="score-top">
               <span class="score-name">Combined Score</span>
-              <span class="score-num" style="color:${barColor(combined)}">${combined}%</span>
+              <span class="score-num" style="color:${barColor(combScore)}">${combScore}%</span>
             </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combined}%;background:${barColor(combined)}"></div></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combScore}%;background:${barColor(combScore)}"></div></div>
           </div>
         </div>
 
@@ -601,7 +602,7 @@ function renderResult(sym, quote, ml) {
                   </span>
                 </div>
               `).join('')}
-            </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">No headlines available — refresh ML screener to load news.</div>'}
+            </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">No headlines found for this stock.</div>'}
           </div>
         </div>
 
@@ -620,7 +621,7 @@ function renderResult(sym, quote, ml) {
                   <span class="macro-score" style="color:${t.score>10?'var(--green)':t.score<-10?'var(--red)':'var(--text2)'}">${t.score>0?'+':''}${t.score}</span>
                 </div>
               `).join('')}
-            </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">Macro data not available — refresh ML screener first.</div>'}
+            </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">No macro topics applicable for this stock.</div>'}
           </div>
         </div>
 
