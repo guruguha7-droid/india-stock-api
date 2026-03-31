@@ -34,7 +34,7 @@ MACRO_TOPICS = {
             'BAJFINANCE','BAJAJFINSV','CHOLAFIN','MUTHOOTFIN',
             'MANAPPURAM','SHRIRAMFIN','BANKBARODA','PNB','CANBK'
         ],
-        'weight': 0.8,
+        'weight': 0.95,
         'invert': False,
         'extra_positive': ['rate cut','repo cut','dovish','liquidity','accommodative'],
         'extra_negative': ['rate hike','repo hike','hawkish','tightening','inflation'],
@@ -43,7 +43,7 @@ MACRO_TOPICS = {
     'us_fed': {
         'query': 'US Federal Reserve rate decision FII India 2026',
         'affects': 'all',
-        'weight': 0.5,
+        'weight': 0.90,
         'invert': False,
         'extra_positive': ['rate cut','pause','dovish','fii inflow','foreign buying'],
         'extra_negative': ['rate hike','hawkish','recession','fii outflow','selling'],
@@ -52,7 +52,7 @@ MACRO_TOPICS = {
     'india_gdp': {
         'query': 'India GDP growth economy 2026',
         'affects': 'all',
-        'weight': 0.4,
+        'weight': 0.75,
         'invert': False,
         'extra_positive': ['growth','beats','strong economy','expansion','recovery'],
         'extra_negative': ['slowdown','contraction','weak','recession','decline'],
@@ -61,7 +61,7 @@ MACRO_TOPICS = {
     'crude_oil': {
         'query': 'crude oil price Brent WTI India 2026',
         'affects': ['BPCL','IOC','ONGC','RELIANCE','TATAPOWER'],
-        'weight': 0.9,
+        'weight': 0.80,
         'invert': True,  # high crude = BAD for oil marketing companies
         'extra_positive': ['falls','drops','decline','low','cheap'],
         'extra_negative': ['surges','rises','spike','high','expensive','opec cut'],
@@ -73,7 +73,7 @@ MACRO_TOPICS = {
             'TCS','INFY','WIPRO','HCLTECH','TECHM',
             'LTIM','PERSISTENT','MPHASIS','COFORGE','KPITTECH'
         ],
-        'weight': 0.9,
+        'weight': 0.70,
         'invert': False,
         'extra_positive': ['deal win','strong demand','hiring','ai opportunity','growth'],
         'extra_negative': ['visa','h1b','layoff','slowdown','tariff','budget cut','weak demand'],
@@ -85,7 +85,7 @@ MACRO_TOPICS = {
             'SUNPHARMA','DRREDDY','CIPLA','LUPIN',
             'AUROPHARMA','DIVISLAB','TORNTPHARM','ALKEM'
         ],
-        'weight': 0.9,
+        'weight': 0.70,
         'invert': False,
         'extra_positive': ['fda approval','exemption','waiver','deal','generic approval'],
         'extra_negative': ['tariff','ban','warning letter','import alert','penalty'],
@@ -94,7 +94,7 @@ MACRO_TOPICS = {
     'fii_flows': {
         'query': 'FII DII foreign investor India stock market flows 2026',
         'affects': 'all',
-        'weight': 0.6,
+        'weight': 0.85,
         'invert': False,
         'extra_positive': ['fii buying','inflow','foreign buying','bullish india','positive flows'],
         'extra_negative': ['fii selling','outflow','foreign selling','bearish india','negative flows'],
@@ -106,7 +106,7 @@ MACRO_TOPICS = {
             'TCS','INFY','WIPRO','HCLTECH','TECHM',
             'SUNPHARMA','DRREDDY','CIPLA','LUPIN'
         ],
-        'weight': 0.7,
+        'weight': 0.50,
         'invert': False,
         'extra_positive': ['rupee weakens','rupee falls','dollar strengthens'],
         'extra_negative': ['rupee strengthens','rupee gains','dollar weakens'],
@@ -118,7 +118,7 @@ MACRO_TOPICS = {
             'HDFCBANK','ICICIBANK','SBIN','KOTAKBANK','AXISBANK',
             'BANKBARODA','PNB','CANBK','BAJFINANCE','CHOLAFIN'
         ],
-        'weight': 0.8,
+        'weight': 0.70,
         'invert': False,
         'extra_positive': ['npa falls','recovery','clean balance','credit growth','loan growth'],
         'extra_negative': ['npa rises','bad loans','stress','default','restructuring'],
@@ -130,7 +130,7 @@ MACRO_TOPICS = {
             'MARUTI','M&M','BAJAJ-AUTO','HEROMOTOCO',
             'EICHERMOT','TVSMOTOR','MOTHERSON','BALKRISIND','APOLLOTYRE'
         ],
-        'weight': 0.8,
+        'weight': 0.65,
         'invert': False,
         'extra_positive': ['sales growth','record sales','ev launch','demand surge','export growth'],
         'extra_negative': ['sales decline','slowdown','recall','chip shortage','weak demand'],
@@ -142,7 +142,7 @@ MACRO_TOPICS = {
             'HINDUNILVR','ITC','NESTLEIND','BRITANNIA','TATACONSUM',
             'MARICO','DABUR','COLPAL','GODREJCP','EMAMILTD'
         ],
-        'weight': 0.7,
+        'weight': 0.55,
         'invert': False,
         'extra_positive': ['rural demand','volume growth','consumption','recovery','premiumisation'],
         'extra_negative': ['rural stress','volume decline','inflation impact','weak consumption'],
@@ -154,7 +154,7 @@ MACRO_TOPICS = {
             'LT','ULTRACEMCO','GRASIM','ADANIPORTS','ADANIENT',
             'SIEMENS','ABB','CUMMINSIND','HAVELLS','POWERGRID','NTPC'
         ],
-        'weight': 0.7,
+        'weight': 0.65,
         'invert': False,
         'extra_positive': ['capex','government spending','infra push','order win','contract'],
         'extra_negative': ['budget cut','spending cut','delay','cancellation'],
@@ -163,7 +163,7 @@ MACRO_TOPICS = {
     'global_risk': {
         'query': 'global recession US China trade war geopolitical risk 2026',
         'affects': 'all',
-        'weight': 0.4,
+        'weight': 0.80,
         'invert': False,
         'extra_positive': ['trade deal','resolution','recovery','stimulus'],
         'extra_negative': ['recession','trade war','tariff','geopolitical','war','conflict','sanction'],
@@ -172,7 +172,7 @@ MACRO_TOPICS = {
     'union_budget': {
         'query': 'India Union Budget 2026 allocation spending fiscal',
         'affects': 'all',
-        'weight': 0.9,
+        'weight': 0.60,
         'invert': False,
         'extra_positive': [
             'capex increase', 'spending boost', 'tax cut', 'relief',
@@ -188,7 +188,7 @@ MACRO_TOPICS = {
     'defence_budget': {
         'query': 'India defence budget allocation HAL BEL military spending 2026',
         'affects': ['BEL', 'HAL', 'BHARTIARTL', 'LT', 'ADANIENT'],
-        'weight': 0.9,
+        'weight': 0.45,
         'invert': False,
         'extra_positive': [
             'defence allocation', 'increased budget', 'indigenisation',
@@ -205,7 +205,7 @@ MACRO_TOPICS = {
             'HINDUNILVR', 'ITC', 'NESTLEIND', 'BRITANNIA', 'MARICO',
             'DABUR', 'COLPAL', 'TITAN', 'MARUTI', 'BAJFINANCE'
         ],
-        'weight': 0.8,
+        'weight': 0.50,
         'invert': False,
         'extra_positive': [
             'tax cut', 'relief', 'rebate', 'exemption', 'disposable income',
@@ -223,7 +223,7 @@ MACRO_TOPICS = {
             'CUMMINSIND', 'HAVELLS', 'POWERGRID', 'NTPC',
             'ADANIPORTS', 'ADANIENT'
         ],
-        'weight': 0.9,
+        'weight': 0.60,
         'invert': False,
         'extra_positive': [
             'capex boost', 'infrastructure push', 'record spending',
@@ -241,7 +241,7 @@ MACRO_TOPICS = {
             'SUNPHARMA', 'DRREDDY', 'CIPLA', 'LUPIN',
             'APOLLOHOSP', 'DIVISLAB', 'TORNTPHARM', 'ALKEM'
         ],
-        'weight': 0.7,
+        'weight': 0.40,
         'invert': False,
         'extra_positive': [
             'health allocation', 'increased budget', 'ayushman',
@@ -259,7 +259,7 @@ MACRO_TOPICS = {
             'GODREJCP', 'EMAMILTD', 'TATACONSUM', 'BRITANNIA',
             'MARUTI', 'HEROMOTOCO', 'BAJAJ-AUTO'
         ],
-        'weight': 0.7,
+        'weight': 0.35,
         'invert': False,
         'extra_positive': [
             'normal monsoon', 'above normal', 'good rainfall',
@@ -274,7 +274,7 @@ MACRO_TOPICS = {
     'gst_collections': {
         'query': 'India GST collection revenue 2026',
         'affects': 'all',
-        'weight': 0.5,
+        'weight': 0.60,
         'invert': False,
         'extra_positive': [
             'record gst', 'high collection', 'growth', 'buoyant',
@@ -292,7 +292,7 @@ MACRO_TOPICS = {
             'TATASTEEL', 'JSWSTEEL', 'HINDALCO', 'VEDL',
             'COALINDIA', 'ADANIPORTS'
         ],
-        'weight': 0.8,
+        'weight': 0.50,
         'invert': True,  # China slowdown = less demand for metals = bad
         'extra_positive': ['china growth', 'stimulus', 'recovery', 'demand surge'],
         'extra_negative': ['china slowdown', 'contraction', 'property crisis', 'weak demand'],
@@ -305,7 +305,7 @@ MACRO_TOPICS = {
             'LTIM', 'PERSISTENT', 'MPHASIS', 'COFORGE',
             'SUNPHARMA', 'DRREDDY', 'CIPLA', 'LUPIN'
         ],
-        'weight': 0.9,
+        'weight': 1.00,
         'invert': False,
         'extra_positive': ['soft landing', 'recovery', 'strong jobs', 'gdp growth'],
         'extra_negative': ['recession', 'slowdown', 'job cuts', 'gdp contraction', 'tariff'],
@@ -314,7 +314,7 @@ MACRO_TOPICS = {
     'dollar_index': {
         'query': 'US dollar index DXY strength India emerging markets 2026',
         'affects': 'all',
-        'weight': 0.5,
+        'weight': 0.75,
         'invert': True,  # strong dollar = bad for emerging markets like India
         'extra_positive': ['dollar weakens', 'dxy falls', 'emerging market rally'],
         'extra_negative': ['dollar strengthens', 'dxy rises', 'capital outflow', 'fii selling'],
@@ -327,7 +327,7 @@ MACRO_TOPICS = {
             'TATASTEEL', 'JSWSTEEL', 'ULTRACEMCO', 'GRASIM',
             'MOTHERSON', 'BALKRISIND', 'APOLLOTYRE'
         ],
-        'weight': 0.7,
+        'weight': 0.60,
         'invert': False,
         'extra_positive': ['pmi expansion', 'iip growth', 'manufacturing growth',
                            'above 50', 'record output'],
@@ -338,7 +338,7 @@ MACRO_TOPICS = {
     'geopolitical': {
         'query': 'India geopolitical war conflict tension 2026',
         'affects': 'all',
-        'weight': 0.6,
+        'weight': 1.00,
         'invert': False,
         'extra_positive': ['peace', 'ceasefire', 'resolution', 'trade deal', 'diplomacy'],
         'extra_negative': ['war', 'conflict', 'tension', 'sanctions', 'attack',
@@ -351,7 +351,7 @@ MACRO_TOPICS = {
             'HDFCBANK', 'ICICIBANK', 'SBIN', 'KOTAKBANK', 'AXISBANK',
             'BANKBARODA', 'PNB', 'CANBK', 'BAJFINANCE', 'CHOLAFIN'
         ],
-        'weight': 0.8,
+        'weight': 0.85,
         'invert': False,
         'extra_positive': ['npa declines', 'asset quality improves', 'recovery',
                            'provision coverage', 'clean books'],
@@ -446,7 +446,6 @@ def apply_macro_to_stock(symbol: str, macro_data: dict) -> dict:
     Apply relevant macro sentiment to a specific stock.
     Returns adjusted macro sentiment score for the stock.
     """
-    applicable_scores = []
     applicable_topics = []
 
     for topic_name, topic_data in macro_data.items():
@@ -455,8 +454,6 @@ def apply_macro_to_stock(symbol: str, macro_data: dict) -> dict:
         score   = topic_data['score']
 
         if affects == 'all' or symbol in affects:
-            weighted_score = score * weight
-            applicable_scores.append(weighted_score)
             applicable_topics.append({
                 'topic':  topic_name,
                 'score':  score,
@@ -464,7 +461,7 @@ def apply_macro_to_stock(symbol: str, macro_data: dict) -> dict:
                 'weight': weight,
             })
 
-    if not applicable_scores:
+    if not applicable_topics:
         return {
             'macro_score':  0,
             'macro_label':  'neutral',
@@ -472,9 +469,11 @@ def apply_macro_to_stock(symbol: str, macro_data: dict) -> dict:
             'topics':       [],
         }
 
-    # Weighted average
-    macro_score = round(sum(applicable_scores) / len(applicable_scores), 1)
-    macro_score = max(-100, min(100, macro_score))
+    # True weighted average
+    total_weight = sum(t['weight'] for t in applicable_topics)
+    weighted_sum = sum(t['score'] * t['weight'] for t in applicable_topics)
+    macro_score  = round(weighted_sum / total_weight, 1) if total_weight > 0 else 0
+    macro_score  = max(-100, min(100, macro_score))
     macro_label = 'positive' if macro_score > 10 else 'negative' if macro_score < -10 else 'neutral'
 
     return {
