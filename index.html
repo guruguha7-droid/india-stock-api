@@ -263,7 +263,7 @@ const STOCKS = [
   ['BAJAJFINSV','Bajaj Finserv Ltd','Finance'],['SHRIRAMFIN','Shriram Finance','NBFC'],
   ['TCS','Tata Consultancy Services','IT'],['INFY','Infosys Ltd','IT'],
   ['WIPRO','Wipro Ltd','IT'],['HCLTECH','HCL Technologies','IT'],
-  ['TECHM','Tech Mahindra','IT'],['LTIM','LTIMindtree Ltd','IT'],
+  ['TECHM','Tech Mahindra','IT'],['LTM','LTIMindtree Ltd','IT'],
   ['RELIANCE','Reliance Industries','Energy'],['ONGC','Oil & Natural Gas Corp','Energy'],
   ['BPCL','BPCL Ltd','Energy'],['IOC','Indian Oil Corporation','Energy'],
   ['POWERGRID','Power Grid Corp','Utilities'],['NTPC','NTPC Ltd','Utilities'],
@@ -475,44 +475,62 @@ function showError(msg) {
 
 // ── Render the full result ────────────────────────────────────────────────────
 function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined) {
-  const up = q => q && parseFloat(q.toString().replace(/[^0-9.-]/g,'')) >= 0;
+  // ── Extract from correct nested objects ───────────────────────────
+  // Quote data
+  const price      = quote?.price ?? '—';
+  const change     = quote?.change ?? '—';
+  const changePct  = quote?.change_pct ?? '—';
+  const high52     = quote?.week52_high ? `₹${quote.week52_high}` : '—';
+  const low52      = quote?.week52_low  ? `₹${quote.week52_low}`  : '—';
+  const mktcap     = quote?.market_cap  || '—';
+  const isUp       = change !== '—' && parseFloat(change) >= 0;
 
-  // Price data
-  const price     = quote?.price || '—';
-  const change    = quote?.change || '—';
-  const changePct = quote?.change_pct || '—';
-  const pe        = quote?.pe_ratio || valuation?.pe_ratio || '—';
-  const eps       = quote?.eps ? `₹${quote.eps}` : '—';
-  const high52    = quote?.week52_high ? `₹${quote.week52_high}` : '—';
-  const low52     = quote?.week52_low  ? `₹${quote.week52_low}`  : '—';
-  const mktcap    = quote?.market_cap  || '—';
-  const divYield  = quote?.dividend_yield || '—';
-  const isUp      = change !== '—' && !change.toString().includes('-');
+  // Valuation data — from valuation object
+  const pe         = valuation?.pe_ratio   ? parseFloat(valuation.pe_ratio).toFixed(1)   : '—';
+  const pm         = valuation?.profit_margin ? (valuation.profit_margin * 100).toFixed(1) + '%' : '—';
+  const rg         = valuation?.revenue_growth ? (valuation.revenue_growth * 100).toFixed(1) + '%' : '—';
+  const divYield   = valuation?.dividend_yield
+                     ? (valuation.dividend_yield * 100).toFixed(2) + '%' : '—';
 
-  // ML scores
+  const eps        = valuation?.eps
+                     ? '₹' + parseFloat(valuation.eps).toFixed(2)
+                     : valuation?.pe_ratio && quote?.price
+                     ? '₹' + (parseFloat(quote.price) / parseFloat(valuation.pe_ratio)).toFixed(2)
+                     : '—';
+
+  // ML data — from ml object
   const mlScore    = ml?.ml_score ?? '—';
-  const combScore  = combined?.score ?? '—';
+  const rsi        = ml?.rsi ?? quote?.rsi ?? '—';
+  const pos52      = ml?.pos52_pct ?? quote?.pos52_pct ?? '—';
+  const ret1m      = ml?.ret_1m_pct ?? '—';
+  const ret3m      = ml?.ret_3m_pct ?? '—';
+  const goldenCross= ml?.golden_cross;
+
+  // Combined score — from combined object
+  const combinedScore = combined?.score ?? '—';
   const grade      = combined?.grade || 'C';
+
+  // Fundamentals — from fundamentals object
+  const roce       = fund?.roce ?? '—';
+  const salesCagr  = fund?.sales_cagr_5y ?? '—';
+  const profitCagr = fund?.profit_cagr_5y ?? '—';
+  const promoter   = fund?.promoter_pct ?? '—';
+  const fcf        = fund?.fcf_positive_3y === true  ? '✓ Positive 3yr'
+                   : fund?.fcf_positive_3y === false ? '✗ Not all positive' : '—';
+  const debtRed    = fund?.debt_reducing === true  ? '✓ Reducing'
+                   : fund?.debt_reducing === false ? '✗ Not reducing' : '—';
   const scrScore   = fund?.investment_score ?? '—';
+  const scrGrade   = fund?.investment_grade ?? '—';
+
+  // Sentiment — from sentiment object
   const sentScore  = sentiment?.sentiment_score ?? 0;
   const sentLabel  = sentiment?.sentiment_label || 'neutral';
+  const headlines  = sentiment?.top_headlines || [];
+
+  // Macro — from macro object
   const macroScore = macro?.macro_score ?? 0;
   const macroLabel = macro?.macro_label || 'neutral';
-  const headlines  = sentiment?.top_headlines || [];
-  const macroTopics = macro?.topics || [];
-
-  // Screener data
-  const roce        = fund?.roce ?? '—';
-  const salesCagr   = fund?.sales_cagr_5y ?? '—';
-  const profitCagr  = fund?.profit_cagr_5y ?? '—';
-  const promoter    = fund?.promoter_pct ?? '—';
-  const fcf         = fund?.fcf_positive_3y === true ? '✓ Positive 3yr' : fund?.fcf_positive_3y === false ? '✗ Not all positive' : '—';
-  const debtRed     = fund?.debt_reducing === true ? '✓ Reducing' : fund?.debt_reducing === false ? '✗ Not reducing' : '—';
-  const rsi         = ml?.rsi ?? '—';
-  const pos52       = ml?.pos52_pct ?? '—';
-  const ret1m       = ml?.ret_1m_pct ?? '—';
-  const ret3m       = ml?.ret_3m_pct ?? '—';
-  const goldenCross = ml?.golden_cross;
+  const macroTopics= macro?.topics || [];
 
   // Grade color
   const gradeClass = `grade-${grade.replace('+','\\+')}`;
@@ -561,7 +579,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
         </div>
 
         <div class="metrics-row">
-          <div class="metric-box"><div class="metric-label">P/E Ratio</div><div class="metric-val">${pe}</div></div>
+          <div class="metric-box"><div class="metric-label">P/E Ratio</div><div class="metric-val">${pe !== '—' ? parseFloat(pe).toFixed(1) : '—'}</div></div>
           <div class="metric-box"><div class="metric-label">EPS</div><div class="metric-val">${eps}</div></div>
           <div class="metric-box"><div class="metric-label">52W High</div><div class="metric-val">${high52}</div></div>
           <div class="metric-box"><div class="metric-label">52W Low</div><div class="metric-val">${low52}</div></div>
@@ -582,9 +600,9 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           <div class="score-item">
             <div class="score-top">
               <span class="score-name">Combined Score</span>
-              <span class="score-num" style="color:${barColor(combScore)}">${combScore}%</span>
+              <span class="score-num" style="color:${barColor(combinedScore)}">${combinedScore}%</span>
             </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combScore}%;background:${barColor(combScore)}"></div></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combinedScore}%;background:${barColor(combinedScore)}"></div></div>
           </div>
         </div>
 

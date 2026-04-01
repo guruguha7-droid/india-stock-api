@@ -597,6 +597,8 @@ def stock_analysis():
                 "revenue_growth":  info.get('revenueGrowth'),
                 "earnings_growth": info.get('earningsGrowth'),
                 "debt_to_equity":  info.get('debtToEquity'),
+                "dividend_yield":  info.get('dividendYield'),
+                "eps":             info.get('trailingEps'),
             }
         except Exception:
             result["valuation"] = {}
