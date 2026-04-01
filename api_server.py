@@ -52,6 +52,51 @@ def set_cached(symbol: str, data: dict):
         cache[symbol] = {"data": data, "ts": time.time()}
 
 
+# ── Nifty benchmark cache — refresh every 6 hours ────────────────────────────
+_nifty_cache = {'data': None, 'ts': 0}
+NIFTY_TTL = 21600
+
+
+def get_nifty_close():
+    """Get Nifty benchmark data, cached 6 hours."""
+    import yfinance as _yf
+    import pandas as pd
+    now = time.time()
+    if _nifty_cache['data'] is not None and (now - _nifty_cache['ts']) < NIFTY_TTL:
+        return _nifty_cache['data']
+    try:
+        df = _yf.download("^NSEI", period="2y", interval="1d",
+                          auto_adjust=True, progress=False)
+        if hasattr(df.columns, 'levels'):
+            df.columns = df.columns.get_level_values(0)
+        close = pd.Series(df['Close'].squeeze().values,
+                          index=df.index, dtype=float)
+        _nifty_cache['data'] = close
+        _nifty_cache['ts']   = now
+        return close
+    except Exception:
+        return _nifty_cache['data']  # return stale if download fails
+
+
+# ── Per-stock ML features cache — 5 minutes ──────────────────────────────────
+_ml_features_cache = {}
+ML_FEATURES_TTL = 300
+
+
+def get_stock_features_cached(symbol, nifty_close):
+    """Get ML features for a stock, cached 5 minutes."""
+    from ml_screener import get_features
+    now = time.time()
+    if symbol in _ml_features_cache:
+        entry = _ml_features_cache[symbol]
+        if (now - entry['ts']) < ML_FEATURES_TTL:
+            return entry['data']
+    f = get_features(symbol, nifty_close)
+    if f:
+        _ml_features_cache[symbol] = {'data': f, 'ts': now}
+    return f
+
+
 # ── Single stock ──────────────────────────────────────────────────────────────
 @app.route("/quote")
 def quote():
@@ -489,7 +534,7 @@ def stock_analysis():
     import math
     import yfinance as yf
     from news_sentiment import get_sentiment_score
-    from macro_sentiment import get_macro_sentiment, apply_macro_to_stock
+    from macro_sentiment import apply_macro_to_stock
 
     result = {"symbol": symbol, "status": "ok"}
 
@@ -510,15 +555,13 @@ def stock_analysis():
         features = saved['features']
         accuracy = saved['accuracy']
 
-        nifty_df = yf.download("^NSEI", period="2y", interval="1d",
-                               auto_adjust=True, progress=False)
-        if hasattr(nifty_df.columns, 'levels'):
-            nifty_df.columns = nifty_df.columns.get_level_values(0)
-        nifty_close = pd.Series(nifty_df['Close'].squeeze().values,
-                                index=nifty_df.index, dtype=float)
+        # Use cached Nifty data
+        nifty_close = get_nifty_close()
+        if nifty_close is None:
+            raise Exception("Nifty data unavailable")
 
-        from ml_screener import get_features
-        f = get_features(symbol, nifty_close)
+        # Use cached stock features
+        f = get_stock_features_cached(symbol, nifty_close)
 
         if f:
             X    = pd.DataFrame([{k: f[k] for k in features}])
@@ -589,10 +632,12 @@ def stock_analysis():
     try:
         from ml_screener import _cache
         macro_cache = _cache.get('macro_news', {})
-        if macro_cache.get('data'):
+        # Use cached macro data — only fetch if truly not available
+        if macro_cache.get('data') and macro_cache.get('ts', 0) > 0:
             macro_data = macro_cache['data']
         else:
-            macro_data = get_macro_sentiment()
+            # Use a quick fallback — neutral macro if not cached
+            macro_data = {}
         result["macro"] = apply_macro_to_stock(symbol, macro_data)
     except Exception as e:
         result["macro"] = {"error": str(e)}
