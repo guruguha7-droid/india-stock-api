@@ -532,117 +532,126 @@ def stock_analysis():
         return jsonify({"error": "symbol required"}), 400
 
     import math
-    import yfinance as yf
+    import threading
     from news_sentiment import get_sentiment_score
     from macro_sentiment import apply_macro_to_stock
 
     result = {"symbol": symbol, "status": "ok"}
 
-    # ── 1. Live quote (fast) ──────────────────────────────────────────
-    try:
-        result["quote"] = scrape_stock(symbol)
-    except Exception as e:
-        result["quote"] = {"error": str(e)}
+    # ── Run all data fetches in parallel ─────────────────────────────
+    def fetch_quote():
+        try:
+            result["quote"] = scrape_stock(symbol)
+        except Exception:
+            result["quote"] = {}
 
-    # ── 2. ML prediction for this stock only ─────────────────────────
-    try:
-        import joblib
-        import pandas as pd
+    def fetch_ml():
+        try:
+            import joblib
+            import pandas as pd
+            saved    = joblib.load(os.path.join(os.path.dirname(__file__), 'ml_model.pkl'))
+            model    = saved['model']
+            features = saved['features']
+            accuracy = saved['accuracy']
 
-        model_path = os.path.join(os.path.dirname(__file__), 'ml_model.pkl')
-        saved    = joblib.load(model_path)
-        model    = saved['model']
-        features = saved['features']
-        accuracy = saved['accuracy']
+            nifty_close = get_nifty_close()
+            if nifty_close is None:
+                result["ml"] = {"error": "Nifty data unavailable"}
+                return
 
-        # Use cached Nifty data
-        nifty_close = get_nifty_close()
-        if nifty_close is None:
-            raise Exception("Nifty data unavailable")
+            f = get_stock_features_cached(symbol, nifty_close)
+            if f:
+                X    = pd.DataFrame([{k: f[k] for k in features}])
+                prob = float(model.predict_proba(X)[0][1])
+                pred = int(model.predict(X)[0])
+                result["ml"] = {
+                    "ml_score":     round(prob * 100, 1),
+                    "prediction":   "OUTPERFORM" if pred == 1 else "UNDERPERFORM",
+                    "accuracy":     round(accuracy * 100, 1),
+                    "rsi":          round(f['rsi'], 1),
+                    "pos52_pct":    round(f['pos52'] * 100, 1),
+                    "ret_1m_pct":   round(f['ret_1m'] * 100, 1),
+                    "ret_3m_pct":   round(f['ret_3m'] * 100, 1),
+                    "golden_cross": bool(f['golden_cross']),
+                }
+            else:
+                result["ml"] = {"error": "Could not compute features"}
+        except Exception as e:
+            result["ml"] = {"error": str(e)}
 
-        # Use cached stock features
-        f = get_stock_features_cached(symbol, nifty_close)
+    def fetch_fundamentals():
+        try:
+            import pandas as pd
+            sdf = pd.read_csv(
+                os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+            row = sdf[sdf['symbol'] == symbol]
+            if not row.empty:
+                r = row.iloc[0].to_dict()
+                result["fundamentals"] = {
+                    "roce":             r.get('roce_latest_pct'),
+                    "sales_cagr_5y":    r.get('sales_cagr_5y'),
+                    "profit_cagr_5y":   r.get('profit_cagr_5y'),
+                    "promoter_pct":     r.get('promoter_pct'),
+                    "fcf_positive_3y":  r.get('fcf_positive_3y'),
+                    "debt_reducing":    r.get('debt_reducing'),
+                    "investment_score": r.get('investment_score'),
+                    "investment_grade": r.get('investment_grade'),
+                    "opm_latest_pct":   r.get('opm_latest_pct'),
+                    "roce_avg_5y":      r.get('roce_avg_5y'),
+                }
+            else:
+                result["fundamentals"] = {}
+        except Exception:
+            result["fundamentals"] = {}
 
-        if f:
-            X    = pd.DataFrame([{k: f[k] for k in features}])
-            prob = float(model.predict_proba(X)[0][1])
-            pred = int(model.predict(X)[0])
-            result["ml"] = {
-                "ml_score":     round(prob * 100, 1),
-                "prediction":   "OUTPERFORM" if pred == 1 else "UNDERPERFORM",
-                "accuracy":     round(accuracy * 100, 1),
-                "rsi":          round(f['rsi'], 1),
-                "pos52_pct":    round(f['pos52'] * 100, 1),
-                "ret_1m_pct":   round(f['ret_1m'] * 100, 1),
-                "ret_3m_pct":   round(f['ret_3m'] * 100, 1),
-                "golden_cross": bool(f['golden_cross']),
+    def fetch_valuation():
+        try:
+            import yfinance as yf
+            info = yf.Ticker(f"{symbol}.NS").info
+            result["valuation"] = {
+                "pe_ratio":        info.get('trailingPE'),
+                "pb_ratio":        info.get('priceToBook'),
+                "profit_margin":   info.get('profitMargins'),
+                "revenue_growth":  info.get('revenueGrowth'),
+                "earnings_growth": info.get('earningsGrowth'),
+                "debt_to_equity":  info.get('debtToEquity'),
             }
-        else:
-            result["ml"] = {"error": "Could not compute features"}
+        except Exception:
+            result["valuation"] = {}
 
-    except Exception as e:
-        result["ml"] = {"error": str(e)}
+    def fetch_sentiment():
+        try:
+            result["sentiment"] = get_sentiment_score(symbol)
+        except Exception:
+            result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
 
-    # ── 3. Screener fundamentals (from CSV cache) ─────────────────────
-    try:
-        import pandas as pd
-        sdf = pd.read_csv(
-            os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
-        row = sdf[sdf['symbol'] == symbol]
-        if not row.empty:
-            r = row.iloc[0].to_dict()
-            result["fundamentals"] = {
-                "roce":             r.get('roce_latest_pct'),
-                "sales_cagr_5y":    r.get('sales_cagr_5y'),
-                "profit_cagr_5y":   r.get('profit_cagr_5y'),
-                "promoter_pct":     r.get('promoter_pct'),
-                "fcf_positive_3y":  r.get('fcf_positive_3y'),
-                "debt_reducing":    r.get('debt_reducing'),
-                "investment_score": r.get('investment_score'),
-                "investment_grade": r.get('investment_grade'),
-                "opm_latest_pct":   r.get('opm_latest_pct'),
-                "roce_avg_5y":      r.get('roce_avg_5y'),
-            }
-        else:
-            result["fundamentals"] = {"error": "Not in screener data"}
-    except Exception as e:
-        result["fundamentals"] = {"error": str(e)}
+    def fetch_macro():
+        try:
+            from ml_screener import _cache
+            macro_cache = _cache.get('macro_news', {})
+            if macro_cache.get('data') and macro_cache.get('ts', 0) > 0:
+                macro_data = macro_cache['data']
+            else:
+                macro_data = {}
+            result["macro"] = apply_macro_to_stock(symbol, macro_data)
+        except Exception:
+            result["macro"] = {"macro_score": 0, "macro_label": "neutral"}
 
-    # ── 4. yfinance current valuation ─────────────────────────────────
-    try:
-        info = yf.Ticker(f"{symbol}.NS").info
-        result["valuation"] = {
-            "pe_ratio":       info.get('trailingPE'),
-            "pb_ratio":       info.get('priceToBook'),
-            "profit_margin":  info.get('profitMargins'),
-            "revenue_growth": info.get('revenueGrowth'),
-            "earnings_growth":info.get('earningsGrowth'),
-            "debt_to_equity": info.get('debtToEquity'),
-        }
-    except Exception as e:
-        result["valuation"] = {"error": str(e)}
+    # ── Launch all threads simultaneously ─────────────────────────────
+    threads = [
+        threading.Thread(target=fetch_quote),
+        threading.Thread(target=fetch_ml),
+        threading.Thread(target=fetch_fundamentals),
+        threading.Thread(target=fetch_valuation),
+        threading.Thread(target=fetch_sentiment),
+        threading.Thread(target=fetch_macro),
+    ]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=15)
 
-    # ── 5. Company news sentiment ─────────────────────────────────────
-    try:
-        result["sentiment"] = get_sentiment_score(symbol)
-    except Exception as e:
-        result["sentiment"] = {"error": str(e)}
-
-    # ── 6. Macro sentiment (use ml_screener cache if warm) ────────────
-    try:
-        from ml_screener import _cache
-        macro_cache = _cache.get('macro_news', {})
-        # Use cached macro data — only fetch if truly not available
-        if macro_cache.get('data') and macro_cache.get('ts', 0) > 0:
-            macro_data = macro_cache['data']
-        else:
-            # Use a quick fallback — neutral macro if not cached
-            macro_data = {}
-        result["macro"] = apply_macro_to_stock(symbol, macro_data)
-    except Exception as e:
-        result["macro"] = {"error": str(e)}
-
-    # ── 7. Combined score ─────────────────────────────────────────────
+    # ── Combined score ────────────────────────────────────────────────
     try:
         ml_raw  = result.get("ml", {}).get("ml_score", 50) or 50
         scr_raw = result.get("fundamentals", {}).get("investment_score", 50) or 50
@@ -677,23 +686,17 @@ def stock_analysis():
             sent_score  * 0.15 +
             macro_score * 0.15, 1)
 
-        if combined >= 80:   grade = 'A+'
-        elif combined >= 70: grade = 'A'
-        elif combined >= 60: grade = 'B'
-        elif combined >= 50: grade = 'C'
-        else:                grade = 'D'
+        grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
         result["combined"] = {
             "score":       combined,
             "grade":       grade,
-            "ml_weight":   ml_raw,
-            "scr_weight":  scr_raw,
             "yfin_score":  round(yfin_score, 1),
             "sent_score":  round(sent_score, 1),
             "macro_score": round(macro_score, 1),
         }
-    except Exception as e:
-        result["combined"] = {"error": str(e)}
+    except Exception:
+        result["combined"] = {"score": 50, "grade": "C"}
 
     def fix_nan(obj):
         if isinstance(obj, dict):
@@ -707,6 +710,46 @@ def stock_analysis():
     return jsonify(fix_nan(result))
 
 
+# ── Startup cache warming ─────────────────────────────────────────────────────
+def warm_cache():
+    """Pre-warm Nifty cache on server startup so first search is fast."""
+    def _warm():
+        print("  Warming Nifty cache on startup...")
+        try:
+            close = get_nifty_close()
+            if close is not None:
+                print(f"  Nifty cache ready — {len(close)} days")
+            else:
+                print("  Nifty cache warm failed")
+        except Exception as e:
+            print(f"  Nifty warm error: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
+
+
+def warm_stock_features():
+    """Pre-compute ML features for all stocks in background."""
+    def _warm():
+        time.sleep(30)  # Wait for Nifty cache to warm first
+        print("  Pre-computing ML features for all stocks...")
+        try:
+            nifty = get_nifty_close()
+            if nifty is None:
+                return
+            from scraper import NSE_STOCKS
+            count = 0
+            for sym in NSE_STOCKS:
+                get_stock_features_cached(sym, nifty)
+                count += 1
+            print(f"  Pre-computed features for {count} stocks")
+        except Exception as e:
+            print(f"  Feature warm error: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
+
+
+warm_cache()
+warm_stock_features()
+
+
 # ── Run ───────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("\nIndia Stock API running at http://localhost:5000")
@@ -716,4 +759,4 @@ if __name__ == "__main__":
     print("   GET /watchlist")
     print("   GET /indices")
     print("   GET /health\n")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
