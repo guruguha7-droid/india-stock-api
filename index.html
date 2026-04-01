@@ -212,6 +212,7 @@ body{
     <div class="idx-pill"><span class="idx-label">Sensex</span><span id="v-sensex" class="neu">—</span></div>
     <div class="idx-pill"><span class="idx-label">Bank Nifty</span><span id="v-bnifty" class="neu">—</span></div>
     <div class="idx-pill"><span class="idx-label">₹/$</span><span id="v-fx" class="neu">—</span></div>
+    <div class="idx-pill"><span class="idx-label">VIX</span><span id="v-vix" class="neu">—</span></div>
   </div>
 </div>
 
@@ -748,13 +749,25 @@ async function loadIndices() {
       const set = (id, obj) => {
         if (!obj) return;
         const el = document.getElementById(id);
-        el.textContent = obj.price + (obj.change_pct ? ' ' + obj.change_pct : '');
+        if (!el) return;
+        el.textContent = Number(obj.price).toLocaleString('en-IN',
+          {maximumFractionDigits:2}) + (obj.change_pct && obj.change_pct !== '—' ? ' ' + obj.change_pct : '');
         el.className = obj.change_pct?.includes('-') ? 'dn' : 'up';
       };
-      set('v-nifty', d.NIFTY_50);
+      set('v-nifty',  d.NIFTY_50);
       set('v-sensex', d.SENSEX);
       set('v-bnifty', d.BANK_NIFTY);
-      if (d.USD_INR) document.getElementById('v-fx').textContent = '₹' + d.USD_INR.price;
+      if (d.USD_INR) {
+        const el = document.getElementById('v-fx');
+        if (el) { el.textContent = '₹' + d.USD_INR.price; el.className = 'neu'; }
+      }
+      if (d.VIX) {
+        const el = document.getElementById('v-vix');
+        if (el) {
+          el.textContent = d.VIX.price + (d.VIX.change_pct && d.VIX.change_pct !== '—' ? ' ' + d.VIX.change_pct : '');
+          el.className = d.VIX.change_pct?.includes('-') ? 'up' : 'dn'; // VIX down = market up
+        }
+      }
     }
   } catch(e) {}
 }

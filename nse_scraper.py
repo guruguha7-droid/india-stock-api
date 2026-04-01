@@ -178,7 +178,7 @@ def get_quote(symbol: str) -> dict:
 
 
 def get_indices() -> dict:
-    """Get live NSE indices — Nifty 50, Bank Nifty, India VIX."""
+    """Get live NSE indices — Nifty 50, Bank Nifty, India VIX, Sensex, USD/INR."""
     try:
         data = fetch_nse('https://www.nseindia.com/api/allIndices')
         indices = {}
@@ -190,23 +190,55 @@ def get_indices() -> dict:
                     'price':      item.get('last'),
                     'change':     item.get('change'),
                     'change_pct': item.get('percentChange'),
-                    'open':       item.get('open'),
-                    'high':       item.get('high'),
-                    'low':        item.get('low'),
                 }
 
-        # Also try Sensex
+        # Sensex from BSE API (free, no session needed)
         try:
-            bse = fetch_nse(
-                'https://www.nseindia.com/api/quote-equity?symbol=SENSEX&series=IN'
+            r = requests.get(
+                'https://api.bseindia.com/BseIndiaAPI/api/GetSensexData/w',
+                headers={'User-Agent': 'Mozilla/5.0'},
+                timeout=5
             )
-            if bse and 'priceInfo' in bse:
-                pi = bse['priceInfo']
+            if r.status_code == 200:
+                bse = r.json()
                 indices['SENSEX'] = {
-                    'price':      pi.get('lastPrice'),
-                    'change':     pi.get('change'),
-                    'change_pct': pi.get('pChange'),
+                    'price':      float(bse.get('Close', 0)),
+                    'change':     float(bse.get('Chg', 0)),
+                    'change_pct': float(bse.get('ChgPer', 0)),
                 }
+        except Exception:
+            # Fallback — yfinance for Sensex
+            try:
+                import yfinance as yf
+                s = yf.Ticker('^BSESN')
+                info = s.info
+                price = info.get('regularMarketPrice') or info.get('previousClose')
+                chg   = info.get('regularMarketChange', 0)
+                chgp  = info.get('regularMarketChangePercent', 0)
+                if price:
+                    indices['SENSEX'] = {
+                        'price':      round(price, 2),
+                        'change':     round(chg, 2),
+                        'change_pct': round(chgp, 2),
+                    }
+            except Exception:
+                pass
+
+        # USD/INR from exchangerate API (free)
+        try:
+            r = requests.get(
+                'https://open.er-api.com/v6/latest/USD',
+                timeout=5
+            )
+            if r.status_code == 200:
+                fx = r.json()
+                inr = fx.get('rates', {}).get('INR')
+                if inr:
+                    indices['USD_INR'] = {
+                        'price':      round(inr, 2),
+                        'change':     None,
+                        'change_pct': None,
+                    }
         except Exception:
             pass
 

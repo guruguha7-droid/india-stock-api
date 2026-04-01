@@ -445,13 +445,24 @@ def indices():
     try:
         data = nse_indices()
         result = {}
-        for name, d in data.items():
-            key = name.replace(' ', '_')
-            chg = d.get('change_pct', 0)
-            result[key] = {
-                'price':      d.get('price'),
-                'change_pct': f"{chg:+.2f}%" if chg else '—',
-            }
+
+        mapping = {
+            'NIFTY 50':   'NIFTY_50',
+            'NIFTY BANK': 'BANK_NIFTY',
+            'SENSEX':     'SENSEX',
+            'USD_INR':    'USD_INR',
+            'INDIA VIX':  'VIX',
+        }
+
+        for nse_name, key in mapping.items():
+            d = data.get(nse_name)
+            if d:
+                chg = d.get('change_pct')
+                result[key] = {
+                    'price':      d.get('price'),
+                    'change_pct': f"{float(chg):+.2f}%" if chg else '—',
+                }
+
         return jsonify({"status": "ok", "data": result})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
