@@ -38,6 +38,33 @@ NSE_STOCKS = [
     "SIEMENS", "HAVELLS", "ABB", "CUMMINSIND",
     # Real Estate & Cement
     "DLF", "OBEROIRLTY", "RAMCOCEM",
+    # ── Expansion batch ───────────────────────────────────────
+    # Banking & Finance
+    "FEDERALBNK", "IDFCFIRSTB", "BANDHANBNK", "AUBANK", "RBLBANK",
+    "INDIANB", "MAHABANK", "HDFCAMC", "ICICIGI",
+    "SBICARD", "SUNDARMFIN",
+    # IT
+    "TATAELXSI", "LTTS", "HAPPSTMNDS", "ZENSARTECH",
+    # Pharma
+    "MANKIND", "ABBOTINDIA", "NATCOPHARM", "GRANULES",
+    "GLENMARK", "IPCALAB", "MAXHEALTH",
+    # FMCG
+    "RADICO", "UBL", "VBL", "BIKAJI", "ZYDUSWELL",
+    # Auto
+    "ASHOKLEY", "BOSCHLTD", "TIINDIA", "ENDURANCE",
+    "SUNDRMFAST", "SCHAEFFLER",
+    # Energy
+    "ADANIGREEN", "ADANIPOWER", "TORNTPOWER", "CESC",
+    "NHPC", "SJVN", "HINDPETRO", "GAIL",
+    # Infra & Cement
+    "AMBUJACEM", "ACC", "JKCEMENT",
+    "IRB", "KNRCON",
+    # Metals
+    "NMDC", "SAIL", "NATIONALUM", "MOIL", "WELCORP",
+    # Real Estate
+    "GODREJPROP", "BRIGADE", "SOBHA", "PRESTIGE", "PHOENIXLTD",
+    # Defence
+    "HAL", "BEL", "BEML", "MAZDOCK",
 ]
 
 

@@ -16,9 +16,12 @@ HEADERS = {
 
 # Symbols that differ between NSE and Screener.in URLs
 SCREENER_SYMBOL_MAP = {
-    'LTIM':       'LTIMINDTREE',
-    'M&M':        'M-M',
+    'LTIM':       'MINDTREE',      # LTIMindtree listed as MINDTREE on screener
+    'M&M':        'M&M',           # screener uses literal M&M in URL
     'BAJAJ-AUTO': 'BAJAJ-AUTO',
+    'LICHOUSFIN': 'LICHSGFIN',     # LIC Housing Finance screener symbol
+    'VBLLTD':     'VBL',           # Varun Beverages
+    'DALMIACEM':  'DALBHARAT',     # Dalmia Bharat Ltd on screener
 }
 
 
@@ -300,27 +303,22 @@ def scrape_all(symbols: list, delay: float = 2.5) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    from scraper import NSE_STOCKS
+    import pandas as pd
 
-    print("="*60)
-    print("  Screener.in Scraper — Full Run (79 stocks)")
-    print("="*60)
-    print("  Estimated time: ~4 minutes (2.5s delay per stock)")
-    print("  Being respectful to Screener.in servers\n")
+    existing = pd.read_csv('screener_fundamentals.csv')
+    failed = ['M&M', 'DALMIACEM']
 
-    df = scrape_all(NSE_STOCKS, delay=2.5)
+    print(f"Re-scraping {failed}...")
+    new_data = scrape_all(failed, delay=2.5)
 
-    # Summary
-    ok = df[df['status']=='ok']
-    print(f"\n{'='*60}")
-    print(f"  Scraped: {len(ok)}/{len(df)} stocks successfully")
-    print(f"\n  Top 10 by Investment Score:")
-    if 'investment_score' in ok.columns:
-        top = ok.nlargest(10, 'investment_score')[
-            ['symbol','investment_score','investment_grade',
-             'roce_latest_pct','sales_cagr_5y','profit_cagr_5y',
-             'promoter_pct','fcf_positive_3y']]
-        print(top.to_string(index=False))
+    # Remove old rows for these symbols then append
+    combined = pd.concat(
+        [existing[~existing['symbol'].isin(failed)], new_data],
+        ignore_index=True
+    )
+    combined.to_csv('screener_fundamentals.csv', index=False)
+    print(f"Updated: {len(combined)} stocks total")
 
-    df.to_csv('screener_fundamentals.csv', index=False)
-    print(f"\n  Full data saved to screener_fundamentals.csv")
+    ok = new_data[new_data['status'] == 'ok']
+    for _, row in ok.iterrows():
+        print(f"  {row['symbol']}: Score={row['investment_score']}  ROCE={row['roce_latest_pct']}%")
