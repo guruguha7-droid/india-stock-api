@@ -192,37 +192,49 @@ def get_indices() -> dict:
                     'change_pct': item.get('percentChange'),
                 }
 
-        # Sensex via yfinance (reliable on Render)
+        # Sensex via Yahoo Finance query API (more reliable than yfinance library)
         try:
-            import yfinance as yf
-            sensex = yf.Ticker('^BSESN')
-            info = sensex.fast_info
-            price = float(info.last_price)
-            prev  = float(info.previous_close)
-            chg   = round(price - prev, 2)
-            chgp  = round((chg / prev) * 100, 2)
-            indices['SENSEX'] = {
-                'price':      round(price, 2),
-                'change':     chg,
-                'change_pct': chgp,
-            }
+            r = requests.get(
+                'https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d',
+                headers={'User-Agent': 'Mozilla/5.0'},
+                timeout=5
+            )
+            if r.status_code == 200:
+                j = r.json()
+                meta = j['chart']['result'][0]['meta']
+                price = meta.get('regularMarketPrice')
+                prev  = meta.get('previousClose') or meta.get('chartPreviousClose')
+                if price and prev:
+                    chg  = round(price - prev, 2)
+                    chgp = round((chg / prev) * 100, 2)
+                    indices['SENSEX'] = {
+                        'price':      round(price, 2),
+                        'change':     chg,
+                        'change_pct': chgp,
+                    }
         except Exception:
             pass
 
-        # USD/INR via yfinance
+        # USD/INR via Yahoo Finance query API
         try:
-            import yfinance as yf
-            fx = yf.Ticker('USDINR=X')
-            info = fx.fast_info
-            price = float(info.last_price)
-            prev  = float(info.previous_close)
-            chg   = round(price - prev, 4)
-            chgp  = round((chg / prev) * 100, 2)
-            indices['USD_INR'] = {
-                'price':      round(price, 4),
-                'change':     chg,
-                'change_pct': chgp,
-            }
+            r = requests.get(
+                'https://query1.finance.yahoo.com/v8/finance/chart/USDINR%3DX?interval=1d&range=1d',
+                headers={'User-Agent': 'Mozilla/5.0'},
+                timeout=5
+            )
+            if r.status_code == 200:
+                j = r.json()
+                meta = j['chart']['result'][0]['meta']
+                price = meta.get('regularMarketPrice')
+                prev  = meta.get('previousClose') or meta.get('chartPreviousClose')
+                if price and prev:
+                    chg  = round(price - prev, 4)
+                    chgp = round((chg / prev) * 100, 2)
+                    indices['USD_INR'] = {
+                        'price':      round(price, 4),
+                        'change':     chg,
+                        'change_pct': chgp,
+                    }
         except Exception:
             pass
 
