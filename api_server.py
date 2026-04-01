@@ -727,6 +727,55 @@ def stock_analysis():
     except Exception:
         result["combined"] = {"score": 50, "grade": "C"}
 
+    # ── Forecast ──────────────────────────────────────────────────────
+    try:
+        fund  = result.get("fundamentals", {})
+        val   = result.get("valuation", {})
+        quote = result.get("quote", {})
+
+        eps         = val.get("eps") or 0
+        pe          = val.get("pe_ratio") or 20
+        eps_cagr    = float(fund.get("eps_cagr_5y") or fund.get("profit_cagr_5y") or 8)
+        sales_cagr  = float(fund.get("sales_cagr_5y") or 10)
+        profit_cagr = float(fund.get("profit_cagr_5y") or 8)
+        price_now   = float(str(quote.get("price") or 0).replace(",","")) or None
+
+        def price_target(years):
+            if not eps or not pe: return None
+            fwd_eps = float(eps) * ((1 + eps_cagr/100) ** years)
+            return round(fwd_eps * float(pe), 0)
+
+        def outperform_prob(years):
+            base = result.get("ml", {}).get("ml_score") or 50
+            scr  = fund.get("investment_score") or 50
+            decay = 0.85 ** years
+            score = base * 0.6 + scr * 0.4
+            return round(50 + (score - 50) * decay, 1)
+
+        result["forecast"] = {
+            "1y": {
+                "price_target":       price_target(1),
+                "revenue_growth_pct": round(sales_cagr, 1),
+                "profit_growth_pct":  round(profit_cagr, 1),
+                "outperform_prob":    outperform_prob(1),
+            },
+            "3y": {
+                "price_target":       price_target(3),
+                "revenue_growth_pct": round(sales_cagr * 0.9, 1),
+                "profit_growth_pct":  round(profit_cagr * 0.9, 1),
+                "outperform_prob":    outperform_prob(3),
+            },
+            "5y": {
+                "price_target":       price_target(5),
+                "revenue_growth_pct": round(sales_cagr * 0.8, 1),
+                "profit_growth_pct":  round(profit_cagr * 0.8, 1),
+                "outperform_prob":    outperform_prob(5),
+            },
+            "current_price": price_now,
+        }
+    except Exception:
+        result["forecast"] = None
+
     def fix_nan(obj):
         if isinstance(obj, dict):
             return {k: fix_nan(v) for k, v in obj.items()}
