@@ -20,6 +20,7 @@ import os
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
+from nse_scraper import get_quote as nse_quote, get_indices as nse_indices, get_session
 try:
     from ml_screener import run_ml_screen
     ML_AVAILABLE = True
@@ -102,16 +103,10 @@ def get_stock_features_cached(symbol, nifty_close):
 def quote():
     symbol = request.args.get("symbol", "").upper().strip()
     if not symbol:
-        return jsonify({"error": "symbol parameter required"}), 400
-
-    cached = get_cached(symbol)
-    if cached:
-        return jsonify({"status": "ok", "cached": True, "data": cached})
-
+        return jsonify({"error": "symbol required"}), 400
     try:
-        data = scrape_stock(symbol)
-        set_cached(symbol, data)
-        return jsonify({"status": "ok", "cached": False, "data": data})
+        data = nse_quote(symbol)
+        return jsonify({"status": "ok", "data": data})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -447,43 +442,19 @@ def watchlist():
 # ── Market indices ────────────────────────────────────────────────────────────
 @app.route("/indices")
 def indices():
-    import yfinance as yf
-
-    index_map = {
-        "NIFTY_50":   "^NSEI",
-        "SENSEX":     "^BSESN",
-        "BANK_NIFTY": "^NSEBANK",
-        "USD_INR":    "USDINR=X",
-    }
-
-    results = {}
-    for name, sym in index_map.items():
-        cached = get_cached(sym)
-        if cached:
-            results[name] = cached
-            continue
-
-        try:
-            ticker = yf.Ticker(sym)
-            info = ticker.info
-            price = info.get("regularMarketPrice") or info.get("currentPrice")
-            prev_close = info.get("previousClose") or info.get("regularMarketPreviousClose")
-
-            chg_pct = None
-            if price and prev_close:
-                chg_pct = f"{((price - prev_close) / prev_close) * 100:+.2f}%"
-
-            data = {
-                "symbol": name,
-                "price": f"{price:,.2f}" if price else None,
-                "change_pct": chg_pct,
+    try:
+        data = nse_indices()
+        result = {}
+        for name, d in data.items():
+            key = name.replace(' ', '_')
+            chg = d.get('change_pct', 0)
+            result[key] = {
+                'price':      d.get('price'),
+                'change_pct': f"{chg:+.2f}%" if chg else '—',
             }
-            set_cached(sym, data)
-            results[name] = data
-        except Exception as e:
-            results[name] = {"symbol": name, "error": str(e)}
-
-    return jsonify({"status": "ok", "data": results})
+        return jsonify({"status": "ok", "data": result})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
@@ -541,7 +512,7 @@ def stock_analysis():
     # ── Run all data fetches in parallel ─────────────────────────────
     def fetch_quote():
         try:
-            result["quote"] = scrape_stock(symbol)
+            result["quote"] = nse_quote(symbol)
         except Exception:
             result["quote"] = {}
 
@@ -746,8 +717,21 @@ def warm_stock_features():
     threading.Thread(target=_warm, daemon=True).start()
 
 
+def warm_nse_session():
+    """Pre-warm NSE session on startup."""
+    def _warm():
+        print("  Warming NSE session...")
+        try:
+            get_session()
+            print("  NSE session ready")
+        except Exception as e:
+            print(f"  NSE session warm error: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
+
+
 warm_cache()
 warm_stock_features()
+warm_nse_session()
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
