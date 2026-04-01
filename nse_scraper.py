@@ -192,53 +192,37 @@ def get_indices() -> dict:
                     'change_pct': item.get('percentChange'),
                 }
 
-        # Sensex from BSE API (free, no session needed)
+        # Sensex via yfinance (reliable on Render)
         try:
-            r = requests.get(
-                'https://api.bseindia.com/BseIndiaAPI/api/GetSensexData/w',
-                headers={'User-Agent': 'Mozilla/5.0'},
-                timeout=5
-            )
-            if r.status_code == 200:
-                bse = r.json()
-                indices['SENSEX'] = {
-                    'price':      float(bse.get('Close', 0)),
-                    'change':     float(bse.get('Chg', 0)),
-                    'change_pct': float(bse.get('ChgPer', 0)),
-                }
+            import yfinance as yf
+            sensex = yf.Ticker('^BSESN')
+            info = sensex.fast_info
+            price = float(info.last_price)
+            prev  = float(info.previous_close)
+            chg   = round(price - prev, 2)
+            chgp  = round((chg / prev) * 100, 2)
+            indices['SENSEX'] = {
+                'price':      round(price, 2),
+                'change':     chg,
+                'change_pct': chgp,
+            }
         except Exception:
-            # Fallback — yfinance for Sensex
-            try:
-                import yfinance as yf
-                s = yf.Ticker('^BSESN')
-                info = s.info
-                price = info.get('regularMarketPrice') or info.get('previousClose')
-                chg   = info.get('regularMarketChange', 0)
-                chgp  = info.get('regularMarketChangePercent', 0)
-                if price:
-                    indices['SENSEX'] = {
-                        'price':      round(price, 2),
-                        'change':     round(chg, 2),
-                        'change_pct': round(chgp, 2),
-                    }
-            except Exception:
-                pass
+            pass
 
-        # USD/INR from exchangerate API (free)
+        # USD/INR via yfinance
         try:
-            r = requests.get(
-                'https://open.er-api.com/v6/latest/USD',
-                timeout=5
-            )
-            if r.status_code == 200:
-                fx = r.json()
-                inr = fx.get('rates', {}).get('INR')
-                if inr:
-                    indices['USD_INR'] = {
-                        'price':      round(inr, 2),
-                        'change':     None,
-                        'change_pct': None,
-                    }
+            import yfinance as yf
+            fx = yf.Ticker('USDINR=X')
+            info = fx.fast_info
+            price = float(info.last_price)
+            prev  = float(info.previous_close)
+            chg   = round(price - prev, 4)
+            chgp  = round((chg / prev) * 100, 2)
+            indices['USD_INR'] = {
+                'price':      round(price, 4),
+                'change':     chg,
+                'change_pct': chgp,
+            }
         except Exception:
             pass
 

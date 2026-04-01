@@ -448,10 +448,10 @@ def indices():
 
         mapping = {
             'NIFTY 50':   'NIFTY_50',
-            'NIFTY BANK': 'BANK_NIFTY',
+            'NIFTY BANK': 'NIFTY_BANK',
             'SENSEX':     'SENSEX',
             'USD_INR':    'USD_INR',
-            'INDIA VIX':  'VIX',
+            'INDIA VIX':  'INDIA_VIX',
         }
 
         for nse_name, key in mapping.items():

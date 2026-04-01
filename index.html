@@ -756,16 +756,16 @@ async function loadIndices() {
       };
       set('v-nifty',  d.NIFTY_50);
       set('v-sensex', d.SENSEX);
-      set('v-bnifty', d.BANK_NIFTY);
+      set('v-bnifty', d.NIFTY_BANK);
       if (d.USD_INR) {
         const el = document.getElementById('v-fx');
         if (el) { el.textContent = '₹' + d.USD_INR.price; el.className = 'neu'; }
       }
-      if (d.VIX) {
+      if (d.INDIA_VIX) {
         const el = document.getElementById('v-vix');
         if (el) {
-          el.textContent = d.VIX.price + (d.VIX.change_pct && d.VIX.change_pct !== '—' ? ' ' + d.VIX.change_pct : '');
-          el.className = d.VIX.change_pct?.includes('-') ? 'up' : 'dn'; // VIX down = market up
+          el.textContent = d.INDIA_VIX.price + (d.INDIA_VIX.change_pct && d.INDIA_VIX.change_pct !== '—' ? ' ' + d.INDIA_VIX.change_pct : '');
+          el.className = d.INDIA_VIX.change_pct?.includes('-') ? 'up' : 'dn'; // VIX down = market up
         }
       }
     }
