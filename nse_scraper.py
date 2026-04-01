@@ -192,48 +192,46 @@ def get_indices() -> dict:
                     'change_pct': item.get('percentChange'),
                 }
 
-        # Sensex via Yahoo Finance query API (more reliable than yfinance library)
+        # Sensex via stooq free API
         try:
             r = requests.get(
-                'https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d',
+                'https://stooq.com/q/l/?s=^bsesn&f=sd2t2ohlcv&h&e=json',
                 headers={'User-Agent': 'Mozilla/5.0'},
                 timeout=5
             )
             if r.status_code == 200:
                 j = r.json()
-                meta = j['chart']['result'][0]['meta']
-                price = meta.get('regularMarketPrice')
-                prev  = meta.get('previousClose') or meta.get('chartPreviousClose')
-                if price and prev:
-                    chg  = round(price - prev, 2)
-                    chgp = round((chg / prev) * 100, 2)
-                    indices['SENSEX'] = {
-                        'price':      round(price, 2),
-                        'change':     chg,
-                        'change_pct': chgp,
-                    }
+                symbols = j.get('symbols', [])
+                if symbols:
+                    s = symbols[0]
+                    price = float(s.get('close', 0))
+                    open_ = float(s.get('open', 0))
+                    if price and open_:
+                        chg  = round(price - open_, 2)
+                        chgp = round((chg / open_) * 100, 2)
+                        indices['SENSEX'] = {
+                            'price':      round(price, 2),
+                            'change':     chg,
+                            'change_pct': chgp,
+                        }
         except Exception:
             pass
 
-        # USD/INR via Yahoo Finance query API
+        # USD/INR via frankfurter free API
         try:
             r = requests.get(
-                'https://query1.finance.yahoo.com/v8/finance/chart/USDINR%3DX?interval=1d&range=1d',
+                'https://api.frankfurter.app/latest?from=USD&to=INR',
                 headers={'User-Agent': 'Mozilla/5.0'},
                 timeout=5
             )
             if r.status_code == 200:
                 j = r.json()
-                meta = j['chart']['result'][0]['meta']
-                price = meta.get('regularMarketPrice')
-                prev  = meta.get('previousClose') or meta.get('chartPreviousClose')
-                if price and prev:
-                    chg  = round(price - prev, 4)
-                    chgp = round((chg / prev) * 100, 2)
+                inr = j.get('rates', {}).get('INR')
+                if inr:
                     indices['USD_INR'] = {
-                        'price':      round(price, 4),
-                        'change':     chg,
-                        'change_pct': chgp,
+                        'price':      round(float(inr), 2),
+                        'change':     None,
+                        'change_pct': None,
                     }
         except Exception:
             pass
