@@ -787,9 +787,27 @@ def warm_nse_session():
     threading.Thread(target=_warm, daemon=True).start()
 
 
+def warm_macro():
+    """Pre-fetch macro sentiment on startup. Fires 60s after boot."""
+    def _warm():
+        time.sleep(60)  # Let Nifty + NSE session warm first
+        print("  Warming macro sentiment cache (26 topics)...")
+        try:
+            from macro_sentiment import get_macro_sentiment
+            from ml_screener import _cache
+            macro_data = get_macro_sentiment()
+            _cache['macro_news']['data'] = macro_data
+            _cache['macro_news']['ts']   = time.time()
+            print(f"  Macro cache ready — {len(macro_data)} topics fetched")
+        except Exception as e:
+            print(f"  Macro warm error: {e}")
+    threading.Thread(target=_warm, daemon=True).start()
+
+
 warm_cache()
 warm_stock_features()
 warm_nse_session()
+warm_macro()
 
 
 # ── Run ───────────────────────────────────────────────────────────────────────
