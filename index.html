@@ -499,7 +499,8 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
                      : '—';
 
   // ML data — from ml object
-  const mlScore    = ml?.ml_score ?? '—';
+  const mlScore    = (ml?.ml_score != null) ? ml.ml_score : null;
+  const mlDisplay  = mlScore != null ? mlScore + '%' : (ml?.error === 'Computing...' ? 'Loading…' : '—');
   const rsi        = ml?.rsi ?? quote?.rsi ?? '—';
   const pos52      = ml?.pos52_pct ?? quote?.pos52_pct ?? '—';
   const ret1m      = ml?.ret_1m_pct ?? '—';
@@ -507,7 +508,8 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   const goldenCross= ml?.golden_cross;
 
   // Combined score — from combined object
-  const combinedScore = combined?.score ?? '—';
+  const combinedScore = (combined?.score != null) ? combined.score : null;
+  const combinedDisplay = combinedScore != null ? combinedScore + '%' : '—';
   const grade      = combined?.grade || 'C';
 
   // Fundamentals — from fundamentals object
@@ -538,6 +540,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   // Score bar color
   function barColor(s) {
     const n = parseFloat(s);
+    if (isNaN(n)) return 'var(--text3)';
     if (n >= 70) return 'var(--green)';
     if (n >= 55) return 'var(--gold)';
     return 'var(--red)';
@@ -593,16 +596,16 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           <div class="score-item">
             <div class="score-top">
               <span class="score-name">ML Score</span>
-              <span class="score-num" style="color:${barColor(mlScore)}">${mlScore}%</span>
+              <span class="score-num" style="color:${mlScore != null ? barColor(mlScore) : 'var(--text3)'}">${mlDisplay}</span>
             </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${mlScore}%;background:${barColor(mlScore)}"></div></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${mlScore != null ? mlScore : 0}%;background:${mlScore != null ? barColor(mlScore) : 'var(--text3)'}"></div></div>
           </div>
           <div class="score-item">
             <div class="score-top">
               <span class="score-name">Combined Score</span>
-              <span class="score-num" style="color:${barColor(combinedScore)}">${combinedScore}%</span>
+              <span class="score-num" style="color:${barColor(combinedScore)}">${combinedDisplay}</span>
             </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combinedScore}%;background:${barColor(combinedScore)}"></div></div>
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combinedScore != null ? combinedScore : 0}%;background:${barColor(combinedScore)}"></div></div>
           </div>
         </div>
 

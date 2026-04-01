@@ -506,6 +506,29 @@ def ml_screen():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# ── Dividend yield normaliser ─────────────────────────────────────────────────
+def _safe_div_yield(div_yield_raw, div_rate=None, price=None):
+    """
+    yfinance 'dividendYield' is inconsistent:
+      - Sometimes returns a fraction already: 0.0175  (= 1.75%)
+      - Sometimes returns a percentage:       1.75    (= 1.75%)
+    We normalise to a clean decimal fraction so the frontend can just do * 100.
+    """
+    if div_yield_raw is not None:
+        val = float(div_yield_raw)
+        # If > 1.0 it's already a percentage — convert to fraction
+        if val > 1.0:
+            val = val / 100.0
+        return round(val, 6)
+    # Fallback: compute from dividendRate / price
+    if div_rate and price:
+        try:
+            return round(float(div_rate) / float(price), 6)
+        except Exception:
+            pass
+    return None
+
+
 # ── Single-stock deep analysis ────────────────────────────────────────────────
 @app.route("/stock-analysis")
 def stock_analysis():
@@ -557,7 +580,24 @@ def stock_analysis():
                     "golden_cross": bool(f['golden_cross']),
                 }
             else:
-                result["ml"] = {"error": "Could not compute features"}
+                # ML features not ready yet — compute RSI at minimum from recent prices
+                rsi_val = None
+                try:
+                    import yfinance as _yf
+                    import numpy as np
+                    df = _yf.download(f"{symbol}.NS", period="1mo", interval="1d",
+                                      auto_adjust=True, progress=False)
+                    if len(df) >= 15:
+                        if hasattr(df.columns, 'levels'):
+                            df.columns = df.columns.get_level_values(0)
+                        closes = df['Close'].squeeze().values.astype(float)
+                        d = np.diff(closes[-16:])
+                        g = d[d > 0].mean() if len(d[d > 0]) > 0 else 0.001
+                        l = abs(d[d < 0].mean()) if len(d[d < 0]) > 0 else 0.001
+                        rsi_val = round(float(100 - 100 / (1 + g / l)), 1)
+                except Exception:
+                    pass
+                result["ml"] = {"error": "Computing...", "rsi": rsi_val}
         except Exception as e:
             result["ml"] = {"error": str(e)}
 
@@ -597,7 +637,7 @@ def stock_analysis():
                 "revenue_growth":  info.get('revenueGrowth'),
                 "earnings_growth": info.get('earningsGrowth'),
                 "debt_to_equity":  info.get('debtToEquity'),
-                "dividend_yield":  info.get('dividendYield'),
+                "dividend_yield":  _safe_div_yield(info.get('dividendYield'), info.get('dividendRate'), info.get('currentPrice') or info.get('regularMarketPrice')),
                 "eps":             info.get('trailingEps'),
             }
         except Exception:
@@ -612,12 +652,17 @@ def stock_analysis():
     def fetch_macro():
         try:
             from ml_screener import _cache
+            from macro_sentiment import get_macro_sentiment, apply_macro_to_stock as _apply
             macro_cache = _cache.get('macro_news', {})
+            # Use cache if it's warm (filled by ml-screen endpoint), else fetch fresh
             if macro_cache.get('data') and macro_cache.get('ts', 0) > 0:
                 macro_data = macro_cache['data']
             else:
-                macro_data = {}
-            result["macro"] = apply_macro_to_stock(symbol, macro_data)
+                # Fetch fresh (takes ~30s for all 26 topics, so do it in background)
+                macro_data = get_macro_sentiment()
+                _cache['macro_news']['data'] = macro_data
+                _cache['macro_news']['ts']   = time.time()
+            result["macro"] = _apply(symbol, macro_data)
         except Exception:
             result["macro"] = {"macro_score": 0, "macro_label": "neutral"}
 

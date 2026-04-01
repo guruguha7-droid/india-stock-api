@@ -192,28 +192,25 @@ def get_indices() -> dict:
                     'change_pct': item.get('percentChange'),
                 }
 
-        # Sensex via stooq free API
+        # Sensex via yfinance ^BSESN (more reliable than Stooq)
         try:
-            r = requests.get(
-                'https://stooq.com/q/l/?s=^bsesn&f=sd2t2ohlcv&h&e=json',
-                headers={'User-Agent': 'Mozilla/5.0'},
-                timeout=5
-            )
-            if r.status_code == 200:
-                j = r.json()
-                symbols = j.get('symbols', [])
-                if symbols:
-                    s = symbols[0]
-                    price = float(s.get('close', 0))
-                    open_ = float(s.get('open', 0))
-                    if price and open_:
-                        chg  = round(price - open_, 2)
-                        chgp = round((chg / open_) * 100, 2)
-                        indices['SENSEX'] = {
-                            'price':      round(price, 2),
-                            'change':     chg,
-                            'change_pct': chgp,
-                        }
+            import yfinance as _yf
+            bse = _yf.download("^BSESN", period="2d", interval="1d",
+                               auto_adjust=True, progress=False)
+            if bse is not None and len(bse) >= 1:
+                if hasattr(bse.columns, 'levels'):
+                    bse.columns = bse.columns.get_level_values(0)
+                close_vals = bse['Close'].squeeze()
+                price = float(close_vals.iloc[-1])
+                prev  = float(close_vals.iloc[-2]) if len(close_vals) >= 2 else price
+                if price > 0:
+                    chg  = round(price - prev, 2)
+                    chgp = round((chg / prev) * 100, 2) if prev > 0 else 0.0
+                    indices['SENSEX'] = {
+                        'price':      round(price, 2),
+                        'change':     chg,
+                        'change_pct': chgp,
+                    }
         except Exception:
             pass
 
