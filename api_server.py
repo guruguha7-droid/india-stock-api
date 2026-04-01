@@ -729,16 +729,26 @@ def stock_analysis():
 
     # ── Forecast ──────────────────────────────────────────────────────
     try:
-        fund  = result.get("fundamentals", {})
-        val   = result.get("valuation", {})
-        quote = result.get("quote", {})
+        fund  = result.get("fundamentals") or {}
+        val   = result.get("valuation") or {}
+        quote = result.get("quote") or {}
 
-        eps         = val.get("eps") or 0
+        # Guard — if critical data missing, skip forecast
+        if not fund and not val:
+            result["forecast"] = None
+            raise Exception("data not ready")
+
+        eps         = val.get("eps") or None
         pe          = val.get("pe_ratio") or 20
-        eps_cagr    = float(fund.get("eps_cagr_5y") or fund.get("profit_cagr_5y") or 8)
-        sales_cagr  = float(fund.get("sales_cagr_5y") or 10)
-        profit_cagr = float(fund.get("profit_cagr_5y") or 8)
+        eps_cagr    = float(fund.get("eps_cagr_5y") or fund.get("profit_cagr_5y") or 0)
+        sales_cagr  = float(fund.get("sales_cagr_5y") or 0)
+        profit_cagr = float(fund.get("profit_cagr_5y") or 0)
         price_now   = float(str(quote.get("price") or 0).replace(",","")) or None
+
+        # If no real Screener data at all, return null forecast
+        if sales_cagr == 0 and profit_cagr == 0:
+            result["forecast"] = None
+            raise Exception("no screener data")
 
         def price_target(years):
             if not eps or not pe: return None
