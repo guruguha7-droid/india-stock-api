@@ -815,56 +815,182 @@ def stock_analysis():
         fund  = result.get("fundamentals") or {}
         val   = result.get("valuation") or {}
         quote = result.get("quote") or {}
+        ml    = result.get("ml") or {}
+        sent  = result.get("sentiment") or {}
+        macro = result.get("macro") or {}
 
-        # Guard — if critical data missing, skip forecast
-        if not fund and not val:
-            result["forecast"] = None
-            raise Exception("data not ready")
-
-        eps         = val.get("eps") or None
-        pe          = val.get("pe_ratio") or 20
-        eps_cagr    = float(fund.get("eps_cagr_5y") or fund.get("profit_cagr_5y") or 0)
-        sales_cagr  = float(fund.get("sales_cagr_5y") or 0)
-        profit_cagr = float(fund.get("profit_cagr_5y") or 0)
+        eps         = val.get("eps")
+        pe          = float(val.get("pe_ratio") or 20)
         price_now   = float(str(quote.get("price") or 0).replace(",","")) or None
 
-        # If no real Screener data at all, return null forecast
-        if sales_cagr == 0 and profit_cagr == 0:
-            result["forecast"] = None
-            raise Exception("no screener data")
+        # ── Base CAGRs from historical Screener data ───────────────────
+        sales_cagr  = float(fund.get("sales_cagr_5y")  or 8)
+        profit_cagr = float(fund.get("profit_cagr_5y") or 8)
+        eps_cagr    = float(fund.get("eps_cagr_5y") or profit_cagr)
+        roce_latest = float(fund.get("roce") or fund.get("roce_latest_pct") or 10)
+        roce_avg    = float(fund.get("roce_avg_5y") or roce_latest)
+        ocf         = fund.get("ocf_latest_cr")
+        fcf_ok      = fund.get("fcf_positive_3y")
+        debt_red    = fund.get("debt_reducing")
+        promoter    = float(fund.get("promoter_pct") or 40)
 
-        def price_target(years):
+        # ── RSI & momentum from ML ─────────────────────────────────────
+        rsi         = float(ml.get("rsi") or 50)
+        ret_3m      = float(ml.get("ret_3m_pct") or 0)
+        golden      = bool(ml.get("golden_cross"))
+        ml_score    = float(ml.get("ml_score") or 50)
+
+        # ── Sentiment scores ───────────────────────────────────────────
+        news_score  = float(sent.get("sentiment_score") or 0)
+        macro_score = float(macro.get("macro_score") or 0)
+
+        # ── Sector tailwinds from macro topics ─────────────────────────
+        macro_topics = macro.get("topics") or []
+        sector_score = 0
+        if macro_topics:
+            sector_score = sum(t.get("score", 0) * t.get("weight", 1)
+                               for t in macro_topics) / max(len(macro_topics), 1)
+
+        # ══════════════════════════════════════════════════════════════
+        # MULTIPLIER ENGINE  (all multipliers clamp to ±20% max)
+        # ══════════════════════════════════════════════════════════════
+        def clamp(val, lo, hi): return max(lo, min(hi, val))
+
+        # 1. Macro multiplier — broad economy
+        macro_mult = clamp(1 + (macro_score / 100) * 0.20, 0.80, 1.20)
+
+        # 2. Sector tailwind multiplier
+        sector_mult = clamp(1 + (sector_score / 100) * 0.15, 0.85, 1.15)
+
+        # 3. ROCE trend multiplier — improving ROCE = sustainable growth
+        roce_trend  = roce_latest - roce_avg
+        if roce_trend > 5:    roce_mult = 1.10
+        elif roce_trend > 2:  roce_mult = 1.05
+        elif roce_trend > 0:  roce_mult = 1.02
+        elif roce_trend > -3: roce_mult = 0.98
+        else:                 roce_mult = 0.92
+
+        # 4. Capex/FCF multiplier — company investing in growth
+        capex_mult = 1.0
+        if fcf_ok is True:   capex_mult += 0.05
+        if ocf and float(ocf) > 0: capex_mult += 0.03
+        capex_mult = clamp(capex_mult, 0.95, 1.08)
+
+        # 5. Debt trend multiplier — reducing debt = lower risk
+        debt_mult = 1.03 if debt_red is True else 0.97 if debt_red is False else 1.0
+
+        # 6. Promoter holding multiplier
+        if promoter > 60:   promo_mult = 1.04
+        elif promoter > 50: promo_mult = 1.02
+        elif promoter > 40: promo_mult = 1.00
+        elif promoter > 25: promo_mult = 0.98
+        else:               promo_mult = 0.95
+
+        # 7. News sentiment — short term only (1Y), decays for 3Y/5Y
+        news_mult_1y = clamp(1 + (news_score / 100) * 0.10, 0.90, 1.10)
+        news_mult_3y = clamp(1 + (news_score / 100) * 0.04, 0.96, 1.04)
+        news_mult_5y = 1.0
+
+        # 8. RSI & momentum overlay — 1Y price target only
+        momentum_mult = 1.0
+        if golden and rsi > 55 and ret_3m > 5:   momentum_mult = 1.08
+        elif golden and rsi > 50:                 momentum_mult = 1.04
+        elif not golden and rsi < 40:             momentum_mult = 0.93
+        elif rsi < 30:                            momentum_mult = 0.96
+        momentum_mult = clamp(momentum_mult, 0.90, 1.10)
+
+        # ══════════════════════════════════════════════════════════════
+        # COMBINED CAGR
+        # ══════════════════════════════════════════════════════════════
+        base_mult = macro_mult * sector_mult * roce_mult * capex_mult * debt_mult * promo_mult
+
+        adj_eps_cagr_1y    = eps_cagr    * base_mult * news_mult_1y
+        adj_eps_cagr_3y    = eps_cagr    * base_mult * news_mult_3y * 0.92
+        adj_eps_cagr_5y    = eps_cagr    * base_mult * news_mult_5y * 0.85
+        adj_sales_cagr_1y  = sales_cagr  * base_mult * news_mult_1y
+        adj_sales_cagr_3y  = sales_cagr  * base_mult * news_mult_3y * 0.92
+        adj_sales_cagr_5y  = sales_cagr  * base_mult * news_mult_5y * 0.85
+        adj_profit_cagr_1y = profit_cagr * base_mult * news_mult_1y
+        adj_profit_cagr_3y = profit_cagr * base_mult * news_mult_3y * 0.92
+        adj_profit_cagr_5y = profit_cagr * base_mult * news_mult_5y * 0.85
+
+        # ══════════════════════════════════════════════════════════════
+        # PRICE TARGET
+        # ══════════════════════════════════════════════════════════════
+        def price_target(years, eps_cagr_adj, news_m, mom_m=1.0):
             if not eps or not pe: return None
-            fwd_eps = float(eps) * ((1 + eps_cagr/100) ** years)
-            return round(fwd_eps * float(pe), 0)
+            fwd_eps = float(eps) * ((1 + eps_cagr_adj / 100) ** years)
+            raw     = fwd_eps * pe * news_m * mom_m
+            return round(raw, 0)
 
+        pt_1y = price_target(1, adj_eps_cagr_1y, news_mult_1y, momentum_mult)
+        pt_3y = price_target(3, adj_eps_cagr_3y, news_mult_3y)
+        pt_5y = price_target(5, adj_eps_cagr_5y, news_mult_5y)
+
+        # ══════════════════════════════════════════════════════════════
+        # OUTPERFORM CONFIDENCE
+        # ══════════════════════════════════════════════════════════════
+        scr_score = float(fund.get("investment_score") or 50)
         def outperform_prob(years):
-            base = result.get("ml", {}).get("ml_score") or 50
-            scr  = fund.get("investment_score") or 50
+            base  = ml_score * 0.50 + scr_score * 0.30 + (50 + macro_score * 0.20) * 0.20
             decay = 0.85 ** years
-            score = base * 0.6 + scr * 0.4
-            return round(50 + (score - 50) * decay, 1)
+            return round(clamp(50 + (base - 50) * decay, 20, 85), 1)
+
+        # ══════════════════════════════════════════════════════════════
+        # FACTOR SUMMARY
+        # ══════════════════════════════════════════════════════════════
+        def factor_signals():
+            ups, downs = [], []
+            if macro_mult > 1.05:    ups.append("Positive macro")
+            elif macro_mult < 0.95:  downs.append("Negative macro")
+            if sector_mult > 1.05:   ups.append("Sector tailwind")
+            elif sector_mult < 0.95: downs.append("Sector headwind")
+            if roce_mult > 1.05:     ups.append("Improving ROCE")
+            elif roce_mult < 0.95:   downs.append("Declining ROCE")
+            if capex_mult > 1.05:    ups.append("Strong FCF/Capex")
+            if debt_red is True:     ups.append("Debt reducing")
+            elif debt_red is False:  downs.append("Debt not reducing")
+            if promo_mult > 1.02:    ups.append("High promoter stake")
+            elif promo_mult < 0.97:  downs.append("Low promoter stake")
+            if news_mult_1y > 1.04:  ups.append("Positive news")
+            elif news_mult_1y < 0.96: downs.append("Negative news")
+            if momentum_mult > 1.04: ups.append("Strong momentum")
+            elif momentum_mult < 0.96: downs.append("Weak momentum")
+            return {"up": ups[:3], "down": downs[:3]}
+
+        signals = factor_signals()
 
         result["forecast"] = {
             "1y": {
-                "price_target":       price_target(1),
-                "revenue_growth_pct": round(sales_cagr, 1),
-                "profit_growth_pct":  round(profit_cagr, 1),
+                "price_target":       pt_1y,
+                "revenue_growth_pct": round(adj_sales_cagr_1y, 1),
+                "profit_growth_pct":  round(adj_profit_cagr_1y, 1),
                 "outperform_prob":    outperform_prob(1),
             },
             "3y": {
-                "price_target":       price_target(3),
-                "revenue_growth_pct": round(sales_cagr * 0.9, 1),
-                "profit_growth_pct":  round(profit_cagr * 0.9, 1),
+                "price_target":       pt_3y,
+                "revenue_growth_pct": round(adj_sales_cagr_3y, 1),
+                "profit_growth_pct":  round(adj_profit_cagr_3y, 1),
                 "outperform_prob":    outperform_prob(3),
             },
             "5y": {
-                "price_target":       price_target(5),
-                "revenue_growth_pct": round(sales_cagr * 0.8, 1),
-                "profit_growth_pct":  round(profit_cagr * 0.8, 1),
+                "price_target":       pt_5y,
+                "revenue_growth_pct": round(adj_sales_cagr_5y, 1),
+                "profit_growth_pct":  round(adj_profit_cagr_5y, 1),
                 "outperform_prob":    outperform_prob(5),
             },
             "current_price": price_now,
+            "signals":       signals,
+            "multipliers": {
+                "macro":    round(macro_mult, 3),
+                "sector":   round(sector_mult, 3),
+                "roce":     round(roce_mult, 3),
+                "capex":    round(capex_mult, 3),
+                "debt":     round(debt_mult, 3),
+                "promoter": round(promo_mult, 3),
+                "momentum": round(momentum_mult, 3),
+                "news_1y":  round(news_mult_1y, 3),
+            },
         }
     except Exception:
         result["forecast"] = None
