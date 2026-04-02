@@ -16,7 +16,7 @@ warnings.filterwarnings('ignore')
 NSE_STOCKS = [
     "HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN",
     "BAJFINANCE", "BAJAJFINSV", "SHRIRAMFIN", "TCS", "INFY",
-    "WIPRO", "HCLTECH", "TECHM", "LTIM", "RELIANCE",
+    "WIPRO", "HCLTECH", "TECHM", "LTM", "RELIANCE",
     "ONGC", "BPCL", "IOC", "POWERGRID", "NTPC",
     "ADANIPORTS", "ADANIENT", "TATAPOWER", "HINDUNILVR", "ITC",
     "NESTLEIND", "BRITANNIA", "TATACONSUM", "MARUTI", "M&M",
@@ -296,7 +296,8 @@ def run_ml_screen(top_n=10):
         ml_raw = round(prob * 100, 1)
 
         # Screener fundamentals
-        sc             = screener_data.get(sym, {})
+        _CSV_MAP = {'VBL': 'VBLLTD', 'LTM': 'LTIMINDTREE'}
+        sc             = screener_data.get(_CSV_MAP.get(sym, sym), {})
         screener_score = float(sc.get('investment_score', 50) or 50)
         screener_grade = sc.get('investment_grade', 'C') or 'C'
         roce           = float(sc.get('roce_latest_pct', 10) or 10)

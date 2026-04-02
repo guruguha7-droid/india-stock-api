@@ -682,7 +682,12 @@ def stock_analysis():
                 result["fundamentals"] = {}
                 return
             sdf = pd.read_csv(path)
-            row = sdf[sdf['symbol'] == symbol]
+            # Some symbols stored differently in CSV (e.g. VBL → VBLLTD)
+            SYMBOL_CSV_MAP = {
+                'VBL': 'VBLLTD', 'LTM': 'LTIMINDTREE', 'M&M': 'M&M',
+            }
+            csv_sym = SYMBOL_CSV_MAP.get(symbol, symbol)
+            row = sdf[sdf['symbol'] == csv_sym]
             if not row.empty:
                 r = row.iloc[0].to_dict()
                 result["fundamentals"] = {
