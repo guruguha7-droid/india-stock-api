@@ -529,6 +529,79 @@ def _safe_div_yield(div_yield_raw, div_rate=None, price=None):
     return None
 
 
+# ── Quick quote — price + valuation + sentiment, no ML/Screener (~3s) ────────
+@app.route("/quick-quote")
+def quick_quote():
+    symbol = request.args.get("symbol", "").upper().strip()
+    if not symbol:
+        return jsonify({"error": "symbol required"}), 400
+
+    import math
+    result = {"symbol": symbol}
+
+    def fetch_q():
+        try:
+            result["quote"] = nse_quote(symbol)
+        except Exception:
+            result["quote"] = {}
+
+    def fetch_val():
+        try:
+            import yfinance as yf
+            import numpy as np
+            info = yf.Ticker(f"{symbol}.NS").info
+            rsi_val = None
+            try:
+                df = yf.download(f"{symbol}.NS", period="1mo", interval="1d",
+                                 auto_adjust=True, progress=False)
+                if len(df) >= 15:
+                    if hasattr(df.columns, 'levels'):
+                        df.columns = df.columns.get_level_values(0)
+                    closes = df['Close'].squeeze().values.astype(float)
+                    d = np.diff(closes[-16:])
+                    g = d[d > 0].mean() if len(d[d > 0]) > 0 else 0.001
+                    l = abs(d[d < 0].mean()) if len(d[d < 0]) > 0 else 0.001
+                    rsi_val = round(float(100 - 100 / (1 + g / l)), 1)
+            except Exception:
+                pass
+            dy = _safe_div_yield(info.get('dividendYield'),
+                                 info.get('dividendRate'),
+                                 info.get('currentPrice'))
+            result["valuation"] = {
+                "pe_ratio":       info.get('trailingPE'),
+                "eps":            info.get('trailingEps'),
+                "dividend_yield": dy,
+                "profit_margin":  info.get('profitMargins'),
+                "revenue_growth": info.get('revenueGrowth'),
+            }
+            result["rsi"] = rsi_val
+        except Exception:
+            result["valuation"] = {}
+
+    def fetch_sent():
+        try:
+            from news_sentiment import get_sentiment_score
+            result["sentiment"] = get_sentiment_score(symbol)
+        except Exception:
+            result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
+
+    threads = [
+        threading.Thread(target=fetch_q),
+        threading.Thread(target=fetch_val),
+        threading.Thread(target=fetch_sent),
+    ]
+    for t in threads: t.start()
+    for t in threads: t.join(timeout=10)
+
+    def fix_nan(obj):
+        if isinstance(obj, dict):   return {k: fix_nan(v) for k, v in obj.items()}
+        elif isinstance(obj, list): return [fix_nan(v) for v in obj]
+        elif isinstance(obj, float) and math.isnan(obj): return None
+        return obj
+
+    return jsonify(fix_nan({"status": "ok", **result}))
+
+
 # ── Single-stock deep analysis ────────────────────────────────────────────────
 @app.route("/stock-analysis")
 def stock_analysis():
@@ -604,8 +677,11 @@ def stock_analysis():
     def fetch_fundamentals():
         try:
             import pandas as pd
-            sdf = pd.read_csv(
-                os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+            path = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
+            if not os.path.exists(path):
+                result["fundamentals"] = {}
+                return
+            sdf = pd.read_csv(path)
             row = sdf[sdf['symbol'] == symbol]
             if not row.empty:
                 r = row.iloc[0].to_dict()
@@ -613,6 +689,7 @@ def stock_analysis():
                     "roce":             r.get('roce_latest_pct'),
                     "sales_cagr_5y":    r.get('sales_cagr_5y'),
                     "profit_cagr_5y":   r.get('profit_cagr_5y'),
+                    "eps_cagr_5y":      r.get('eps_cagr_5y'),
                     "promoter_pct":     r.get('promoter_pct'),
                     "fcf_positive_3y":  r.get('fcf_positive_3y'),
                     "debt_reducing":    r.get('debt_reducing'),
@@ -678,7 +755,7 @@ def stock_analysis():
     for t in threads:
         t.start()
     for t in threads:
-        t.join(timeout=15)
+        t.join(timeout=40)
 
     # ── Combined score ────────────────────────────────────────────────
     try:
