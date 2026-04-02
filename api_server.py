@@ -795,11 +795,12 @@ def stock_analysis():
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
         result["combined"] = {
-            "score":       combined,
-            "grade":       grade,
-            "yfin_score":  round(yfin_score, 1),
-            "sent_score":  round(sent_score, 1),
-            "macro_score": round(macro_score, 1),
+            "score":          combined,
+            "grade":          grade,
+            "yfin_score":     round(yfin_score, 1),
+            "sent_score":     round(sent_score, 1),
+            "macro_score":    round(macro_score, 1),
+            "screener_score": round(scr_raw, 1),
         }
     except Exception:
         result["combined"] = {"score": 50, "grade": "C"}
