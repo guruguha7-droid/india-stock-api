@@ -684,7 +684,7 @@ def stock_analysis():
             sdf = pd.read_csv(path)
             # Some symbols stored differently in CSV (e.g. VBL → VBLLTD)
             SYMBOL_CSV_MAP = {
-                'VBL': 'VBLLTD', 'LTM': 'LTIMINDTREE', 'M&M': 'M&M',
+                'LTM': 'LTIMINDTREE',
             }
             csv_sym = SYMBOL_CSV_MAP.get(symbol, symbol)
             row = sdf[sdf['symbol'] == csv_sym]
