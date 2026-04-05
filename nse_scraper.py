@@ -86,8 +86,9 @@ def get_quote(symbol: str) -> dict:
     Returns standardised dict with all price fields.
     """
     try:
+        import urllib.parse
         data = fetch_nse(
-            f'https://www.nseindia.com/api/quote-equity?symbol={symbol}'
+            f'https://www.nseindia.com/api/quote-equity?symbol={urllib.parse.quote(symbol)}'
         )
         if not data:
             return {'symbol': symbol, 'error': 'No data from NSE'}
