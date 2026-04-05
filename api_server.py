@@ -799,33 +799,74 @@ def stock_analysis():
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
-        # ── Verdict ───────────────────────────────────────────────────
+        # ── Base verdict ──────────────────────────────────────────────
         if combined >= 65:   verdict, verdict_color = 'BUY',  'green'
         elif combined >= 50: verdict, verdict_color = 'HOLD', 'gold'
         else:                verdict, verdict_color = 'SELL', 'red'
 
-        # Risk level
+        # ── Contrarian override ───────────────────────────────────────
+        rsi_val  = float(result.get('ml', {}).get('rsi') or 50)
+        pos52    = float(result.get('ml', {}).get('pos52_pct') or 50)
+        ret_1m   = float(result.get('ml', {}).get('ret_1m_pct') or 0)
+
+        contrarian = (
+            sent_raw  < -15  and
+            scr_raw   >= 60  and
+            rsi_val   < 45   and
+            pos52     < 40   and
+            ret_1m    < -5   and
+            combined  >= 42
+        )
+
+        strong_contrarian = (
+            contrarian       and
+            scr_raw   >= 75  and
+            rsi_val   < 35   and
+            pos52     < 25
+        )
+
+        if strong_contrarian:
+            verdict       = 'STRONG BUY'
+            verdict_color = 'green'
+        elif contrarian:
+            verdict       = 'BUY'
+            verdict_color = 'green'
+
+        # ── Risk level ────────────────────────────────────────────────
         mcap_str = result.get('quote', {}).get('market_cap', '') or ''
-        is_large = 'L Cr' in mcap_str and float(mcap_str.replace('₹','').replace('L Cr','').replace(',','').strip() or 0) > 50
-        de       = float(result.get('valuation',{}).get('debt_to_equity') or 50)
-        vol      = float(result.get('ml',{}).get('ret_1m_pct') or 0)
-        if is_large and de < 60 and abs(vol) < 10:   risk, risk_color = 'Low',    'green'
-        elif is_large or de < 100:                    risk, risk_color = 'Medium', 'gold'
-        else:                                         risk, risk_color = 'High',   'red'
+        try:
+            mc_val   = float(mcap_str.replace('₹','').replace('L Cr','')
+                             .replace('T Cr','').replace('Cr','')
+                             .replace(',','').strip() or 0)
+            is_large = 'L Cr' in mcap_str and mc_val > 50
+        except Exception:
+            is_large = False
 
-        # One-line reason
+        de  = float(result.get('valuation', {}).get('debt_to_equity') or 50)
+        vol = abs(float(result.get('ml', {}).get('ret_1m_pct') or 0))
+
+        if is_large and de < 60 and vol < 10:  risk, risk_color = 'Low',    'green'
+        elif is_large or de < 100:             risk, risk_color = 'Medium', 'gold'
+        else:                                  risk, risk_color = 'High',   'red'
+
+        # ── Reason ────────────────────────────────────────────────────
         reasons = []
-        if scr_raw >= 70:    reasons.append('strong fundamentals')
-        elif scr_raw < 45:   reasons.append('weak fundamentals')
-        if ml_raw >= 60:     reasons.append('positive ML signal')
-        elif ml_raw < 40:    reasons.append('negative ML signal')
-        if sent_raw > 10:    reasons.append('positive news')
-        elif sent_raw < -10: reasons.append('negative news')
-        if macro_raw > 10:   reasons.append('favourable macro')
-        elif macro_raw < -10:reasons.append('unfavourable macro')
-        if not reasons:      reasons.append('mixed signals')
-        reason = reasons[0].capitalize() + (', ' + reasons[1] if len(reasons) > 1 else '')
+        if strong_contrarian:
+            reasons.append('Heavily oversold — strong buy opportunity')
+        elif contrarian:
+            reasons.append('Oversold on strong fundamentals')
+        else:
+            if scr_raw >= 70:    reasons.append('Strong fundamentals')
+            elif scr_raw < 45:   reasons.append('Weak fundamentals')
+            if ml_raw >= 60:     reasons.append('positive ML signal')
+            elif ml_raw < 40:    reasons.append('negative ML signal')
+            if sent_raw > 10:    reasons.append('positive news')
+            elif sent_raw < -10: reasons.append('negative news')
+            if macro_raw > 10:   reasons.append('favourable macro')
+            elif macro_raw < -10:reasons.append('unfavourable macro')
+            if not reasons:      reasons.append('Mixed signals')
 
+        reason   = reasons[0].capitalize() + (', ' + reasons[1] if len(reasons) > 1 else '')
         score_10 = round(combined / 10, 1)
 
         result["combined"] = {
