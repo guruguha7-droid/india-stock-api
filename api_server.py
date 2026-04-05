@@ -1083,6 +1083,156 @@ def stock_analysis():
     return jsonify(fix_nan(result))
 
 
+# ── Peer comparison ───────────────────────────────────────────────────────────
+SECTOR_PEERS = {
+    'TCS':['INFY','WIPRO','HCLTECH','TECHM','LTM'],
+    'INFY':['TCS','WIPRO','HCLTECH','TECHM','LTM'],
+    'WIPRO':['TCS','INFY','HCLTECH','TECHM','PERSISTENT'],
+    'HCLTECH':['TCS','INFY','WIPRO','TECHM','LTM'],
+    'TECHM':['TCS','INFY','WIPRO','HCLTECH','MPHASIS'],
+    'LTM':['TCS','INFY','WIPRO','HCLTECH','LTTS'],
+    'HDFCBANK':['ICICIBANK','SBIN','KOTAKBANK','AXISBANK','BAJFINANCE'],
+    'ICICIBANK':['HDFCBANK','SBIN','KOTAKBANK','AXISBANK','BAJFINANCE'],
+    'SBIN':['HDFCBANK','ICICIBANK','KOTAKBANK','BANKBARODA','PNB'],
+    'KOTAKBANK':['HDFCBANK','ICICIBANK','SBIN','AXISBANK','BAJFINANCE'],
+    'AXISBANK':['HDFCBANK','ICICIBANK','SBIN','KOTAKBANK','BAJFINANCE'],
+    'BAJFINANCE':['BAJAJFINSV','CHOLAFIN','MUTHOOTFIN','SHRIRAMFIN','HDFCBANK'],
+    'SUNPHARMA':['DRREDDY','CIPLA','LUPIN','DIVISLAB','TORNTPHARM'],
+    'DRREDDY':['SUNPHARMA','CIPLA','LUPIN','DIVISLAB','AUROPHARMA'],
+    'CIPLA':['SUNPHARMA','DRREDDY','LUPIN','TORNTPHARM','ALKEM'],
+    'LUPIN':['SUNPHARMA','DRREDDY','CIPLA','AUROPHARMA','TORNTPHARM'],
+    'MARUTI':['M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT','TVSMOTOR'],
+    'M&M':['MARUTI','BAJAJ-AUTO','HEROMOTOCO','TVSMOTOR','EICHERMOT'],
+    'RELIANCE':['ONGC','BPCL','IOC','HINDPETRO','GAIL'],
+    'TATASTEEL':['JSWSTEEL','HINDALCO','VEDL','SAIL','NMDC'],
+    'HINDUNILVR':['ITC','NESTLEIND','BRITANNIA','MARICO','DABUR'],
+    'ITC':['HINDUNILVR','NESTLEIND','BRITANNIA','MARICO','DABUR'],
+    'BRITANNIA':['HINDUNILVR','ITC','NESTLEIND','MARICO','TATACONSUM'],
+    'VBL':['BRITANNIA','NESTLEIND','TATACONSUM','MARICO','DABUR'],
+    'LT':['SIEMENS','ABB','HAVELLS','CUMMINSIND','POWERGRID'],
+    'NTPC':['POWERGRID','TATAPOWER','ADANIGREEN','NHPC','SJVN'],
+    'DLF':['GODREJPROP','OBEROIRLTY','PRESTIGE','BRIGADE','SOBHA'],
+}
+
+@app.route("/peers")
+def peers():
+    symbol = request.args.get("symbol","").upper().strip()
+    return jsonify({"status":"ok","symbol":symbol,"peers":SECTOR_PEERS.get(symbol,[])[:5]})
+
+@app.route("/compare")
+def compare():
+    symbols_raw = request.args.get("symbols","")
+    if not symbols_raw:
+        return jsonify({"error":"symbols required"}),400
+    symbols = [s.strip().upper() for s in symbols_raw.split(",") if s.strip()][:6]
+
+    import math
+    results = {}
+    lock = threading.Lock()
+
+    def fetch_one(sym):
+        try:
+            q = nse_quote(sym)
+            fund = {}
+            try:
+                import pandas as pd
+                path = os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv')
+                sdf  = pd.read_csv(path)
+                SYMBOL_CSV_MAP = {'LTM':'LTIM'}
+                csv_sym = SYMBOL_CSV_MAP.get(sym, sym)
+                row = sdf[sdf['symbol']==csv_sym]
+                if not row.empty:
+                    r = row.iloc[0].to_dict()
+                    fund = {
+                        'roce':            r.get('roce_latest_pct'),
+                        'sales_cagr_5y':   r.get('sales_cagr_5y'),
+                        'profit_cagr_5y':  r.get('profit_cagr_5y'),
+                        'investment_score':r.get('investment_score'),
+                        'investment_grade':r.get('investment_grade'),
+                    }
+            except Exception:
+                pass
+
+            val = {}
+            try:
+                import yfinance as yf
+                info = yf.Ticker(f"{sym}.NS").info
+                val = {
+                    'pe_ratio':  info.get('trailingPE'),
+                    'eps':       info.get('trailingEps'),
+                    'div_yield': _safe_div_yield(info.get('dividendYield'),info.get('dividendRate'),info.get('currentPrice')),
+                    'ret_1y':    info.get('52WeekChange'),
+                }
+            except Exception:
+                pass
+
+            ml = {}
+            try:
+                import joblib
+                import pandas as _pd
+                saved = joblib.load(os.path.join(os.path.dirname(__file__),'ml_model.pkl'))
+                nifty = get_nifty_close()
+                if nifty is not None:
+                    f = get_stock_features_cached(sym, nifty)
+                    if f:
+                        X    = _pd.DataFrame([{k:f[k] for k in saved['features']}])
+                        prob = float(saved['model'].predict_proba(X)[0][1])
+                        ml   = {
+                            'ml_score':   round(prob*100,1),
+                            'ret_1m_pct': round(f['ret_1m']*100,1),
+                            'ret_3m_pct': round(f['ret_3m']*100,1),
+                        }
+            except Exception:
+                pass
+
+            pt_1y = None
+            try:
+                eps     = val.get('eps')
+                pe      = float(val.get('pe_ratio') or 20)
+                ep_cagr = float(fund.get('profit_cagr_5y') or 8)
+                if eps:
+                    pt_1y = round(float(eps)*((1+ep_cagr/100)**1)*pe,0)
+            except Exception:
+                pass
+
+            with lock:
+                results[sym] = {
+                    'symbol':          sym,
+                    'price':           q.get('price'),
+                    'change_pct':      q.get('change_pct'),
+                    'market_cap':      q.get('market_cap'),
+                    'ret_1m':          ml.get('ret_1m_pct'),
+                    'ret_3m':          ml.get('ret_3m_pct'),
+                    'ret_1y':          round(float(val.get('ret_1y') or 0)*100,1) if val.get('ret_1y') else None,
+                    'pe_ratio':        val.get('pe_ratio'),
+                    'eps':             val.get('eps'),
+                    'div_yield':       round(float(val.get('div_yield') or 0)*100,2) if val.get('div_yield') else None,
+                    'roce':            fund.get('roce'),
+                    'sales_cagr_5y':   fund.get('sales_cagr_5y'),
+                    'profit_cagr_5y':  fund.get('profit_cagr_5y'),
+                    'ml_score':        ml.get('ml_score'),
+                    'screener_score':  fund.get('investment_score'),
+                    'screener_grade':  fund.get('investment_grade'),
+                    'price_target_1y': pt_1y,
+                }
+        except Exception as e:
+            with lock:
+                results[sym] = {'symbol':sym,'error':str(e)}
+
+    threads = [threading.Thread(target=fetch_one,args=(s,)) for s in symbols]
+    for t in threads: t.start()
+    for t in threads: t.join(timeout=25)
+
+    def fix_nan(obj):
+        if isinstance(obj,dict):   return {k:fix_nan(v) for k,v in obj.items()}
+        elif isinstance(obj,list): return [fix_nan(v) for v in obj]
+        elif isinstance(obj,float) and math.isnan(obj): return None
+        return obj
+
+    ordered = [fix_nan(results.get(s,{'symbol':s,'error':'timeout'})) for s in symbols]
+    return jsonify({"status":"ok","count":len(ordered),"data":ordered})
+
+
 # ── Startup cache warming ─────────────────────────────────────────────────────
 def warm_cache():
     """Pre-warm Nifty cache on server startup so first search is fast."""
