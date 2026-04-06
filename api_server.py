@@ -1260,8 +1260,11 @@ def price_history():
         period_map = {"1m":"1mo","3m":"3mo","1y":"1y","5y":"5y"}
         yf_period  = period_map.get(period,"1y")
         df = yf.download(f"{symbol}.NS", period=yf_period,
-                         interval="1d" if yf_period != "5y" else "1wk",
+                         interval="1wk" if yf_period=="5y" else "1d",
                          auto_adjust=True, progress=False)
+        if (df is None or len(df)==0) and yf_period=="5y":
+            df = yf.download(f"{symbol}.NS", period="5y",
+                             interval="1mo", auto_adjust=True, progress=False)
         if df is None or len(df) == 0:
             return jsonify({"error":"no data"}),404
         if hasattr(df.columns,'levels'):
