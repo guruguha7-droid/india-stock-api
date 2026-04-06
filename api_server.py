@@ -962,10 +962,23 @@ def stock_analysis():
         elif promoter > 25: promo_mult = 0.98
         else:               promo_mult = 0.95
 
-        # 7. News sentiment — short term only (1Y), decays for 3Y/5Y
-        news_mult_1y = clamp(1 + (news_score / 100) * 0.10, 0.90, 1.10)
-        news_mult_3y = clamp(1 + (news_score / 100) * 0.04, 0.96, 1.04)
-        news_mult_5y = 1.0
+        # 7. News sentiment — dynamic decay based on signal strength
+        # Strong signals (war, crisis, major policy) decay slowly
+        # Weak signals (minor headlines) decay fast
+        news_abs   = abs(news_score) / 100       # 0.0 to 1.0
+        decay_rate = 0.50 + news_abs * 0.45      # 0.50 (weak) to 0.95 (strong)
+
+        base_impact = 0.10                        # max 10% impact at 1Y
+
+        w_1y = base_impact * (decay_rate ** 1)
+        w_3y = base_impact * (decay_rate ** 3)
+        w_5y = base_impact * (decay_rate ** 5)
+
+        direction = news_score / 100              # -1.0 to +1.0
+
+        news_mult_1y = clamp(1 + direction * w_1y, 0.88, 1.12)
+        news_mult_3y = clamp(1 + direction * w_3y, 0.94, 1.06)
+        news_mult_5y = clamp(1 + direction * w_5y, 0.97, 1.03)
 
         # 8. RSI & momentum overlay — 1Y price target only
         momentum_mult = 1.0
