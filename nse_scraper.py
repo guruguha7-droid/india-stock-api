@@ -193,27 +193,40 @@ def get_indices() -> dict:
                     'change_pct': item.get('percentChange'),
                 }
 
-        # Sensex via yfinance ^BSESN (more reliable than Stooq)
+        # Sensex — try NSE allIndices first, then yfinance fallback
         try:
-            import yfinance as _yf
-            bse = _yf.download("^BSESN", period="2d", interval="1d",
-                               auto_adjust=True, progress=False)
-            if bse is not None and len(bse) >= 1:
-                if hasattr(bse.columns, 'levels'):
-                    bse.columns = bse.columns.get_level_values(0)
-                close_vals = bse['Close'].squeeze()
-                price = float(close_vals.iloc[-1])
-                prev  = float(close_vals.iloc[-2]) if len(close_vals) >= 2 else price
-                if price > 0:
-                    chg  = round(price - prev, 2)
-                    chgp = round((chg / prev) * 100, 2) if prev > 0 else 0.0
+            for item in data.get('data', []):
+                if item.get('index') == 'S&P BSE SENSEX':
                     indices['SENSEX'] = {
-                        'price':      round(price, 2),
-                        'change':     chg,
-                        'change_pct': chgp,
+                        'price':      item.get('last'),
+                        'change':     item.get('change'),
+                        'change_pct': item.get('percentChange'),
                     }
+                    break
         except Exception:
             pass
+
+        if 'SENSEX' not in indices:
+            try:
+                import yfinance as _yf
+                bse = _yf.download("^BSESN", period="5d", interval="1d",
+                                   auto_adjust=True, progress=False)
+                if bse is not None and len(bse) >= 2:
+                    if hasattr(bse.columns, 'levels'):
+                        bse.columns = bse.columns.get_level_values(0)
+                    close_vals = bse['Close'].squeeze()
+                    price = float(close_vals.iloc[-1])
+                    prev  = float(close_vals.iloc[-2])
+                    if price > 1000:
+                        chg  = round(price - prev, 2)
+                        chgp = round((chg / prev) * 100, 2) if prev > 0 else 0.0
+                        indices['SENSEX'] = {
+                            'price':      round(price, 2),
+                            'change':     chg,
+                            'change_pct': chgp,
+                        }
+            except Exception:
+                pass
 
         # USD/INR via frankfurter free API
         try:
