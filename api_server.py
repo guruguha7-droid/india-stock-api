@@ -1226,6 +1226,7 @@ def compare():
                     'ml_score':        ml.get('ml_score'),
                     'screener_score':  fund.get('investment_score'),
                     'screener_grade':  fund.get('investment_grade'),
+                    'combined_grade':  None,  # TODO: compute full combined
                     'price_target_1y': pt_1y,
                 }
         except Exception as e:
@@ -1244,6 +1245,130 @@ def compare():
 
     ordered = [fix_nan(results.get(s,{'symbol':s,'error':'timeout'})) for s in symbols]
     return jsonify({"status":"ok","count":len(ordered),"data":ordered})
+
+
+# ── Price history ─────────────────────────────────────────────────────────────
+@app.route("/price-history")
+def price_history():
+    symbol  = request.args.get("symbol","").upper().strip()
+    period  = request.args.get("period","1y")  # 1mo, 3mo, 1y, 5y
+    if not symbol:
+        return jsonify({"error":"symbol required"}),400
+    try:
+        import yfinance as yf
+        import math
+        period_map = {"1m":"1mo","3m":"3mo","1y":"1y","5y":"5y"}
+        yf_period  = period_map.get(period,"1y")
+        df = yf.download(f"{symbol}.NS", period=yf_period,
+                         interval="1d" if yf_period != "5y" else "1wk",
+                         auto_adjust=True, progress=False)
+        if df is None or len(df) == 0:
+            return jsonify({"error":"no data"}),404
+        if hasattr(df.columns,'levels'):
+            df.columns = df.columns.get_level_values(0)
+        closes = df['Close'].squeeze()
+        dates  = [d.strftime("%Y-%m-%d") for d in closes.index]
+        prices = [round(float(v),2) if not math.isnan(float(v)) else None
+                  for v in closes.values]
+        # Calculate % change from start
+        start = next((p for p in prices if p), prices[0])
+        pct_change = round((prices[-1]-start)/start*100,2) if start else 0
+        return jsonify({
+            "status":     "ok",
+            "symbol":     symbol,
+            "period":     period,
+            "dates":      dates,
+            "prices":     prices,
+            "pct_change": pct_change,
+        })
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
+
+
+# ── Screener trend data ───────────────────────────────────────────────────────
+@app.route("/trend-data")
+def trend_data():
+    symbol = request.args.get("symbol","").upper().strip()
+    if not symbol:
+        return jsonify({"error":"symbol required"}),400
+    try:
+        import math
+        from screener_scraper import get_page, parse_table, parse_num
+
+        SYMBOL_MAP = {'LTM':'LTIMINDTREE','M&M':'M&M','BAJAJ-AUTO':'BAJAJ-AUTO'}
+        scr_sym = SYMBOL_MAP.get(symbol, symbol)
+
+        soup = get_page(scr_sym)
+        pl   = parse_table(soup,'profit-loss')
+        bs   = parse_table(soup,'balance-sheet')
+        rat  = parse_table(soup,'ratios')
+
+        years = pl.get('_years',[])
+        # Clean years — take last 10
+        years = years[-10:] if len(years) > 10 else years
+
+        def clean(arr):
+            arr = arr[-10:] if len(arr) > 10 else arr
+            return [round(float(v),1) if v is not None and not math.isnan(float(v if v else 0)) else None
+                    for v in arr]
+
+        sales   = clean(pl.get('Sales', pl.get('Revenue', pl.get('Interest Earned',[]))))
+        profit  = clean(pl.get('Net Profit',[]))
+        roce    = clean(rat.get('ROCE %', rat.get('ROE %',[])))
+        debt    = clean(bs.get('Borrowings',[]))
+        equity  = []
+        eq_cap  = bs.get('Equity Capital',[])
+        res     = bs.get('Reserves',[])
+        if eq_cap and res:
+            for i in range(max(len(eq_cap),len(res))):
+                e = eq_cap[i] if i < len(eq_cap) else None
+                r = res[i]    if i < len(res)    else None
+                if e is not None and r is not None:
+                    equity.append(round(float(e)+float(r),1))
+                else:
+                    equity.append(None)
+            equity = clean(equity)
+
+        # Promoter from shareholding table
+        promoter  = []
+        years_sh  = years
+        sh_section = soup.find('section',{'id':'shareholding'})
+        if sh_section:
+            table = sh_section.find('table')
+            if table:
+                sh_years = []
+                thead = table.find('thead')
+                if thead:
+                    sh_years = [th.get_text(strip=True) for th in thead.find_all('th')[1:]]
+                tbody = table.find('tbody')
+                if tbody:
+                    for tr in tbody.find_all('tr'):
+                        cells = tr.find_all('td')
+                        if cells and 'Promoters' in cells[0].get_text():
+                            promoter = clean([parse_num(td.get_text(strip=True)) for td in cells[1:]])
+                            years_sh  = sh_years
+                            break
+
+        def fix_nan(obj):
+            if isinstance(obj,dict):   return {k:fix_nan(v) for k,v in obj.items()}
+            elif isinstance(obj,list): return [fix_nan(v) for v in obj]
+            elif isinstance(obj,float) and math.isnan(obj): return None
+            return obj
+
+        return jsonify(fix_nan({
+            "status":   "ok",
+            "symbol":   symbol,
+            "years":    years,
+            "sales":    sales,
+            "profit":   profit,
+            "roce":     roce,
+            "debt":     debt,
+            "equity":   equity,
+            "promoter": promoter,
+            "promoter_years": years_sh,
+        }))
+    except Exception as e:
+        return jsonify({"error":str(e)}),500
 
 
 # ── Startup cache warming ─────────────────────────────────────────────────────

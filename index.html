@@ -44,8 +44,8 @@ body{
 .logo{width:44px;height:44px;background:var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:500;color:#fff;line-height:1.4;text-align:center;flex-shrink:0;letter-spacing:.5px}
 .brand-title{font-family:var(--font-head);font-size:18px;font-weight:700;letter-spacing:-.5px;color:var(--text)}
 .brand-sub{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--font-mono);letter-spacing:.3px;display:flex;align-items:center;gap:6px}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 1s ease-in-out infinite;margin-left:6px;vertical-align:middle}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* ── Index bar ── */
 .idx-strip{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -125,6 +125,45 @@ body{
 .score-bar-bg{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .score-bar-fill{height:100%;border-radius:2px;transition:width .6s ease}
 
+/* Mode toggle */
+.mode-toggle{display:flex;gap:8px;margin-bottom:16px;justify-content:flex-end}
+.mode-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text3);padding:6px 16px;border-radius:20px;font-size:11px;font-family:var(--font-mono);cursor:pointer;letter-spacing:.5px}
+.mode-btn.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.verdict-card{display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 16px;background:var(--bg3);border-radius:14px;margin-bottom:16px}
+.verdict-light{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;letter-spacing:-1px}
+.verdict-light.green{background:rgba(0,200,100,0.15);box-shadow:0 0 24px rgba(0,200,100,0.3);color:var(--green)}
+.verdict-light.gold{background:rgba(255,180,0,0.15);box-shadow:0 0 24px rgba(255,180,0,0.3);color:var(--gold)}
+.verdict-light.red{background:rgba(255,80,80,0.15);box-shadow:0 0 24px rgba(255,80,80,0.3);color:var(--red)}
+.verdict-word{font-size:clamp(20px,4vw,32px);font-weight:900;letter-spacing:2px;font-family:var(--font-mono)}
+.verdict-word.green{color:var(--green)}
+.verdict-word.gold{color:var(--gold)}
+.verdict-word.red{color:var(--red)}
+.verdict-reason{font-size:13px;color:var(--text2);text-align:center;max-width:300px}
+.verdict-score{font-size:13px;color:var(--text3);font-family:var(--font-mono)}
+.verdict-score span{color:var(--text1);font-weight:700;font-size:18px}
+.verdict-pills{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.verdict-pill{padding:6px 16px;border-radius:20px;font-size:12px;font-family:var(--font-mono);font-weight:600}
+.verdict-pill.target{background:rgba(0,200,100,0.1);color:var(--green);border:1px solid rgba(0,200,100,0.2)}
+.verdict-pill.risk-Low{background:rgba(0,200,100,0.1);color:var(--green);border:1px solid rgba(0,200,100,0.2)}
+.verdict-pill.risk-Medium{background:rgba(255,180,0,0.1);color:var(--gold);border:1px solid rgba(255,180,0,0.2)}
+.verdict-pill.risk-High{background:rgba(255,80,80,0.1);color:var(--red);border:1px solid rgba(255,80,80,0.2)}
+.expert-section{display:none}
+.expert-section.visible{display:block}
+
+/* Forecast */
+.forecast-row{margin-top:14px;border-top:1px solid var(--border);padding-top:14px}
+.forecast-title{font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.forecast-cols{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.forecast-col{background:var(--bg3);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.forecast-period{font-size:10px;font-family:var(--font-mono);color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+.forecast-price{font-size:18px;font-weight:700;color:var(--green);font-family:var(--font-mono)}
+.forecast-upside{font-size:10px;color:var(--text3);margin-top:-4px}
+.forecast-metric{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.forecast-metric-label{font-size:10px;color:var(--text3);font-family:var(--font-mono)}
+.forecast-metric-val{font-size:11px;font-weight:600;font-family:var(--font-mono)}
+.forecast-prob-bar{height:4px;border-radius:2px;background:var(--bg2);margin-top:6px;overflow:hidden}
+.forecast-prob-fill{height:100%;border-radius:2px;transition:width .6s ease}
+
 /* Sentiment pill */
 .sentiment-row{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
 .sent-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:11px;font-family:var(--font-mono)}
@@ -133,7 +172,48 @@ body{
 .sent-neu{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
 .sent-label{font-size:10px;color:var(--text3);font-family:var(--font-mono)}
 
-/* ── Expandable sections ── */
+/* ── Peer Comparison Modal ── */
+.modal-overlay{position:fixed;inset:0;background:#060e1e;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1100px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:15px;font-weight:700;color:var(--text1);font-family:var(--font-mono)}
+.modal-close{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:2px 8px;border-radius:6px;line-height:1}
+.modal-close:hover{background:var(--bg3);color:var(--text1)}
+.peer-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.peer-chip{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;font-family:var(--font-mono);color:var(--text2);cursor:pointer;transition:all .15s}
+.peer-chip:hover{border-color:var(--orange);color:var(--text1)}
+.peer-chip.active{background:#1a2a4a;border-color:rgba(255,255,255,0.4);color:var(--text1)}
+.peer-chip:not(.active):not(.anchor){opacity:0.4}
+.peer-chip.anchor{background:rgba(255,107,53,0.2);border-color:var(--orange);color:var(--orange);cursor:default}
+.peer-remove{color:var(--text3);font-size:14px;margin-left:2px;line-height:1}
+.peer-remove:hover{color:var(--red)}
+.compare-run-btn{background:var(--orange);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:12px;font-weight:700;font-family:var(--font-mono);cursor:pointer;letter-spacing:.3px}
+.compare-run-btn:hover{opacity:.9}
+.compare-run-btn:disabled{opacity:.5;cursor:not-allowed}
+.compare-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:16px}
+.compare-table th{text-align:left;padding:8px 12px;color:var(--text3);font-family:var(--font-mono);font-size:10px;letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+.compare-table th.anchor-col{color:var(--orange)}
+.compare-table td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:var(--font-mono);white-space:nowrap}
+.compare-table tr:hover td{background:rgba(255,255,255,0.02)}
+.compare-table .lbl{color:var(--text3);font-size:11px}
+.compare-table .best{color:var(--green);font-weight:700}
+.compare-table .worst{color:var(--red)}
+.compare-table .anchor-val{color:var(--orange)}
+/* ── Visuals ── */
+.visuals-grid{display:flex;flex-direction:column;gap:20px;padding:4px 0}
+.chart-block{background:var(--bg3);border-radius:12px;padding:16px}
+.chart-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.chart-period-btns{display:flex;gap:4px}
+.chart-period-btn{background:none;border:1px solid var(--border);color:var(--text3);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer}
+.chart-period-btn.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.chart-canvas-wrap{position:relative;height:160px;width:100%}
+.chart-loading{text-align:center;padding:40px;color:var(--text3);font-family:var(--font-mono);font-size:12px}
+.chart-error{text-align:center;padding:20px;color:var(--red);font-family:var(--font-mono);font-size:11px}
+.charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.charts-2col{grid-template-columns:1fr}}
+.compare-section-head td{background:var(--bg3)!important;color:var(--text3);font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:5px 12px!important;font-family:var(--font-mono)}
+.compare-loading{text-align:center;padding:40px;color:var(--text3);font-family:var(--font-mono);font-size:13px}
+.compare-legend{margin-top:10px;font-size:10px;color:var(--text3);font-family:var(--font-mono);display:flex;gap:16px}
 .sections{display:flex;flex-direction:column;gap:8px}
 .section{background:var(--bg2);border:1.5px solid var(--border2);border-radius:14px;overflow:hidden}
 .section-header{padding:14px 20px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .15s}
@@ -356,7 +436,7 @@ function renderRecent() {
   if (!recent.length) { row.style.display = 'none'; return; }
   row.style.display = 'flex';
   row.innerHTML = '<span class="recent-label">Recent:</span>' +
-    recent.map(s => `<span class="recent-chip" onclick="quickSearch('${s}')">${s}</span>`).join('');
+    recent.map(s => `<span class="recent-chip" data-sym="${s.replace(/&/g,'&amp;')}" onclick="quickSearch(this.dataset.sym)">${s.replace(/&/g,'&amp;')}</span>`).join('');
 }
 
 // ── Autocomplete ──────────────────────────────────────────────────────────────
@@ -371,7 +451,7 @@ inp.addEventListener('input', () => {
   ).slice(0, 6);
   if (!matches.length) { ac.classList.remove('show'); return; }
   ac.innerHTML = matches.map(([sym, name, sector]) => `
-    <div class="ac-item" onclick="quickSearch('${sym}')">
+    <div class="ac-item" data-sym="${sym.replace(/&/g,'&amp;')}" onclick="quickSearch(this.dataset.sym)">
       <span class="ac-sym">${sym}</span>
       <span class="ac-name">${name}</span>
       <span class="ac-sector">${sector}</span>
@@ -413,27 +493,96 @@ async function doSearch() {
   btn.disabled = true;
   btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Loading…`;
 
+  if (window._liveTicker) clearInterval(window._liveTicker);
+  if (!window._warmDone) {
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Waking up…`;
+    let waited = 0;
+    while (!window._warmDone && waited < 25000) {
+      await new Promise(r => setTimeout(r, 500));
+      waited += 500;
+    }
+    window._warmDone = true;
+  }
   showLoading(sym);
 
   try {
-    const analysisRes = await fetch(`${API}/stock-analysis?symbol=${sym}`)
+    window._lastAnalysis = {};
+    window._currentSym   = sym;
+    window._visualsLoaded = false;
+
+    // ── Phase 1: Fast data (~3s) ──────────────────────────────────────
+    const fast = await fetch(`${API}/quick-quote?symbol=${encodeURIComponent(sym)}`)
       .then(r => r.json()).catch(() => null);
 
-    const quote     = analysisRes?.quote     || null;
-    const ml        = analysisRes?.ml        || null;
-    const fund      = analysisRes?.fundamentals || null;
-    const valuation = analysisRes?.valuation || null;
-    const sentiment = analysisRes?.sentiment || null;
-    const macro     = analysisRes?.macro     || null;
-    const combined  = analysisRes?.combined  || null;
+    // Store fast data silently — don't render yet, wait for full data
+    if (fast && window._currentSym === sym) {
+      window._lastAnalysis = {
+        quote:     fast.quote     || {},
+        valuation: fast.valuation || {},
+        sentiment: fast.sentiment || {},
+        ml:        fast.rsi != null ? { rsi: fast.rsi } : null,
+      };
+    }
 
-    renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined);
+    // ── Phase 2: Full analysis (~10-30s) — fire and forget ───────────
+    let attempts = 0;
+    const maxAttempts = 6;
+
+    const pollFull = async () => {
+      if (window._currentSym !== sym) return;
+      attempts++;
+
+      const res = await fetch(`${API}/stock-analysis?symbol=${encodeURIComponent(sym)}`)
+        .then(r => r.json()).catch(() => null);
+      console.log('poll res.fundamentals:', JSON.stringify(res?.fundamentals));
+      if (!res || window._currentSym !== sym) return;
+
+      const prev = window._lastAnalysis;
+
+      // Only replace a field if the new value is non-empty
+      const pick = (newVal, prevVal, validator) => {
+        if (validator ? validator(newVal) : (newVal != null)) return newVal;
+        return prevVal;
+      };
+
+      window._lastAnalysis = {
+        quote:        pick(res.quote,        prev.quote,        v => v?.price),
+        ml:           pick(res.ml,           prev.ml,           v => v?.ml_score != null),
+        fundamentals: pick(res.fundamentals, prev.fundamentals, v => v?.investment_score != null),
+        valuation:    pick(res.valuation,    prev.valuation,    v => v?.pe_ratio != null),
+        sentiment:    pick(res.sentiment,    prev.sentiment,    v => v?.sentiment_label),
+        macro:        pick(res.macro,        prev.macro,        v => v?.macro_score !== 0),
+        combined:     pick(res.combined,     prev.combined,     v => v?.score != null),
+        forecast:     pick(res.forecast,     prev.forecast,     v => v?.['1y']?.price_target),
+      };
+
+      const d = window._lastAnalysis;
+      const allReady = d.ml?.ml_score != null
+                    && d.fundamentals?.investment_score != null
+                    && d.forecast?.['1y']?.price_target != null;
+
+      if (allReady || attempts >= maxAttempts) {
+        renderResult(sym, d.quote, d.ml, d.fundamentals, d.valuation,
+                     d.sentiment, d.macro, d.combined, window._lastAnalysis);
+        // Show verdict card now that data is ready
+        const vc = document.getElementById('verdict-card');
+        if (vc) vc.style.display = '';
+        // Apply current mode immediately after render
+        setMode(window._currentMode || 'beginner');
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyse`;
+      } else {
+        setTimeout(pollFull, 4000);
+      }
+    };
+
+    pollFull(); // fire and forget — button re-enabled inside pollFull when allReady
+
   } catch(e) {
     showError(e.message);
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyse`;
   }
-
-  btn.disabled = false;
-  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Analyse`;
 
   loadIndices();
 }
@@ -449,7 +598,7 @@ function showLoading(sym) {
   document.getElementById('result-area').innerHTML = `
     <div class="loading">
       <div class="spinner"></div>
-      <div class="loading-text">Analysing ${sym}</div>
+      <div class="loading-text">Analysing ${sym.replace(/&/g,'&amp;')}</div>
       <div class="loading-steps">
         ${steps.map((s,i) => `<div class="loading-step${i===0?' active':''}" id="step-${i}">${s}</div>`).join('')}
       </div>
@@ -474,7 +623,12 @@ function showError(msg) {
 }
 
 // ── Render the full result ────────────────────────────────────────────────────
-function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined) {
+function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combined, analysisRes) {
+  const _rawSym = sym;
+  sym = sym.replace(/&/g, '&amp;');
+  const symHTML = sym;  // already escaped
+  const symJS   = _rawSym.replace(/&/g, '\\x26');  // safe for JS string contexts
+
   // ── Extract from correct nested objects ───────────────────────────
   // Quote data
   const price      = quote?.price ?? '—';
@@ -489,8 +643,16 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   const pe         = valuation?.pe_ratio   ? parseFloat(valuation.pe_ratio).toFixed(1)   : '—';
   const pm         = valuation?.profit_margin ? (valuation.profit_margin * 100).toFixed(1) + '%' : '—';
   const rg         = valuation?.revenue_growth ? (valuation.revenue_growth * 100).toFixed(1) + '%' : '—';
-  const divYield   = valuation?.dividend_yield
-                     ? (valuation.dividend_yield * 100).toFixed(2) + '%' : '—';
+  const divYield = (() => {
+    const raw = valuation?.dividend_yield;
+    if (raw == null) return '—';
+    const v = parseFloat(raw);
+    if (isNaN(v) || v === 0) return '—';
+    // yfinance sometimes sends fraction (0.0175), sometimes percentage (1.75)
+    // If > 1, it's already a percentage; if <= 1, multiply by 100
+    const pct = v > 1 ? v : v * 100;
+    return pct.toFixed(2) + '%';
+  })();
 
   const eps        = valuation?.eps
                      ? '₹' + parseFloat(valuation.eps).toFixed(2)
@@ -521,7 +683,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
                    : fund?.fcf_positive_3y === false ? '✗ Not all positive' : '—';
   const debtRed    = fund?.debt_reducing === true  ? '✓ Reducing'
                    : fund?.debt_reducing === false ? '✗ Not reducing' : '—';
-  const scrScore   = fund?.investment_score ?? '—';
+  const scrScore   = fund?.investment_score ?? (combined?.screener_score ?? '—');
   const scrGrade   = fund?.investment_grade ?? '—';
 
   // Sentiment — from sentiment object
@@ -533,6 +695,9 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   const macroScore = macro?.macro_score ?? 0;
   const macroLabel = macro?.macro_label || 'neutral';
   const macroTopics= macro?.topics || [];
+
+  // Forecast — from analysisRes directly
+  const forecast   = analysisRes?.forecast || null;
 
   // Grade color
   const gradeClass = `grade-${grade.replace('+','\\+')}`;
@@ -557,22 +722,30 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   document.getElementById('result-area').innerHTML = `
     <div class="result-wrap">
 
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-beginner" onclick="setMode('beginner')">SIMPLE</button>
+        <button class="mode-btn" id="btn-expert" onclick="setMode('expert')">ADVANCED ▾</button>
+      </div>
+
       <!-- Summary card -->
       <div class="summary-card">
         <div class="summary-top">
           <div class="stock-identity">
             <div>
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <span class="stock-sym-badge">${sym}</span>
+                <span class="stock-sym-badge">${symHTML}</span>
                 <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">NSE</span>
               </div>
               <div class="stock-name-full">${getCompanyName(sym)}</div>
               <div class="stock-sector">${getSector(sym)}</div>
             </div>
           </div>
-          <div class="grade-badge">
-            <div class="grade-circle grade-${grade}" title="Investment Grade">${grade}</div>
-            <span class="grade-label">GRADE</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <div class="grade-badge">
+              <div class="grade-circle grade-${grade}" title="Investment Grade">${grade}</div>
+              <span class="grade-label">GRADE</span>
+            </div>
+            <button onclick="openCompare(this.dataset.sym)" data-sym="${_rawSym}" style="font-size:11px;font-family:var(--font-mono);background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:20px;cursor:pointer;white-space:nowrap">⇄ Compare</button>
           </div>
         </div>
 
@@ -580,6 +753,27 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           <span class="price-main ${isUp ? 'up' : 'dn'}">₹${price}</span>
           <span class="price-chg ${isUp ? 'up' : 'dn'}">${isUp ? '▲' : '▼'} ${change} (${changePct})</span>
         </div>
+
+        <!-- Beginner verdict card -->
+        <div class="verdict-card" id="verdict-card" style="${!combined?.verdict ? 'display:none' : ''}">
+          <div class="verdict-light ${combined?.verdict_color || 'gold'}">
+            ${combined?.verdict === 'BUY' ? '↑' : combined?.verdict === 'SELL' ? '↓' : '~'}
+          </div>
+          <div class="verdict-word ${combined?.verdict_color || 'gold'}">${combined?.verdict || '—'}</div>
+          <div class="verdict-reason">${combined?.reason || 'Analysing...'}</div>
+          <div class="verdict-score">Score <span>${combined?.score_10 ?? '—'}</span>/10</div>
+          <div class="verdict-pills">
+            ${forecast?.['1y']?.price_target ? `
+            <span class="verdict-pill target">
+              1Y Target ₹${Number(forecast['1y'].price_target).toLocaleString('en-IN')}
+              ${forecast.current_price ? ` · ${((forecast['1y'].price_target - forecast.current_price)/forecast.current_price*100).toFixed(1)}% upside` : ''}
+            </span>` : ''}
+            ${combined?.risk ? `<span class="verdict-pill risk-${combined.risk}">Risk: ${combined.risk}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Expert metrics (hidden in beginner mode) -->
+        <div class="expert-section" id="expert-metrics">
 
         <div class="metrics-row">
           <div class="metric-box"><div class="metric-label">P/E Ratio</div><div class="metric-val">${pe !== '—' ? parseFloat(pe).toFixed(1) : '—'}</div></div>
@@ -591,6 +785,10 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           <div class="metric-box"><div class="metric-label">RSI (14)</div><div class="metric-val ${parseFloat(rsi) < 30 ? 'up' : parseFloat(rsi) > 70 ? 'dn' : ''}">${rsi}</div></div>
           <div class="metric-box"><div class="metric-label">52W Position</div><div class="metric-val">${pos52}%</div></div>
         </div>
+
+        </div><!-- /expert-metrics -->
+
+        <div class="expert-section" id="expert-scores">
 
         <div class="scores-row">
           <div class="score-item">
@@ -615,15 +813,61 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           ${sentPill(macroScore, macroLabel, 'Macro')}
           ${goldenCross === true ? '<span class="sent-pill sent-pos">✨ Golden Cross</span>' : goldenCross === false ? '<span class="sent-pill sent-neg">✗ No Golden Cross</span>' : ''}
         </div>
+
+        </div><!-- /expert-scores -->
+
+        ${forecast ? `
+        <div class="forecast-row expert-section" id="expert-forecast">
+          <div class="forecast-title">📈 Forward Forecast</div>
+          <div class="forecast-cols">
+            ${['1y','3y','5y'].map(period => {
+              const f = forecast[period];
+              const cur = forecast.current_price;
+              const upside = f.price_target && cur
+                ? ((f.price_target - cur) / cur * 100).toFixed(1)
+                : null;
+              const probColor = f.outperform_prob >= 65 ? 'var(--green)'
+                              : f.outperform_prob >= 50 ? 'var(--gold)'
+                              : 'var(--red)';
+              return `
+              <div class="forecast-col">
+                <div class="forecast-period">${period === '1y' ? '1 Year' : period === '3y' ? '3 Years' : '5 Years'}</div>
+                <div class="forecast-price">${f.price_target ? '₹' + Number(f.price_target).toLocaleString('en-IN') : '—'}</div>
+                <div class="forecast-upside">${upside ? (upside > 0 ? '▲ +' : '▼ ') + upside + '% from now' : ''}</div>
+                <div class="forecast-metric">
+                  <span class="forecast-metric-label">Rev CAGR</span>
+                  <span class="forecast-metric-val" style="color:var(--green)">${f.revenue_growth_pct}%</span>
+                </div>
+                <div class="forecast-metric">
+                  <span class="forecast-metric-label">Profit CAGR</span>
+                  <span class="forecast-metric-val" style="color:var(--green)">${f.profit_growth_pct}%</span>
+                </div>
+                <div class="forecast-metric">
+                  <span class="forecast-metric-label">Outperform vs Nifty</span>
+                  <span class="forecast-metric-val" style="color:${probColor}">${f.outperform_prob}%</span>
+                </div>
+                <div class="forecast-prob-bar">
+                  <div class="forecast-prob-fill" style="width:${f.outperform_prob}%;background:${probColor}"></div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          ${forecast.signals?.up?.length || forecast.signals?.down?.length ? `
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            ${(forecast.signals.up||[]).map(s=>`<span style="font-size:10px;font-family:var(--font-mono);color:var(--green);background:rgba(0,200,100,0.08);padding:3px 8px;border-radius:20px">▲ ${s}</span>`).join('')}
+            ${(forecast.signals.down||[]).map(s=>`<span style="font-size:10px;font-family:var(--font-mono);color:var(--red);background:rgba(255,80,80,0.08);padding:3px 8px;border-radius:20px">▼ ${s}</span>`).join('')}
+          </div>` : ''}
+        </div>` : ''}
       </div>
 
       <!-- Expandable sections -->
+      <div class="expert-section visible" id="expert-all-sections">
       <div class="sections">
 
         <!-- Fundamentals -->
         <div class="section" id="sec-fund">
           <div class="section-header" onclick="toggleSection('sec-fund')">
-            <span class="section-title"><span class="section-icon">📊</span> 10-Year Fundamentals (Screener.in)</span>
+            <span class="section-title"><span class="section-icon">📊</span> 10-Year Fundamentals</span>
             <span class="section-arrow">▼</span>
           </div>
           <div class="section-body">
@@ -729,7 +973,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
               </div>
               <div class="fund-item">
                 <div class="fund-label">Model Accuracy</div>
-                <div class="fund-val">53.6%</div>
+                <div class="fund-val">53.8%</div>
                 <div class="fund-trend trend-neu">vs 50% random</div>
               </div>
               <div class="fund-item">
@@ -740,10 +984,53 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           </div>
         </div>
 
+        <!-- Visuals -->
+        <div class="section" id="sec-visuals">
+          <div class="section-header" onclick="toggleSection('sec-visuals');if(!window._visualsLoaded)loadVisuals('${_rawSym}')">
+            <span class="section-title"><span class="section-icon">📈</span> Charts & Visuals</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body">
+            <div class="visuals-grid" id="visuals-grid">
+              <div class="chart-loading">Open section to load charts…</div>
+            </div>
+          </div>
+        </div>
+
       </div>
+      </div><!-- /expert-all-sections -->
     </div>`;
 
   renderRecent();
+
+  // ── Live price ticker ─────────────────────────────────────────────
+  if (window._liveTicker) clearInterval(window._liveTicker);
+
+  const priceEl = document.querySelector('.price-main');
+  const chgEl   = document.querySelector('.price-chg');
+  if (!priceEl || !chgEl) return;
+
+  if (!document.getElementById('live-dot')) {
+    const dot = document.createElement('span');
+    dot.id = 'live-dot';
+    dot.className = 'live-dot';
+    priceEl.parentNode.insertBefore(dot, priceEl.nextSibling);
+  }
+
+  window._liveTicker = setInterval(async () => {
+    try {
+      const r = await fetch(`${API}/quote?symbol=${encodeURIComponent(_rawSym)}`);
+      const j = await r.json();
+      const q = j?.data;
+      if (!q?.price) return;
+
+      const isUp = q.change >= 0;
+      priceEl.textContent = '₹' + Number(q.price).toLocaleString('en-IN', {maximumFractionDigits:2});
+      priceEl.className   = 'price-main ' + (isUp ? 'up' : 'dn');
+      chgEl.textContent   = (isUp ? '▲ ' : '▼ ') + Math.abs(q.change).toFixed(2) + ' (' + Math.abs(q.change_pct).toFixed(2) + '%)';
+      chgEl.className     = 'price-chg ' + (isUp ? 'up' : 'dn');
+    } catch(e) {}
+  }, 1000);
 }
 
 function toggleSection(id) {
@@ -793,9 +1080,555 @@ async function loadIndices() {
   } catch(e) {}
 }
 
+// ── View mode toggle ──────────────────────────────────────────────────────────
+window._currentMode = 'beginner';
+function setMode(mode) {
+  window._currentMode = mode;
+  const isExpert = mode === 'expert';
+
+  document.getElementById('btn-beginner')?.classList.toggle('active', !isExpert);
+  document.getElementById('btn-expert')?.classList.toggle('active', isExpert);
+
+  ['expert-metrics','expert-scores','expert-all-sections','expert-forecast'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('visible', isExpert);
+  });
+}
+
+// ── Visuals / Charts ──────────────────────────────────────────────────────────
+window._visualsLoaded = false;
+
+function drawLineChart(canvasId, labels, data, color, label) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.offsetWidth;
+  const H = canvas.height = canvas.offsetHeight;
+  ctx.clearRect(0,0,W,H);
+
+  const valid = data.filter(v=>v!=null);
+  if (!valid.length) return;
+  const min = Math.min(...valid);
+  const max = Math.max(...valid);
+  const range = max - min || 1;
+
+  const pad = {t:10,r:10,b:24,l:50};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<=4;i++) {
+    const y = pad.t + ch - (ch/4)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.font='9px monospace';
+    ctx.fillText(Math.round(min+(range/4)*i), 2, y+3);
+  }
+
+  // X labels — show first, middle, last
+  ctx.fillStyle='rgba(255,255,255,0.3)';
+  ctx.font='9px monospace';
+  const showIdx = [0, Math.floor(labels.length/2), labels.length-1];
+  showIdx.forEach(i=>{
+    if(labels[i]) {
+      const x = pad.l + (i/(labels.length-1||1))*cw;
+      const lbl = labels[i].length > 7 ? labels[i].slice(5) : labels[i];
+      ctx.fillText(lbl, x-12, H-6);
+    }
+  });
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  let first = true;
+  data.forEach((v,i) => {
+    if (v == null) return;
+    const x = pad.l + (i/(data.length-1||1))*cw;
+    const y = pad.t + ch - ((v-min)/range)*ch;
+    if (first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Fill under line
+  ctx.lineTo(pad.l+cw, pad.t+ch);
+  ctx.lineTo(pad.l, pad.t+ch);
+  ctx.closePath();
+  ctx.fillStyle = color.replace(')',',0.08)').replace('rgb','rgba');
+  ctx.fill();
+
+  // Last value dot
+  const lastIdx = data.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
+  if (lastIdx != null) {
+    const x = pad.l + (lastIdx/(data.length-1||1))*cw;
+    const y = pad.t + ch - ((data[lastIdx]-min)/range)*ch;
+    ctx.beginPath();
+    ctx.arc(x,y,4,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+  }
+}
+
+function drawBarChart(canvasId, labels, data1, data2, color1, color2, label1, label2) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.offsetWidth;
+  const H = canvas.height = canvas.offsetHeight;
+  ctx.clearRect(0,0,W,H);
+
+  const allVals = [...(data1||[]),...(data2||[])].filter(v=>v!=null);
+  if (!allVals.length) return;
+  const min = Math.min(0, ...allVals);
+  const max = Math.max(...allVals);
+  const range = max - min || 1;
+
+  const pad = {t:20,r:10,b:28,l:50};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const n  = labels.length;
+  const bw = (cw/n)*0.35;
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+  for (let i=0;i<=4;i++) {
+    const y = pad.t + ch - (ch/4)*i;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='9px monospace';
+    const val = Math.round(min+(range/4)*i);
+    ctx.fillText(val>=1000?`${(val/1000).toFixed(0)}k`:val, 2, y+3);
+  }
+
+  // Zero line
+  const zeroY = pad.t + ch - ((0-min)/range)*ch;
+  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(pad.l,zeroY); ctx.lineTo(W-pad.r,zeroY); ctx.stroke();
+
+  labels.forEach((lbl,i) => {
+    const cx = pad.l + (i/n)*cw + (cw/n)*0.15;
+    // Bar 1
+    if (data1 && data1[i]!=null) {
+      const bh = ((data1[i]-min)/range)*ch;
+      const by = pad.t + ch - ((data1[i]-min)/range)*ch;
+      ctx.fillStyle=color1; ctx.fillRect(cx, by, bw, bh>0?bh:1);
+    }
+    // Bar 2
+    if (data2 && data2[i]!=null) {
+      const bh = ((data2[i]-min)/range)*ch;
+      const by = pad.t + ch - ((data2[i]-min)/range)*ch;
+      ctx.fillStyle=color2; ctx.fillRect(cx+bw+2, by, bw, bh>0?bh:1);
+    }
+    // X label
+    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='9px monospace';
+    const shortLbl = lbl ? lbl.replace('Mar ','').replace('Sep ','') : '';
+    ctx.fillText(shortLbl, cx, H-8);
+  });
+
+  // Legend
+  ctx.fillStyle=color1; ctx.fillRect(pad.l,4,10,8);
+  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px monospace';
+  ctx.fillText(label1, pad.l+13, 12);
+  ctx.fillStyle=color2; ctx.fillRect(pad.l+80,4,10,8);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillText(label2, pad.l+93, 12);
+}
+
+async function loadVisuals(sym) {
+  window._visualsLoaded = true;
+  const grid = document.getElementById('visuals-grid');
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <div class="chart-block">
+      <div class="chart-title">
+        PRICE CHART
+        <div class="chart-period-btns">
+          ${['1m','3m','1y','5y'].map(p=>`<button class="chart-period-btn${p==='1y'?' active':''}" onclick="loadPriceChart('${sym}','${p}',this)">${p.toUpperCase()}</button>`).join('')}
+        </div>
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="price-canvas" style="width:100%;height:100%"></canvas></div>
+    </div>
+    <div class="charts-2col">
+      <div class="chart-block">
+        <div class="chart-title">REVENUE & PROFIT (₹ Cr)</div>
+        <div class="chart-canvas-wrap"><canvas id="revprofit-canvas" style="width:100%;height:100%"></canvas></div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-title">ROCE TREND (%)</div>
+        <div class="chart-canvas-wrap"><canvas id="roce-canvas" style="width:100%;height:100%"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-2col">
+      <div class="chart-block">
+        <div class="chart-title">DEBT vs EQUITY (₹ Cr)</div>
+        <div class="chart-canvas-wrap"><canvas id="debtequity-canvas" style="width:100%;height:100%"></canvas></div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-title">PROMOTER HOLDING (%)</div>
+        <div class="chart-canvas-wrap"><canvas id="promoter-canvas" style="width:100%;height:100%"></canvas></div>
+      </div>
+    </div>`;
+
+  // Load price chart first
+  loadPriceChart(sym, '1y', document.querySelector('.chart-period-btn.active'));
+
+  // Load trend data
+  try {
+    const r = await fetch(`${API}/trend-data?symbol=${encodeURIComponent(sym)}`)
+      .then(r=>r.json()).catch(()=>null);
+
+    if (r?.status === 'ok') {
+      setTimeout(() => {
+        drawBarChart('revprofit-canvas', r.years, r.sales, r.profit,
+          'rgba(255,107,53,0.7)', 'rgba(0,200,100,0.7)', 'Revenue', 'Profit');
+        drawLineChart('roce-canvas', r.years, r.roce, 'rgb(255,180,0)', 'ROCE %');
+        drawBarChart('debtequity-canvas', r.years, r.debt, r.equity,
+          'rgba(255,80,80,0.7)', 'rgba(100,160,255,0.7)', 'Debt', 'Equity');
+        drawLineChart('promoter-canvas', r.promoter_years||r.years, r.promoter,
+          'rgb(160,100,255)', 'Promoter %');
+      }, 100);
+    } else {
+      ['revprofit-canvas','roce-canvas','debtequity-canvas','promoter-canvas'].forEach(id => {
+        const c = document.getElementById(id);
+        if (c) c.parentNode.innerHTML = '<div class="chart-error">Data unavailable</div>';
+      });
+    }
+  } catch(e) {}
+}
+
+async function loadPriceChart(sym, period, btn) {
+  // Update active button
+  document.querySelectorAll('.chart-period-btn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  const wrap = document.querySelector('#sec-visuals .chart-canvas-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div class="chart-loading">Loading…</div>';
+
+  try {
+    const r = await fetch(`${API}/price-history?symbol=${encodeURIComponent(sym)}&period=${period}`)
+      .then(r=>r.json()).catch(()=>null);
+    if (!r?.prices?.length) {
+      wrap.innerHTML = '<div class="chart-error">Price data unavailable</div>';
+      return;
+    }
+    wrap.innerHTML = '<canvas id="price-canvas" style="width:100%;height:100%"></canvas>';
+    const color = r.pct_change >= 0 ? 'rgb(0,200,100)' : 'rgb(255,80,80)';
+    setTimeout(() => drawLineChart('price-canvas', r.dates, r.prices, color, 'Price'), 50);
+  } catch(e) {
+    wrap.innerHTML = '<div class="chart-error">Failed to load</div>';
+  }
+}
+
+// ── Peer Comparison ───────────────────────────────────────────────────────────
+const SECTOR_PEERS_FE = {
+  'TCS':['INFY','WIPRO','HCLTECH','TECHM','LTM'],
+  'INFY':['TCS','WIPRO','HCLTECH','TECHM','LTM'],
+  'WIPRO':['TCS','INFY','HCLTECH','TECHM','PERSISTENT'],
+  'HCLTECH':['TCS','INFY','WIPRO','TECHM','LTM'],
+  'TECHM':['TCS','INFY','WIPRO','HCLTECH','MPHASIS'],
+  'LTM':['TCS','INFY','WIPRO','HCLTECH','LTTS'],
+  'HDFCBANK':['ICICIBANK','SBIN','KOTAKBANK','AXISBANK','BAJFINANCE'],
+  'ICICIBANK':['HDFCBANK','SBIN','KOTAKBANK','AXISBANK','BAJFINANCE'],
+  'SBIN':['HDFCBANK','ICICIBANK','KOTAKBANK','BANKBARODA','PNB'],
+  'KOTAKBANK':['HDFCBANK','ICICIBANK','SBIN','AXISBANK','BAJFINANCE'],
+  'AXISBANK':['HDFCBANK','ICICIBANK','SBIN','KOTAKBANK','BAJFINANCE'],
+  'BAJFINANCE':['BAJAJFINSV','CHOLAFIN','MUTHOOTFIN','SHRIRAMFIN','HDFCBANK'],
+  'SUNPHARMA':['DRREDDY','CIPLA','LUPIN','DIVISLAB','TORNTPHARM'],
+  'DRREDDY':['SUNPHARMA','CIPLA','LUPIN','DIVISLAB','AUROPHARMA'],
+  'CIPLA':['SUNPHARMA','DRREDDY','LUPIN','TORNTPHARM','ALKEM'],
+  'LUPIN':['SUNPHARMA','DRREDDY','CIPLA','AUROPHARMA','TORNTPHARM'],
+  'MARUTI':['M&M','BAJAJ-AUTO','HEROMOTOCO','EICHERMOT','TVSMOTOR'],
+  'M&M':['MARUTI','BAJAJ-AUTO','HEROMOTOCO','TVSMOTOR','EICHERMOT'],
+  'RELIANCE':['ONGC','BPCL','IOC','HINDPETRO','GAIL'],
+  'TATASTEEL':['JSWSTEEL','HINDALCO','VEDL','SAIL','NMDC'],
+  'HINDUNILVR':['ITC','NESTLEIND','BRITANNIA','MARICO','DABUR'],
+  'ITC':['HINDUNILVR','NESTLEIND','BRITANNIA','MARICO','DABUR'],
+  'BRITANNIA':['HINDUNILVR','ITC','NESTLEIND','MARICO','TATACONSUM'],
+  'VBL':['BRITANNIA','NESTLEIND','TATACONSUM','MARICO','DABUR'],
+  'LT':['SIEMENS','ABB','HAVELLS','CUMMINSIND','POWERGRID'],
+  'NTPC':['POWERGRID','TATAPOWER','ADANIGREEN','NHPC','SJVN'],
+  'DLF':['GODREJPROP','OBEROIRLTY','PRESTIGE','BRIGADE','SOBHA'],
+  'APOLLOHOSP':['MAXHEALTH','DIVISLAB','SUNPHARMA','CIPLA','DRREDDY'],
+  'BHARTIARTL':['RELIANCE','TCS','INFY','HDFCBANK','ICICIBANK'],
+  'ASIANPAINT':['BERGERPAINTS','KANSAINER','TITAN','HINDUNILVR','NESTLEIND'],
+  'MOTHERSON':['BAJAJ-AUTO','TVSMOTOR','BALKRISIND','APOLLOTYRE','ENDURANCE'],
+  'BAJAJ-AUTO':['MARUTI','M&M','HEROMOTOCO','EICHERMOT','TVSMOTOR'],
+  'HEROMOTOCO':['BAJAJ-AUTO','MARUTI','TVSMOTOR','EICHERMOT','M&M'],
+  'EICHERMOT':['BAJAJ-AUTO','HEROMOTOCO','TVSMOTOR','M&M','MARUTI'],
+  'TVSMOTOR':['BAJAJ-AUTO','HEROMOTOCO','EICHERMOT','MOTHERSON','BALKRISIND'],
+  'PERSISTENT':['MPHASIS','COFORGE','KPITTECH','LTTS','TATAELXSI'],
+  'MPHASIS':['PERSISTENT','COFORGE','KPITTECH','WIPRO','TECHM'],
+  'ADANIENT':['ADANIPORTS','LT','SIEMENS','ABB','CUMMINSIND'],
+  'ADANIPORTS':['LT','CONCOR','ADANIENT','IRB','NMDC'],
+  'ONGC':['RELIANCE','BPCL','IOC','HINDPETRO','GAIL'],
+  'BPCL':['ONGC','IOC','HINDPETRO','RELIANCE','GAIL'],
+  'POWERGRID':['NTPC','TATAPOWER','ADANIGREEN','NHPC','CESC'],
+  'JSWSTEEL':['TATASTEEL','HINDALCO','VEDL','SAIL','NMDC'],
+  'HINDALCO':['TATASTEEL','JSWSTEEL','VEDL','NATIONALUM','NMDC'],
+  'COALINDIA':['NMDC','SAIL','HINDALCO','VEDL','MOIL'],
+  'TITAN':['ASIANPAINT','HINDUNILVR','TRENT','VEDL','BAJFINANCE'],
+  'MAXHEALTH':['APOLLOHOSP','DIVISLAB','FORTIS','SUNPHARMA','CIPLA'],
+  'HAL':['BEL','BEML','MAZDOCK','LT','ADANIENT'],
+  'BEL':['HAL','BEML','MAZDOCK','LT','SIEMENS'],
+  'GODREJPROP':['DLF','OBEROIRLTY','PRESTIGE','BRIGADE','SOBHA'],
+  'PRESTIGE':['DLF','GODREJPROP','OBEROIRLTY','BRIGADE','SOBHA'],
+  'ADANIGREEN':['NTPC','TATAPOWER','POWERGRID','NHPC','SJVN'],
+  'TATAPOWER':['NTPC','ADANIGREEN','POWERGRID','NHPC','CESC'],
+  'SIEMENS':['ABB','HAVELLS','LT','CUMMINSIND','BHEL'],
+  'ABB':['SIEMENS','HAVELLS','LT','CUMMINSIND','POWERGRID'],
+  'HAVELLS':['SIEMENS','ABB','CUMMINSIND','VOLTAS','CROMPTON'],
+  'MARICO':['HINDUNILVR','DABUR','COLPAL','GODREJCP','EMAMILTD'],
+  'DABUR':['HINDUNILVR','MARICO','COLPAL','GODREJCP','EMAMILTD'],
+  'NESTLEIND':['HINDUNILVR','ITC','BRITANNIA','MARICO','TATACONSUM'],
+  'TATACONSUM':['HINDUNILVR','ITC','BRITANNIA','NESTLEIND','MARICO'],
+  'DIVISLAB':['SUNPHARMA','DRREDDY','CIPLA','LUPIN','ALKEM'],
+  'ALKEM':['SUNPHARMA','CIPLA','LUPIN','DIVISLAB','TORNTPHARM'],
+  'MANKIND':['SUNPHARMA','DRREDDY','CIPLA','LUPIN','ALKEM'],
+  'FEDERALBNK':['IDFCFIRSTB','BANDHANBNK','AUBANK','RBLBANK','ICICIBANK'],
+  'IDFCFIRSTB':['FEDERALBNK','BANDHANBNK','AUBANK','RBLBANK','AXISBANK'],
+  'CHOLAFIN':['BAJFINANCE','MUTHOOTFIN','MANAPPURAM','SHRIRAMFIN','BAJAJFINSV'],
+  'MUTHOOTFIN':['CHOLAFIN','MANAPPURAM','BAJFINANCE','SHRIRAMFIN','BAJAJFINSV'],
+  'ULTRACEMCO':['AMBUJACEM','ACC','GRASIM','JKCEMENT','RAMCOCEM'],
+  'AMBUJACEM':['ULTRACEMCO','ACC','GRASIM','JKCEMENT','RAMCOCEM'],
+  'GRASIM':['ULTRACEMCO','AMBUJACEM','ACC','LT','JKCEMENT'],
+};
+
+let _comparePeers  = [];
+let _compareAnchor = '';
+
+async function openCompare(sym) {
+  _compareAnchor = sym;
+  _comparePeers  = [sym];
+  document.getElementById('compare-modal').style.display = 'flex';
+  document.getElementById('compare-result-area').innerHTML = '';
+
+  // Auto-suggest peers
+  const suggested = SECTOR_PEERS_FE[sym] || [];
+  _comparePeers = [sym];
+  renderPeerChips(suggested, suggested.length === 0);
+}
+
+function renderPeerChips(suggested, nopeers=false) {
+  const anchor = _compareAnchor;
+  document.getElementById('compare-peers-area').innerHTML = `
+    <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);letter-spacing:.5px;margin-bottom:8px">
+      ${nopeers ? 'NO AUTO-SUGGESTIONS FOR THIS STOCK — add peers manually below' : 'AUTO-SUGGESTED PEERS — click to toggle, or add your own'}
+    </div>
+    <div class="peer-chips" id="chip-area">
+      <span class="peer-chip anchor">${anchor} ★</span>
+      ${suggested.map(s => `
+        <span class="peer-chip" id="chip-${s}" onclick="togglePeer('${s}')">
+          ${s}
+        </span>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap">
+      <div style="position:relative">
+        <input id="peer-add-input" placeholder="Search symbol or company…"
+          style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text1);font-family:var(--font-mono);font-size:12px;width:220px;outline:none"
+          oninput="peerSearchAC(this.value)"
+          onkeydown="if(event.key==='Enter')addPeer();if(event.key==='Escape')closePeerAC()"/>
+        <div id="peer-ac" style="display:none;position:absolute;top:100%;left:0;width:220px;background:#0d1f3c;border:1px solid var(--border);border-radius:8px;z-index:2000;max-height:180px;overflow-y:auto;margin-top:4px"></div>
+      </div>
+      <button onclick="addPeer()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--font-mono)">+ Add</button>
+      <button class="compare-run-btn" id="compare-run-btn" onclick="runCompare()">Compare ${_comparePeers.length} Stocks →</button>
+    </div>`;
+}
+
+function togglePeer(sym) {
+  if (_comparePeers.includes(sym)) {
+    _comparePeers = _comparePeers.filter(s => s !== sym);
+    document.getElementById(`chip-${sym}`)?.classList.remove('active');
+  } else {
+    _comparePeers.push(sym);
+    document.getElementById(`chip-${sym}`)?.classList.add('active');
+  }
+  updateRunBtn();
+}
+
+function removePeer(sym) {
+  _comparePeers = _comparePeers.filter(s => s !== sym);
+  document.getElementById(`chip-${sym}`)?.remove();
+  updateRunBtn();
+}
+
+function addPeer() {
+  const input = document.getElementById('peer-add-input');
+  const sym   = input.value.trim().toUpperCase();
+  if (!sym || _comparePeers.includes(sym)) { input.value=''; return; }
+  _comparePeers.push(sym);
+  input.value = '';
+  const chip = document.createElement('span');
+  chip.className = 'peer-chip active';
+  chip.id = `chip-${sym}`;
+  chip.innerHTML = `${sym}<span class="peer-remove" onclick="event.stopPropagation();removePeer('${sym}')"> ×</span>`;
+  chip.onclick = () => togglePeer(sym);
+  document.getElementById('chip-area').appendChild(chip);
+  updateRunBtn();
+}
+
+function updateRunBtn() {
+  const btn = document.getElementById('compare-run-btn');
+  if (btn) btn.textContent = `Compare ${_comparePeers.length} Stocks →`;
+}
+
+function closeCompare() {
+  document.getElementById('compare-modal').style.display = 'none';
+}
+
+async function runCompare() {
+  const active = _comparePeers.filter((s,i,a) => a.indexOf(s)===i); // dedupe
+  if (active.length < 2) return;
+
+  const btn = document.getElementById('compare-run-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+  document.getElementById('compare-result-area').innerHTML =
+    `<div class="compare-loading">⏳ Fetching data for ${active.length} stocks…<br><span style="font-size:11px;opacity:.6">This may take 10-15 seconds</span></div>`;
+
+  const encoded = active.map(s => encodeURIComponent(s)).join(',');
+  const r = await fetch(`${API}/compare?symbols=${encoded}`)
+    .then(r=>r.json()).catch(()=>null);
+
+  if (btn) { btn.disabled = false; btn.textContent = `Compare ${active.length} Stocks →`; }
+
+  if (!r?.data) {
+    document.getElementById('compare-result-area').innerHTML =
+      '<div class="compare-loading">Failed to load. Try again.</div>';
+    return;
+  }
+  renderCompareTable(r.data, _compareAnchor);
+}
+
+function renderCompareTable(data, anchor) {
+  function hl(vals, invert=false, minDiffPct=5) {
+    const nums = vals.map(v => { const n=parseFloat(v); return isNaN(n)?null:n; });
+    const valid = nums.filter(n=>n!==null);
+    if (!valid.length) return vals.map(()=>'');
+    const best  = invert ? Math.min(...valid) : Math.max(...valid);
+    const worst = invert ? Math.max(...valid) : Math.min(...valid);
+    // Only highlight if difference is meaningful (>5% relative difference)
+    const range = Math.abs(best - worst);
+    const avg   = (best + worst) / 2;
+    const diffPct = avg > 0 ? (range / avg) * 100 : 0;
+    if (diffPct < minDiffPct) return nums.map(()=>''); // too close — no highlighting
+    return nums.map(n => {
+      if (n===null) return '';
+      if (n===best)  return 'best';
+      if (n===worst) return 'worst';
+      return '';
+    });
+  }
+  const f = (v, pre='', suf='', dec=1) =>
+    v!=null ? `${pre}${parseFloat(v).toFixed(dec)}${suf}` : '—';
+
+  const sections = [
+    { title: '📈 Price & Returns', rows: [
+      { label:'Price',      vals:data.map(d=>f(d.price,'₹','',0)),          cls:data.map(()=>'') },
+      { label:'1M Return',  vals:data.map(d=>f(d.ret_1m,'','%')),           cls:hl(data.map(d=>d.ret_1m)) },
+      { label:'3M Return',  vals:data.map(d=>f(d.ret_3m,'','%')),           cls:hl(data.map(d=>d.ret_3m)) },
+      { label:'1Y Return',  vals:data.map(d=>f(d.ret_1y,'','%')),           cls:hl(data.map(d=>d.ret_1y)) },
+    ]},
+    { title: '💰 Valuation', rows: [
+      { label:'P/E Ratio',  vals:data.map(d=>f(d.pe_ratio,'','x')),         cls:hl(data.map(d=>d.pe_ratio),true) },
+      { label:'EPS',        vals:data.map(d=>f(d.eps,'₹','')),              cls:hl(data.map(d=>d.eps)) },
+      { label:'Div Yield',  vals:data.map(d=>f(d.div_yield,'','%')),        cls:hl(data.map(d=>d.div_yield)) },
+    ]},
+    { title: '📊 Fundamentals', rows: [
+      { label:'ROCE',          vals:data.map(d=>f(d.roce,'','%')),          cls:hl(data.map(d=>d.roce)) },
+      { label:'Sales CAGR 5Y', vals:data.map(d=>f(d.sales_cagr_5y,'','%')),cls:hl(data.map(d=>d.sales_cagr_5y)) },
+      { label:'Profit CAGR 5Y',vals:data.map(d=>f(d.profit_cagr_5y,'','%')),cls:hl(data.map(d=>d.profit_cagr_5y)) },
+    ]},
+    { title: '🤖 Scores', rows: [
+      { label:'ML Score',      vals:data.map(d=>f(d.ml_score,'','%')),      cls:hl(data.map(d=>d.ml_score)) },
+      { label:'Screener Score',vals:data.map(d=>f(d.screener_score,'','/100')),cls:hl(data.map(d=>d.screener_score)) },
+      { label:'Fundamentals Grade', vals:data.map(d=>d.screener_grade||'—'), cls:data.map(()=>'') },
+    ]},
+    { title: '🔮 Forecast', rows: [
+      { label:'1Y Price Target',vals:data.map(d=>f(d.price_target_1y,'₹','',0)),cls:hl(data.map(d=>d.price_target_1y)) },
+    ]},
+  ];
+
+  let html = `<table class="compare-table">
+    <thead><tr>
+      <th style="min-width:130px">METRIC</th>
+      ${data.map(d=>`<th class="${d.symbol===anchor?'anchor-col':''}">${d.symbol}${d.symbol===anchor?' ★':''}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  for (const sec of sections) {
+    html += `<tr class="compare-section-head"><td colspan="${data.length+1}">${sec.title}</td></tr>`;
+    for (const row of sec.rows) {
+      html += `<tr><td class="lbl">${row.label}</td>
+        ${data.map((d,i)=>`<td class="${row.cls[i]||''}">${row.vals[i]}</td>`).join('')}
+      </tr>`;
+    }
+  }
+
+  html += `</tbody></table>
+    <div class="compare-legend">
+      <span>★ = anchor stock</span>
+      <span style="color:var(--green)">■ best in group</span>
+      <span style="color:var(--red)">■ worst in group</span>
+    </div>`;
+
+  document.getElementById('compare-result-area').innerHTML = html;
+}
+
+function peerSearchAC(val) {
+  const ac = document.getElementById('peer-ac');
+  if (!val || val.length < 1) { ac.style.display='none'; return; }
+  const q = val.toUpperCase();
+  const matches = STOCKS.filter(([sym, name]) =>
+    sym.startsWith(q) || name.toUpperCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { ac.style.display='none'; return; }
+  ac.innerHTML = matches.map(([sym, name]) => `
+    <div onclick="selectPeerAC('${sym}')"
+      style="padding:8px 12px;cursor:pointer;font-family:var(--font-mono);font-size:12px;display:flex;gap:8px;align-items:center"
+      onmouseover="this.style.background='var(--bg3)'"
+      onmouseout="this.style.background=''">
+      <span style="color:var(--orange);min-width:80px">${sym}</span>
+      <span style="color:var(--text3);font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${name}</span>
+    </div>`).join('');
+  ac.style.display = 'block';
+}
+
+function selectPeerAC(sym) {
+  document.getElementById('peer-add-input').value = sym;
+  closePeerAC();
+  addPeer();
+}
+
+function closePeerAC() {
+  const ac = document.getElementById('peer-ac');
+  if (ac) ac.style.display = 'none';
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
+setInterval(() => { fetch(`${API}/health`).catch(()=>{}); }, 600000);
+fetch(`${API}/health`).catch(()=>{});
+
+window._warmDone = false;
+(async () => {
+  try { await fetch(`${API}/health`); window._warmDone = true; }
+  catch(e) {}
+})();
+
 renderRecent();
 loadIndices();
 </script>
+<!-- ── Peer Comparison Modal ── -->
+<div id="compare-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeCompare()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">⇄ Peer Comparison</span>
+      <button class="modal-close" onclick="closeCompare()">✕</button>
+    </div>
+    <div id="compare-peers-area"></div>
+    <div id="compare-result-area"></div>
+  </div>
+</div>
+
 </body>
 </html>
