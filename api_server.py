@@ -1219,7 +1219,7 @@ def compare():
                     'ret_1y':          round(float(val.get('ret_1y') or 0)*100,1) if val.get('ret_1y') else None,
                     'pe_ratio':        val.get('pe_ratio'),
                     'eps':             val.get('eps'),
-                    'div_yield':       round(float(val.get('div_yield') or 0)*100,2) if val.get('div_yield') else None,
+                    'div_yield':       round(float(val.get('div_yield') or 0),2) if val.get('div_yield') else None,
                     'roce':            fund.get('roce'),
                     'sales_cagr_5y':   fund.get('sales_cagr_5y'),
                     'profit_cagr_5y':  fund.get('profit_cagr_5y'),
