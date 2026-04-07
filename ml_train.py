@@ -1,27 +1,27 @@
 """
-ML Stock Screener — Training Pipeline
-======================================
-Step 1: Downloads 5 years of NSE stock data from Yahoo Finance
-Step 2: Engineers features (momentum, volatility, P/E, moving averages etc)
-Step 3: Creates labels (did stock outperform Nifty in next 3 months?)
-Step 4: Trains a Random Forest + XGBoost model
-Step 5: Saves the model to disk for use in the API
+ML Stock Screener — Training Pipeline v2
+==========================================
+Improvements over v1:
+  1. Adds 14 Screener fundamental features (ROCE, margins, FCF, promoter etc.)
+  2. Extended forward horizon: 6 months (126 days) instead of 3 months
+  3. XGBoost added alongside Random Forest + Gradient Boosting
+  4. Ensemble voting across all 3 models
+  5. Better feature imputation for missing fundamentals
 """
 
 import yfinance as yf
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 import warnings
 import joblib
 import os
 warnings.filterwarnings('ignore')
 
-# ── All Nifty 50 stocks ───────────────────────────────────────────────────────
 NSE_STOCKS = [
     "HDFCBANK.NS", "ICICIBANK.NS", "KOTAKBANK.NS", "AXISBANK.NS", "SBIN.NS",
     "BAJFINANCE.NS", "BAJAJFINSV.NS", "SHRIRAMFIN.NS", "TCS.NS", "INFY.NS",
-    "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTIM.NS", "RELIANCE.NS",
+    "WIPRO.NS", "HCLTECH.NS", "TECHM.NS", "LTM.NS", "RELIANCE.NS",
     "ONGC.NS", "BPCL.NS", "IOC.NS", "POWERGRID.NS", "NTPC.NS",
     "ADANIPORTS.NS", "ADANIENT.NS", "TATAPOWER.NS", "HINDUNILVR.NS", "ITC.NS",
     "NESTLEIND.NS", "BRITANNIA.NS", "TATACONSUM.NS", "MARUTI.NS", "M&M.NS",
@@ -50,15 +50,62 @@ NSE_STOCKS = [
     "MAZDOCK.NS",
 ]
 
-NIFTY = "^NSEI"
-PERIOD = "5y"
-FORWARD_DAYS = 63  # ~3 months of trading days
+NIFTY        = "^NSEI"
+PERIOD       = "7y"           # extended from 5y for more training data
+FORWARD_DAYS = 126            # 6 months instead of 3 — fundamentals need time to play out
+
+# ── Technical features (same as v1) ──────────────────────────────────────────
+TECH_FEATURES = [
+    'ret_1m', 'ret_3m', 'ret_6m', 'ret_1y',
+    'rs_1m', 'rs_3m',
+    'price_to_ma50', 'price_to_ma200', 'golden_cross',
+    'vol_1m', 'vol_3m',
+    'pos52', 'rsi', 'vol_trend',
+]
+
+# ── Fundamental features from Screener CSV ────────────────────────────────────
+FUND_FEATURES = [
+    'roce_latest_pct',    # capital efficiency
+    'opm_latest_pct',     # operating margin quality
+    'sales_cagr_5y',      # revenue growth momentum
+    'profit_cagr_5y',     # earnings growth momentum
+    'eps_cagr_5y',        # per-share earnings trend
+    'sales_growth_1y',    # recent revenue acceleration
+    'profit_growth_1y',   # recent profit acceleration
+    'opm_trend_5y',       # margin improving/declining
+    'roce_trend_5y',      # ROCE improving/declining
+    'promoter_pct',       # skin in the game
+    'fii_pct',            # institutional interest
+    'fcf_positive_3y',    # cash generation (boolean → 0/1)
+    'debt_reducing',      # balance sheet improving (boolean → 0/1)
+    'screener_de',        # debt/equity ratio
+]
+
+ALL_FEATURES = TECH_FEATURES + FUND_FEATURES
+
+# ── Fundamental defaults for imputation ──────────────────────────────────────
+FUND_DEFAULTS = {
+    'roce_latest_pct':  12.0,
+    'opm_latest_pct':   12.0,
+    'sales_cagr_5y':    10.0,
+    'profit_cagr_5y':    8.0,
+    'eps_cagr_5y':       8.0,
+    'sales_growth_1y':   8.0,
+    'profit_growth_1y':  8.0,
+    'opm_trend_5y':      0.0,
+    'roce_trend_5y':     0.0,
+    'promoter_pct':     45.0,
+    'fii_pct':          15.0,
+    'fcf_positive_3y':   0.5,
+    'debt_reducing':     0.5,
+    'screener_de':      50.0,
+}
 
 
 # ── Step 1: Download price data ───────────────────────────────────────────────
 def download_data():
-    print("\nDownloading 5 years of NSE data from Yahoo Finance...")
-    print("This will take 2-3 minutes. Please wait.\n")
+    print(f"\nDownloading {PERIOD} of NSE data from Yahoo Finance...")
+    print("This will take 3-5 minutes. Please wait.\n")
 
     all_prices = {}
 
@@ -94,8 +141,52 @@ def download_data():
     return all_prices
 
 
-# ── Step 2: Engineer features ─────────────────────────────────────────────────
-def engineer_features(prices: dict) -> pd.DataFrame:
+# ── Step 2: Load Screener fundamentals ───────────────────────────────────────
+def load_fundamentals():
+    print("\nLoading Screener fundamentals...")
+    path = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
+    if not os.path.exists(path):
+        print("  WARNING: screener_fundamentals.csv not found — fundamentals will use defaults")
+        return {}
+
+    df = pd.read_csv(path)
+    df = df[df['status'] == 'ok']
+
+    # Normalise symbol map
+    SYMBOL_CSV_MAP = {'LTM': 'LTIM'}
+    fund_dict = {}
+
+    for _, row in df.iterrows():
+        sym = row['symbol']
+        # Reverse map — store under NSE symbol
+        for nse_sym, csv_sym in SYMBOL_CSV_MAP.items():
+            if sym == csv_sym:
+                sym = nse_sym
+                break
+
+        fund_dict[sym] = {
+            'roce_latest_pct':  float(row.get('roce_latest_pct') or FUND_DEFAULTS['roce_latest_pct']),
+            'opm_latest_pct':   float(row.get('opm_latest_pct')  or FUND_DEFAULTS['opm_latest_pct']),
+            'sales_cagr_5y':    float(row.get('sales_cagr_5y')   or FUND_DEFAULTS['sales_cagr_5y']),
+            'profit_cagr_5y':   float(row.get('profit_cagr_5y')  or FUND_DEFAULTS['profit_cagr_5y']),
+            'eps_cagr_5y':      float(row.get('eps_cagr_5y')     or FUND_DEFAULTS['eps_cagr_5y']),
+            'sales_growth_1y':  float(row.get('sales_growth_1y') or FUND_DEFAULTS['sales_growth_1y']),
+            'profit_growth_1y': float(row.get('profit_growth_1y')or FUND_DEFAULTS['profit_growth_1y']),
+            'opm_trend_5y':     float(row.get('opm_trend_5y')    or 0.0),
+            'roce_trend_5y':    float(row.get('roce_trend_5y')   or 0.0),
+            'promoter_pct':     float(row.get('promoter_pct')    or FUND_DEFAULTS['promoter_pct']),
+            'fii_pct':          float(row.get('fii_pct')         or FUND_DEFAULTS['fii_pct']),
+            'fcf_positive_3y':  float(bool(row.get('fcf_positive_3y'))),
+            'debt_reducing':    float(bool(row.get('debt_reducing'))),
+            'screener_de':      float(row.get('screener_de')     or FUND_DEFAULTS['screener_de']),
+        }
+
+    print(f"  Loaded fundamentals for {len(fund_dict)} stocks")
+    return fund_dict
+
+
+# ── Step 3: Engineer features ─────────────────────────────────────────────────
+def engineer_features(prices: dict, fund_dict: dict) -> pd.DataFrame:
     print("\nEngineering features...")
 
     nifty = prices.get('NIFTY')
@@ -108,6 +199,7 @@ def engineer_features(prices: dict) -> pd.DataFrame:
     nifty = pd.Series(nifty.values, index=nifty.index, dtype=float)
 
     records = []
+    skipped_no_fund = 0
 
     for sym, close in prices.items():
         if sym == 'NIFTY':
@@ -125,7 +217,14 @@ def engineer_features(prices: dict) -> pd.DataFrame:
         stock_s = close.loc[common_idx].reset_index(drop=True)
         nifty_s = nifty.loc[common_idx].reset_index(drop=True)
 
-        step = 15  # every 3 weeks — more samples
+        # Get fundamentals for this stock
+        fund = fund_dict.get(sym, {})
+        if not fund:
+            skipped_no_fund += 1
+            # Use defaults — don't skip, just use median values
+            fund = FUND_DEFAULTS.copy()
+
+        step = 15
 
         for i in range(200, len(stock_s) - FORWARD_DAYS, step):
             try:
@@ -151,8 +250,8 @@ def engineer_features(prices: dict) -> pd.DataFrame:
                 rs_1m = ret_1m - nifty_ret_1m
                 rs_3m = ret_3m - nifty_ret_3m
 
-                ma50  = float(np.mean(sw[-50:]))
-                ma200 = float(np.mean(sw[-200:]))
+                ma50   = float(np.mean(sw[-50:]))
+                ma200  = float(np.mean(sw[-200:]))
                 price_to_ma50  = cp / ma50  - 1 if ma50  > 0 else 0
                 price_to_ma200 = cp / ma200 - 1 if ma200 > 0 else 0
                 golden_cross   = 1 if ma50 > ma200 else 0
@@ -183,8 +282,9 @@ def engineer_features(prices: dict) -> pd.DataFrame:
                 fwd_nifty = float(fut_n[-1] / fut_n[0] - 1) if fut_n[0] > 0 else 0
                 outperforms = 1 if fwd_stock > fwd_nifty else 0
 
-                records.append({
+                record = {
                     'symbol': sym, 'date': common_idx[i],
+                    # Technical features
                     'ret_1m': ret_1m, 'ret_3m': ret_3m,
                     'ret_6m': ret_6m, 'ret_1y': ret_1y,
                     'rs_1m': rs_1m, 'rs_3m': rs_3m,
@@ -194,58 +294,74 @@ def engineer_features(prices: dict) -> pd.DataFrame:
                     'vol_1m': vol_1m, 'vol_3m': vol_3m,
                     'pos52': pos52, 'rsi': rsi,
                     'vol_trend': vol_trend,
+                    # Fundamental features
+                    'roce_latest_pct':  fund.get('roce_latest_pct',  FUND_DEFAULTS['roce_latest_pct']),
+                    'opm_latest_pct':   fund.get('opm_latest_pct',   FUND_DEFAULTS['opm_latest_pct']),
+                    'sales_cagr_5y':    fund.get('sales_cagr_5y',    FUND_DEFAULTS['sales_cagr_5y']),
+                    'profit_cagr_5y':   fund.get('profit_cagr_5y',   FUND_DEFAULTS['profit_cagr_5y']),
+                    'eps_cagr_5y':      fund.get('eps_cagr_5y',      FUND_DEFAULTS['eps_cagr_5y']),
+                    'sales_growth_1y':  fund.get('sales_growth_1y',  FUND_DEFAULTS['sales_growth_1y']),
+                    'profit_growth_1y': fund.get('profit_growth_1y', FUND_DEFAULTS['profit_growth_1y']),
+                    'opm_trend_5y':     fund.get('opm_trend_5y',     0.0),
+                    'roce_trend_5y':    fund.get('roce_trend_5y',    0.0),
+                    'promoter_pct':     fund.get('promoter_pct',     FUND_DEFAULTS['promoter_pct']),
+                    'fii_pct':          fund.get('fii_pct',          FUND_DEFAULTS['fii_pct']),
+                    'fcf_positive_3y':  fund.get('fcf_positive_3y',  0.5),
+                    'debt_reducing':    fund.get('debt_reducing',    0.5),
+                    'screener_de':      fund.get('screener_de',      FUND_DEFAULTS['screener_de']),
+                    # Label
                     'outperforms': outperforms,
-                })
+                }
+                records.append(record)
 
             except Exception:
                 continue
 
-    if not records:
-        print("No records created")
-        return pd.DataFrame()
-
     df = pd.DataFrame(records)
     print(f"Created {len(df)} training samples from {df['symbol'].nunique()} stocks")
+    print(f"  (Stocks using default fundamentals: {skipped_no_fund})")
     return df
 
 
-# ── Step 3: Train the model ───────────────────────────────────────────────────
+# ── Step 4: Train models ──────────────────────────────────────────────────────
 def train_model(df: pd.DataFrame):
-    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-    from sklearn.model_selection import train_test_split, cross_val_score
+    from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+    from sklearn.model_selection import cross_val_score
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import classification_report, accuracy_score
     from sklearn.pipeline import Pipeline
+    from sklearn.impute import SimpleImputer
 
-    print("\nTraining ML model...")
+    print("\nTraining ML model v2 (Technical + Fundamental features)...")
+    print(f"  Features: {len(ALL_FEATURES)} ({len(TECH_FEATURES)} technical + {len(FUND_FEATURES)} fundamental)")
 
-    FEATURES = [
-        'ret_1m','ret_3m','ret_6m','ret_1y',
-        'rs_1m','rs_3m',
-        'price_to_ma50','price_to_ma200','golden_cross',
-        'vol_1m','vol_3m',
-        'pos52','rsi','vol_trend'
-    ]
-
-    df_clean = df.dropna(subset=FEATURES + ['outperforms'])
-    X = df_clean[FEATURES]
+    df_clean = df.dropna(subset=['outperforms'])
+    X = df_clean[ALL_FEATURES].copy()
     y = df_clean['outperforms']
 
-    print(f"  Training samples: {len(X)}")
-    print(f"  Outperformers: {y.sum()} ({y.mean()*100:.1f}%)")
-    print(f"  Underperformers: {(1-y).sum()} ({(1-y.mean())*100:.1f}%)")
+    # Impute any remaining NaN with median
+    for col in ALL_FEATURES:
+        if X[col].isna().any():
+            X[col] = X[col].fillna(X[col].median())
 
+    print(f"  Training samples: {len(X)}")
+    print(f"  Outperformers:    {y.sum()} ({y.mean()*100:.1f}%)")
+    print(f"  Underperformers:  {(1-y).sum()} ({(1-y.mean())*100:.1f}%)")
+
+    # Time-based split
     split = int(len(X) * 0.8)
     X_train, X_test = X.iloc[:split], X.iloc[split:]
     y_train, y_test = y.iloc[:split], y.iloc[split:]
 
+    # ── Random Forest ─────────────────────────────────────────────────────────
     print("\n  Training Random Forest...")
     rf = Pipeline([
-        ('scaler', StandardScaler()),
-        ('model', RandomForestClassifier(
-            n_estimators=300,
-            max_depth=10,
-            min_samples_leaf=15,
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler',  StandardScaler()),
+        ('model',   RandomForestClassifier(
+            n_estimators=400,
+            max_depth=12,
+            min_samples_leaf=10,
             max_features='sqrt',
             class_weight='balanced',
             random_state=42,
@@ -256,15 +372,17 @@ def train_model(df: pd.DataFrame):
     rf_acc = accuracy_score(y_test, rf.predict(X_test))
     print(f"  Random Forest accuracy: {rf_acc*100:.1f}%")
 
+    # ── Gradient Boosting ─────────────────────────────────────────────────────
     print("\n  Training Gradient Boosting...")
     gb = Pipeline([
-        ('scaler', StandardScaler()),
-        ('model', GradientBoostingClassifier(
-            n_estimators=300,
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler',  StandardScaler()),
+        ('model',   GradientBoostingClassifier(
+            n_estimators=400,
             max_depth=5,
-            learning_rate=0.03,
+            learning_rate=0.02,
             subsample=0.7,
-            min_samples_leaf=15,
+            min_samples_leaf=10,
             max_features=0.8,
             random_state=42
         ))
@@ -273,58 +391,124 @@ def train_model(df: pd.DataFrame):
     gb_acc = accuracy_score(y_test, gb.predict(X_test))
     print(f"  Gradient Boosting accuracy: {gb_acc*100:.1f}%")
 
-    best_model = rf if rf_acc >= gb_acc else gb
-    best_name  = "Random Forest" if rf_acc >= gb_acc else "Gradient Boosting"
-    best_acc   = max(rf_acc, gb_acc)
+    # ── XGBoost ───────────────────────────────────────────────────────────────
+    xgb_acc = 0
+    xgb = None
+    try:
+        from xgboost import XGBClassifier
+        print("\n  Training XGBoost...")
+        xgb = Pipeline([
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler',  StandardScaler()),
+            ('model',   XGBClassifier(
+                n_estimators=400,
+                max_depth=5,
+                learning_rate=0.02,
+                subsample=0.7,
+                colsample_bytree=0.8,
+                min_child_weight=10,
+                scale_pos_weight=1,
+                random_state=42,
+                eval_metric='logloss',
+                verbosity=0,
+            ))
+        ])
+        xgb.fit(X_train, y_train)
+        xgb_acc = accuracy_score(y_test, xgb.predict(X_test))
+        print(f"  XGBoost accuracy: {xgb_acc*100:.1f}%")
+    except ImportError:
+        print("  XGBoost not installed — skipping (pip install xgboost)")
 
+    # ── Ensemble ──────────────────────────────────────────────────────────────
+    print("\n  Building ensemble...")
+    estimators = [('rf', rf), ('gb', gb)]
+    if xgb and xgb_acc > 0:
+        estimators.append(('xgb', xgb))
+
+    ensemble = VotingClassifier(estimators=estimators, voting='soft')
+    ensemble.fit(X_train, y_train)
+    ens_acc = accuracy_score(y_test, ensemble.predict(X_test))
+    print(f"  Ensemble accuracy: {ens_acc*100:.1f}%")
+
+    # Pick best
+    results = [('Random Forest', rf, rf_acc),
+               ('Gradient Boosting', gb, gb_acc),
+               ('Ensemble', ensemble, ens_acc)]
+    if xgb and xgb_acc > 0:
+        results.append(('XGBoost', xgb, xgb_acc))
+
+    best_name, best_model, best_acc = max(results, key=lambda x: x[2])
     print(f"\nBest model: {best_name} ({best_acc*100:.1f}% accuracy)")
-    print("\nClassification Report:")
+
+    print("\nClassification Report (best model):")
     print(classification_report(y_test, best_model.predict(X_test),
                                  target_names=['Underperform','Outperform']))
 
-    if hasattr(best_model.named_steps['model'], 'feature_importances_'):
-        importances = best_model.named_steps['model'].feature_importances_
-        feat_imp = sorted(zip(FEATURES, importances), key=lambda x: x[1], reverse=True)
-        print("\nTop feature importances:")
-        for feat, imp in feat_imp[:5]:
-            print(f"  {feat}: {imp:.3f}")
+    # Feature importance
+    try:
+        if best_name == 'Ensemble':
+            # Use RF component for importance
+            importances = rf.named_steps['model'].feature_importances_
+        elif hasattr(best_model.named_steps.get('model'), 'feature_importances_'):
+            importances = best_model.named_steps['model'].feature_importances_
+        else:
+            importances = None
 
-    return best_model, FEATURES, best_acc
+        if importances is not None:
+            feat_imp = sorted(zip(ALL_FEATURES, importances),
+                              key=lambda x: x[1], reverse=True)
+            print("\nTop 10 feature importances:")
+            for feat, imp in feat_imp[:10]:
+                bar = '█' * int(imp * 200)
+                tag = '(FUND)' if feat in FUND_FEATURES else '(TECH)'
+                print(f"  {feat:<22} {tag} {imp:.3f} {bar}")
+    except Exception:
+        pass
+
+    return best_model, ALL_FEATURES, best_acc, best_name
 
 
-# ── Step 4: Save everything ───────────────────────────────────────────────────
-def save_model(model, features, accuracy):
+# ── Step 5: Save ──────────────────────────────────────────────────────────────
+def save_model(model, features, accuracy, model_name):
     print("\nSaving model...")
     joblib.dump({
-        'model':    model,
-        'features': features,
-        'accuracy': accuracy,
-        'trained':  datetime.now().isoformat(),
-        'stocks':   [s.replace('.NS','') for s in NSE_STOCKS],
+        'model':      model,
+        'features':   features,
+        'accuracy':   accuracy,
+        'model_name': model_name,
+        'trained':    datetime.now().isoformat(),
+        'stocks':     [s.replace('.NS','') for s in NSE_STOCKS],
+        'version':    'v2',
+        'forward_days': FORWARD_DAYS,
     }, 'ml_model.pkl')
     print("Model saved to ml_model.pkl")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=" * 60)
-    print("  NSE ML Stock Screener — Training Pipeline")
-    print("=" * 60)
+    print("=" * 65)
+    print("  NSE ML Stock Screener — Training Pipeline v2")
+    print("  Technical + Fundamental Features | 6-Month Horizon")
+    print("=" * 65)
 
-    prices = download_data()
-    df = engineer_features(prices)
+    prices   = download_data()
+    fund_dict = load_fundamentals()
+    df       = engineer_features(prices, fund_dict)
 
     if len(df) < 100:
         print("Not enough data to train. Check your internet connection.")
         exit(1)
 
-    df.to_csv('training_data.csv', index=False)
-    print(f"Training data saved to training_data.csv")
+    df.to_csv('training_data_v2.csv', index=False)
+    print(f"Training data saved to training_data_v2.csv ({len(df)} samples)")
 
-    model, features, accuracy = train_model(df)
-    save_model(model, features, accuracy)
+    model, features, accuracy, model_name = train_model(df)
+    save_model(model, features, accuracy, model_name)
 
-    print("\n" + "=" * 60)
-    print(f"  Training complete! Accuracy: {accuracy*100:.1f}%")
-    print("  Next step: run the screener with your trained model")
-    print("=" * 60)
+    print("\n" + "=" * 65)
+    print(f"  Training complete!")
+    print(f"  Best model: {model_name}")
+    print(f"  Accuracy:   {accuracy*100:.1f}%")
+    print(f"  Features:   {len(features)} ({len(TECH_FEATURES)} tech + {len(FUND_FEATURES)} fundamental)")
+    print(f"  Horizon:    {FORWARD_DAYS} trading days (6 months)")
+    print("=" * 65)

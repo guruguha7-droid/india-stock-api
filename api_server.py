@@ -639,6 +639,40 @@ def stock_analysis():
 
             f = get_stock_features_cached(symbol, nifty_close)
             if f:
+                # Inject fundamentals for v2 model
+                try:
+                    import pandas as _pd2
+                    sdf  = _pd2.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
+                    SYMBOL_CSV_MAP = {'LTM':'LTIM'}
+                    csv_sym = SYMBOL_CSV_MAP.get(symbol, symbol)
+                    row = sdf[sdf['symbol']==csv_sym]
+                    if not row.empty:
+                        r = row.iloc[0].to_dict()
+                        f.update({
+                            'roce_latest_pct':  float(r.get('roce_latest_pct')  or 12.0),
+                            'opm_latest_pct':   float(r.get('opm_latest_pct')   or 12.0),
+                            'sales_cagr_5y':    float(r.get('sales_cagr_5y')    or 10.0),
+                            'profit_cagr_5y':   float(r.get('profit_cagr_5y')   or 8.0),
+                            'eps_cagr_5y':      float(r.get('eps_cagr_5y')      or 8.0),
+                            'sales_growth_1y':  float(r.get('sales_growth_1y')  or 8.0),
+                            'profit_growth_1y': float(r.get('profit_growth_1y') or 8.0),
+                            'opm_trend_5y':     float(r.get('opm_trend_5y')     or 0.0),
+                            'roce_trend_5y':    float(r.get('roce_trend_5y')    or 0.0),
+                            'promoter_pct':     float(r.get('promoter_pct')     or 45.0),
+                            'fii_pct':          float(r.get('fii_pct')          or 15.0),
+                            'fcf_positive_3y':  float(bool(r.get('fcf_positive_3y'))),
+                            'debt_reducing':    float(bool(r.get('debt_reducing'))),
+                            'screener_de':      float(r.get('screener_de')      or 50.0),
+                        })
+                except Exception:
+                    for k,v in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),
+                                 ('sales_cagr_5y',10.0),('profit_cagr_5y',8.0),
+                                 ('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
+                                 ('profit_growth_1y',8.0),('opm_trend_5y',0.0),
+                                 ('roce_trend_5y',0.0),('promoter_pct',45.0),
+                                 ('fii_pct',15.0),('fcf_positive_3y',0.5),
+                                 ('debt_reducing',0.5),('screener_de',50.0)]:
+                        f.setdefault(k, v)
                 X    = pd.DataFrame([{k: f[k] for k in features}])
                 prob = float(model.predict_proba(X)[0][1])
                 pred = int(model.predict(X)[0])

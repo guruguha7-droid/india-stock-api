@@ -125,6 +125,21 @@ def get_features(sym, nifty_close):
             'pos52': float((cp-l52)/rng) if rng>0 else 0.5,
             'rsi':   float(100-100/(1+g/ls)),
             'vol_trend': float(vol_1m/vol_3m) if vol_3m>0 else 1.0,
+            # Fundamental defaults — overwritten later in get_ml_features
+            'roce_latest_pct':  12.0,
+            'opm_latest_pct':   12.0,
+            'sales_cagr_5y':    10.0,
+            'profit_cagr_5y':    8.0,
+            'eps_cagr_5y':       8.0,
+            'sales_growth_1y':   8.0,
+            'profit_growth_1y':  8.0,
+            'opm_trend_5y':      0.0,
+            'roce_trend_5y':     0.0,
+            'promoter_pct':     45.0,
+            'fii_pct':          15.0,
+            'fcf_positive_3y':   0.5,
+            'debt_reducing':     0.5,
+            'screener_de':      50.0,
         }
     except Exception:
         return None
@@ -172,6 +187,27 @@ def get_ml_features(nifty_close):
             }
         except Exception:
             yfin_data[sym] = {'pe': 20, 'pm': 0.10, 'rg': 0.10, 'eg': 0.10}
+
+    # ── Inject fundamentals into features ────────────────────────────
+    _fund_map = {'VBL': 'VBLLTD', 'LTM': 'LTIMINDTREE'}
+    for f in all_features:
+        sym = f['symbol']
+        sc  = screener_data.get(_fund_map.get(sym, sym), {})
+        if sc:
+            f['roce_latest_pct']  = float(sc.get('roce_latest_pct')  or 12.0)
+            f['opm_latest_pct']   = float(sc.get('opm_latest_pct')   or 12.0)
+            f['sales_cagr_5y']    = float(sc.get('sales_cagr_5y')    or 10.0)
+            f['profit_cagr_5y']   = float(sc.get('profit_cagr_5y')   or 8.0)
+            f['eps_cagr_5y']      = float(sc.get('eps_cagr_5y')      or 8.0)
+            f['sales_growth_1y']  = float(sc.get('sales_growth_1y')  or 8.0)
+            f['profit_growth_1y'] = float(sc.get('profit_growth_1y') or 8.0)
+            f['opm_trend_5y']     = float(sc.get('opm_trend_5y')     or 0.0)
+            f['roce_trend_5y']    = float(sc.get('roce_trend_5y')    or 0.0)
+            f['promoter_pct']     = float(sc.get('promoter_pct')     or 45.0)
+            f['fii_pct']          = float(sc.get('fii_pct')          or 15.0)
+            f['fcf_positive_3y']  = float(bool(sc.get('fcf_positive_3y')))
+            f['debt_reducing']    = float(bool(sc.get('debt_reducing')))
+            f['screener_de']      = float(sc.get('screener_de')      or 50.0)
 
     result = {
         'model':         model,
