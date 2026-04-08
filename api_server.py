@@ -650,13 +650,12 @@ def stock_analysis():
 
             f = get_stock_features_cached(symbol, nifty_close)
             if f:
-                # Inject fundamentals for v2 model
+                # Inject fundamentals for v2 28-feature model
                 try:
-                    import pandas as _pd2
-                    sdf  = _pd2.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
-                    SYMBOL_CSV_MAP = {'LTM':'LTIM'}
+                    sdf = pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+                    SYMBOL_CSV_MAP = {'LTM': 'LTIM'}
                     csv_sym = SYMBOL_CSV_MAP.get(symbol, symbol)
-                    row = sdf[sdf['symbol']==csv_sym]
+                    row = sdf[sdf['symbol'] == csv_sym]
                     if not row.empty:
                         r = row.iloc[0].to_dict()
                         f.update({
@@ -675,19 +674,23 @@ def stock_analysis():
                             'debt_reducing':    float(bool(r.get('debt_reducing'))),
                             'screener_de':      float(r.get('screener_de')      or 50.0),
                         })
-                        print(f"[ML] fundamentals injected for {symbol}: roce={f['roce_latest_pct']} sales_cagr={f['sales_cagr_5y']}", flush=True)
                     else:
-                        print(f"[ML] no CSV row found for {symbol} (csv_sym={csv_sym})", flush=True)
-                except Exception as _e:
-                    print(f"[ML] fundamentals injection failed for {symbol}: {_e}", flush=True)
-                    for k,v in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),
-                                 ('sales_cagr_5y',10.0),('profit_cagr_5y',8.0),
-                                 ('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
-                                 ('profit_growth_1y',8.0),('opm_trend_5y',0.0),
-                                 ('roce_trend_5y',0.0),('promoter_pct',45.0),
-                                 ('fii_pct',15.0),('fcf_positive_3y',0.5),
-                                 ('debt_reducing',0.5),('screener_de',50.0)]:
-                        f.setdefault(k, v)
+                        # Use defaults if stock not in CSV
+                        f.update({'roce_latest_pct':12.0,'opm_latest_pct':12.0,
+                                  'sales_cagr_5y':10.0,'profit_cagr_5y':8.0,
+                                  'eps_cagr_5y':8.0,'sales_growth_1y':8.0,
+                                  'profit_growth_1y':8.0,'opm_trend_5y':0.0,
+                                  'roce_trend_5y':0.0,'promoter_pct':45.0,
+                                  'fii_pct':15.0,'fcf_positive_3y':0.5,
+                                  'debt_reducing':0.5,'screener_de':50.0})
+                except Exception:
+                    f.update({'roce_latest_pct':12.0,'opm_latest_pct':12.0,
+                              'sales_cagr_5y':10.0,'profit_cagr_5y':8.0,
+                              'eps_cagr_5y':8.0,'sales_growth_1y':8.0,
+                              'profit_growth_1y':8.0,'opm_trend_5y':0.0,
+                              'roce_trend_5y':0.0,'promoter_pct':45.0,
+                              'fii_pct':15.0,'fcf_positive_3y':0.5,
+                              'debt_reducing':0.5,'screener_de':50.0})
                 X    = pd.DataFrame([{k: f[k] for k in features}])
                 prob = float(model.predict_proba(X)[0][1])
                 pred = int(model.predict(X)[0])
@@ -760,20 +763,35 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            info = yf.Ticker(f"{symbol}.NS").info
-            result["valuation"] = {
-                "pe_ratio":        info.get('trailingPE'),
-                "pb_ratio":        info.get('priceToBook'),
-                "profit_margin":   info.get('profitMargins'),
-                "revenue_growth":  info.get('revenueGrowth'),
-                "earnings_growth": info.get('earningsGrowth'),
-                "debt_to_equity":  info.get('debtToEquity'),
-                "dividend_yield":  _safe_div_yield(
-                                     info.get('dividendYield'),
-                                     info.get('dividendRate'),
-                                     info.get('currentPrice')),
-                "eps":             info.get('trailingEps'),
-            }
+            t    = yf.Ticker(f"{symbol}.NS")
+            info = t.info
+            if not info or not info.get('trailingPE'):
+                # Try fast_info as fallback
+                fi = t.fast_info
+                result["valuation"] = {
+                    "pe_ratio":        getattr(fi, 'pe_ratio', None),
+                    "pb_ratio":        getattr(fi, 'price_to_book', None),
+                    "profit_margin":   None,
+                    "revenue_growth":  None,
+                    "earnings_growth": None,
+                    "debt_to_equity":  None,
+                    "dividend_yield":  None,
+                    "eps":             getattr(fi, 'eps_trailing_twelve_months', None),
+                }
+            else:
+                result["valuation"] = {
+                    "pe_ratio":        info.get('trailingPE'),
+                    "pb_ratio":        info.get('priceToBook'),
+                    "profit_margin":   info.get('profitMargins'),
+                    "revenue_growth":  info.get('revenueGrowth'),
+                    "earnings_growth": info.get('earningsGrowth'),
+                    "debt_to_equity":  info.get('debtToEquity'),
+                    "dividend_yield":  _safe_div_yield(
+                                         info.get('dividendYield'),
+                                         info.get('dividendRate'),
+                                         info.get('currentPrice')),
+                    "eps":             info.get('trailingEps'),
+                }
         except Exception:
             result["valuation"] = {}
 
