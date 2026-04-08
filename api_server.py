@@ -634,8 +634,19 @@ def stock_analysis():
 
             nifty_close = get_nifty_close()
             if nifty_close is None:
-                result["ml"] = {"error": "Nifty data unavailable"}
-                return
+                # Try direct download as fallback
+                try:
+                    import yfinance as _yf
+                    import pandas as _pd
+                    nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
+                                            auto_adjust=True, progress=False)
+                    if hasattr(nifty_df.columns, 'levels'):
+                        nifty_df.columns = nifty_df.columns.get_level_values(0)
+                    nifty_close = _pd.Series(nifty_df['Close'].squeeze().values,
+                                            index=nifty_df.index, dtype=float)
+                except Exception:
+                    result["ml"] = {"error": "Nifty data unavailable"}
+                    return
 
             f = get_stock_features_cached(symbol, nifty_close)
             if f:
@@ -749,27 +760,6 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            ticker = yf.Ticker(f"{symbol}.NS")
-            info = ticker.fast_info  # faster than .info
-            result["valuation"] = {
-                "pe_ratio":        getattr(info, 'pe_ratio', None),
-                "pb_ratio":        getattr(info, 'price_to_book', None),
-                "profit_margin":   None,
-                "revenue_growth":  None,
-                "earnings_growth": None,
-                "debt_to_equity":  None,
-                "dividend_yield":  _safe_div_yield(
-                                     getattr(info, 'last_dividends_value', None),
-                                     None,
-                                     getattr(info, 'last_price', None)),
-                "eps":             getattr(info, 'eps_trailing_twelve_months', None),
-            }
-            return
-        except Exception:
-            pass
-        # Fallback to full .info
-        try:
-            import yfinance as yf
             info = yf.Ticker(f"{symbol}.NS").info
             result["valuation"] = {
                 "pe_ratio":        info.get('trailingPE'),
@@ -778,7 +768,8 @@ def stock_analysis():
                 "revenue_growth":  info.get('revenueGrowth'),
                 "earnings_growth": info.get('earningsGrowth'),
                 "debt_to_equity":  info.get('debtToEquity'),
-                "dividend_yield":  _safe_div_yield(info.get('dividendYield'),
+                "dividend_yield":  _safe_div_yield(
+                                     info.get('dividendYield'),
                                      info.get('dividendRate'),
                                      info.get('currentPrice')),
                 "eps":             info.get('trailingEps'),
