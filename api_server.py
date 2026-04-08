@@ -627,70 +627,66 @@ def stock_analysis():
         try:
             import joblib
             import pandas as pd
+            import yfinance as _yf
+            import numpy as np
+
             saved    = joblib.load(os.path.join(os.path.dirname(__file__), 'ml_model.pkl'))
             model    = saved['model']
             features = saved['features']
             accuracy = saved['accuracy']
 
+            # Get Nifty — use cache if warm, else download directly
             nifty_close = get_nifty_close()
             if nifty_close is None:
-                # Try direct download as fallback
-                try:
-                    import yfinance as _yf
-                    import pandas as _pd
-                    nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
-                                            auto_adjust=True, progress=False)
-                    if hasattr(nifty_df.columns, 'levels'):
-                        nifty_df.columns = nifty_df.columns.get_level_values(0)
-                    nifty_close = _pd.Series(nifty_df['Close'].squeeze().values,
-                                            index=nifty_df.index, dtype=float)
-                except Exception:
-                    result["ml"] = {"error": "Nifty data unavailable"}
-                    return
+                nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
+                                        auto_adjust=True, progress=False)
+                if hasattr(nifty_df.columns, 'levels'):
+                    nifty_df.columns = nifty_df.columns.get_level_values(0)
+                nifty_close = pd.Series(nifty_df['Close'].squeeze().values,
+                                        index=nifty_df.index, dtype=float)
+                _nifty_cache['data'] = nifty_close
+                _nifty_cache['ts']   = time.time()
 
+            # Get stock features — use cache if warm, else compute directly
             f = get_stock_features_cached(symbol, nifty_close)
+            if f is None:
+                from ml_screener import get_features
+                f = get_features(symbol, nifty_close)
+
             if f:
-                # Inject fundamentals for v2 28-feature model
+                # Inject fundamentals
                 try:
-                    sdf = pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
-                    SYMBOL_CSV_MAP = {'LTM': 'LTIM'}
-                    csv_sym = SYMBOL_CSV_MAP.get(symbol, symbol)
-                    row = sdf[sdf['symbol'] == csv_sym]
-                    if not row.empty:
-                        r = row.iloc[0].to_dict()
-                        f.update({
-                            'roce_latest_pct':  float(r.get('roce_latest_pct')  or 12.0),
-                            'opm_latest_pct':   float(r.get('opm_latest_pct')   or 12.0),
-                            'sales_cagr_5y':    float(r.get('sales_cagr_5y')    or 10.0),
-                            'profit_cagr_5y':   float(r.get('profit_cagr_5y')   or 8.0),
-                            'eps_cagr_5y':      float(r.get('eps_cagr_5y')      or 8.0),
-                            'sales_growth_1y':  float(r.get('sales_growth_1y')  or 8.0),
-                            'profit_growth_1y': float(r.get('profit_growth_1y') or 8.0),
-                            'opm_trend_5y':     float(r.get('opm_trend_5y')     or 0.0),
-                            'roce_trend_5y':    float(r.get('roce_trend_5y')    or 0.0),
-                            'promoter_pct':     float(r.get('promoter_pct')     or 45.0),
-                            'fii_pct':          float(r.get('fii_pct')          or 15.0),
-                            'fcf_positive_3y':  float(bool(r.get('fcf_positive_3y'))),
-                            'debt_reducing':    float(bool(r.get('debt_reducing'))),
-                            'screener_de':      float(r.get('screener_de')      or 50.0),
-                        })
-                    else:
-                        # Use defaults if stock not in CSV
-                        f.update({'roce_latest_pct':12.0,'opm_latest_pct':12.0,
-                                  'sales_cagr_5y':10.0,'profit_cagr_5y':8.0,
-                                  'eps_cagr_5y':8.0,'sales_growth_1y':8.0,
-                                  'profit_growth_1y':8.0,'opm_trend_5y':0.0,
-                                  'roce_trend_5y':0.0,'promoter_pct':45.0,
-                                  'fii_pct':15.0,'fcf_positive_3y':0.5,
-                                  'debt_reducing':0.5,'screener_de':50.0})
+                    sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),
+                                          'screener_fundamentals.csv'))
+                    csv_sym = {'LTM':'LTIM'}.get(symbol, symbol)
+                    row     = sdf[sdf['symbol'] == csv_sym]
+                    r       = row.iloc[0].to_dict() if not row.empty else {}
+                    f.update({
+                        'roce_latest_pct':  float(r.get('roce_latest_pct')  or 12.0),
+                        'opm_latest_pct':   float(r.get('opm_latest_pct')   or 12.0),
+                        'sales_cagr_5y':    float(r.get('sales_cagr_5y')    or 10.0),
+                        'profit_cagr_5y':   float(r.get('profit_cagr_5y')   or 8.0),
+                        'eps_cagr_5y':      float(r.get('eps_cagr_5y')      or 8.0),
+                        'sales_growth_1y':  float(r.get('sales_growth_1y')  or 8.0),
+                        'profit_growth_1y': float(r.get('profit_growth_1y') or 8.0),
+                        'opm_trend_5y':     float(r.get('opm_trend_5y')     or 0.0),
+                        'roce_trend_5y':    float(r.get('roce_trend_5y')    or 0.0),
+                        'promoter_pct':     float(r.get('promoter_pct')     or 45.0),
+                        'fii_pct':          float(r.get('fii_pct')          or 15.0),
+                        'fcf_positive_3y':  float(bool(r.get('fcf_positive_3y'))),
+                        'debt_reducing':    float(bool(r.get('debt_reducing'))),
+                        'screener_de':      float(r.get('screener_de')      or 50.0),
+                    })
                 except Exception:
-                    f.update({'roce_latest_pct':12.0,'opm_latest_pct':12.0,
-                              'sales_cagr_5y':10.0,'profit_cagr_5y':8.0,
-                              'eps_cagr_5y':8.0,'sales_growth_1y':8.0,
-                              'profit_growth_1y':8.0,'opm_trend_5y':0.0,
-                              'roce_trend_5y':0.0,'promoter_pct':45.0,
-                              'fii_pct':15.0,'fcf_positive_3y':0.5,
-                              'debt_reducing':0.5,'screener_de':50.0})
+                    for k,v in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),
+                                 ('sales_cagr_5y',10.0),('profit_cagr_5y',8.0),
+                                 ('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
+                                 ('profit_growth_1y',8.0),('opm_trend_5y',0.0),
+                                 ('roce_trend_5y',0.0),('promoter_pct',45.0),
+                                 ('fii_pct',15.0),('fcf_positive_3y',0.5),
+                                 ('debt_reducing',0.5),('screener_de',50.0)]:
+                        f.setdefault(k, v)
+
                 X    = pd.DataFrame([{k: f[k] for k in features}])
                 prob = float(model.predict_proba(X)[0][1])
                 pred = int(model.predict(X)[0])
@@ -705,24 +701,7 @@ def stock_analysis():
                     "golden_cross": bool(f['golden_cross']),
                 }
             else:
-                # ML features not ready yet — compute RSI at minimum from recent prices
-                rsi_val = None
-                try:
-                    import yfinance as _yf
-                    import numpy as np
-                    df = _yf.download(f"{symbol}.NS", period="1mo", interval="1d",
-                                      auto_adjust=True, progress=False)
-                    if len(df) >= 15:
-                        if hasattr(df.columns, 'levels'):
-                            df.columns = df.columns.get_level_values(0)
-                        closes = df['Close'].squeeze().values.astype(float)
-                        d = np.diff(closes[-16:])
-                        g = d[d > 0].mean() if len(d[d > 0]) > 0 else 0.001
-                        l = abs(d[d < 0].mean()) if len(d[d < 0]) > 0 else 0.001
-                        rsi_val = round(float(100 - 100 / (1 + g / l)), 1)
-                except Exception:
-                    pass
-                result["ml"] = {"error": "Computing...", "rsi": rsi_val}
+                result["ml"] = {"error": "Could not compute features"}
         except Exception as e:
             result["ml"] = {"error": str(e)}
 
