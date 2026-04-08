@@ -664,7 +664,11 @@ def stock_analysis():
                             'debt_reducing':    float(bool(r.get('debt_reducing'))),
                             'screener_de':      float(r.get('screener_de')      or 50.0),
                         })
-                except Exception:
+                        print(f"[ML] fundamentals injected for {symbol}: roce={f['roce_latest_pct']} sales_cagr={f['sales_cagr_5y']}", flush=True)
+                    else:
+                        print(f"[ML] no CSV row found for {symbol} (csv_sym={csv_sym})", flush=True)
+                except Exception as _e:
+                    print(f"[ML] fundamentals injection failed for {symbol}: {_e}", flush=True)
                     for k,v in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),
                                  ('sales_cagr_5y',10.0),('profit_cagr_5y',8.0),
                                  ('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
@@ -745,6 +749,27 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
+            ticker = yf.Ticker(f"{symbol}.NS")
+            info = ticker.fast_info  # faster than .info
+            result["valuation"] = {
+                "pe_ratio":        getattr(info, 'pe_ratio', None),
+                "pb_ratio":        getattr(info, 'price_to_book', None),
+                "profit_margin":   None,
+                "revenue_growth":  None,
+                "earnings_growth": None,
+                "debt_to_equity":  None,
+                "dividend_yield":  _safe_div_yield(
+                                     getattr(info, 'last_dividends_value', None),
+                                     None,
+                                     getattr(info, 'last_price', None)),
+                "eps":             getattr(info, 'eps_trailing_twelve_months', None),
+            }
+            return
+        except Exception:
+            pass
+        # Fallback to full .info
+        try:
+            import yfinance as yf
             info = yf.Ticker(f"{symbol}.NS").info
             result["valuation"] = {
                 "pe_ratio":        info.get('trailingPE'),
@@ -753,7 +778,9 @@ def stock_analysis():
                 "revenue_growth":  info.get('revenueGrowth'),
                 "earnings_growth": info.get('earningsGrowth'),
                 "debt_to_equity":  info.get('debtToEquity'),
-                "dividend_yield":  _safe_div_yield(info.get('dividendYield'), info.get('dividendRate'), info.get('currentPrice') or info.get('regularMarketPrice')),
+                "dividend_yield":  _safe_div_yield(info.get('dividendYield'),
+                                     info.get('dividendRate'),
+                                     info.get('currentPrice')),
                 "eps":             info.get('trailingEps'),
             }
         except Exception:
