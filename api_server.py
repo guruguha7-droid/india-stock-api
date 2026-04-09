@@ -635,6 +635,15 @@ def stock_analysis():
             features = saved['features']
             accuracy = saved['accuracy']
 
+            # Patch sklearn version mismatch — add _fill_dtype if missing from SimpleImputer
+            try:
+                steps = model.steps if hasattr(model, 'steps') else []
+                for _, step in steps:
+                    if hasattr(step, 'statistics_') and not hasattr(step, '_fill_dtype'):
+                        step._fill_dtype = step.statistics_.dtype
+            except Exception:
+                pass
+
             # Always download fresh — bypass all caches for single-stock calls
             stock_df = _yf.download(f"{symbol}.NS", period="2y", interval="1d",
                                     auto_adjust=True, progress=False)
