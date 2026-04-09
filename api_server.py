@@ -804,34 +804,35 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            import requests
-            session = requests.Session()
-            session.request = lambda method, url, **kwargs: \
-                requests.Session.request(session, method, url,
-                                         timeout=kwargs.pop('timeout', 5), **kwargs)
-            t = yf.Ticker(f"{symbol}.NS", session=session)
+            import concurrent.futures
+
+            def _get_info():
+                return yf.Ticker(f"{symbol}.NS").info
 
             info = {}
             try:
-                info = t.info
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                    fut = ex.submit(_get_info)
+                    try:
+                        info = fut.result(timeout=8)
+                    except concurrent.futures.TimeoutError:
+                        info = {}
                 if not isinstance(info, dict):
                     info = {}
             except Exception:
                 info = {}
 
-            pe  = info.get('trailingPE')
+            # If .info timed out or returned nothing, try fast_info for P/E and EPS
+            pe  = info.get('trailingPE') or info.get('forwardPE')
             eps = info.get('trailingEps')
-
-            # If .info timed out, derive P/E from fast_info price ÷ EPS
             if not pe or not eps:
                 try:
-                    fi       = t.fast_info
-                    fi_price = getattr(fi, 'last_price', None)
-                    fi_eps   = getattr(fi, 'eps_trailing_twelve_months', None)
-                    if not eps and fi_eps:
-                        eps = fi_eps
-                    if not pe and fi_price and eps and float(eps) > 0:
-                        pe = round(float(fi_price) / float(eps), 1)
+                    fi    = yf.Ticker(f"{symbol}.NS").fast_info
+                    price = getattr(fi, 'last_price', None)
+                    if not eps:
+                        eps = getattr(fi, 'eps_trailing_twelve_months', None)
+                    if not pe and price and eps and float(eps) > 0:
+                        pe = round(float(price) / float(eps), 1)
                 except Exception:
                     pass
 
