@@ -469,6 +469,14 @@ def indices():
 
 
 # ── Health check ──────────────────────────────────────────────────────────────
+@app.route("/debug-valuation")
+def debug_valuation():
+    import yfinance as yf
+    t  = yf.Ticker("RELIANCE.NS")
+    fi = t.fast_info
+    attrs = {a: str(getattr(fi, a, 'MISSING')) for a in dir(fi) if not a.startswith('_')}
+    return jsonify(attrs)
+
 @app.route("/health")
 def health():
     return jsonify({
