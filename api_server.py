@@ -753,7 +753,10 @@ def stock_analysis():
                 "golden_cross": bool(f['golden_cross']),
             }
         except Exception as e:
-            result["ml"] = {"error": str(e)}
+            import traceback
+            tb = traceback.format_exc()
+            print(f"[fetch_ml ERROR] {tb}", flush=True)
+            result["ml"] = {"error": str(e), "traceback": tb}
 
     def fetch_fundamentals():
         try:
