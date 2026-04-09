@@ -804,16 +804,18 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            import concurrent.futures
-            t = yf.Ticker(f"{symbol}.NS")
+            import requests
+            session = requests.Session()
+            session.request = lambda method, url, **kwargs: \
+                requests.Session.request(session, method, url,
+                                         timeout=kwargs.pop('timeout', 5), **kwargs)
+            t = yf.Ticker(f"{symbol}.NS", session=session)
 
-            # .info can hang indefinitely on Render free tier — hard cap at 6s
             info = {}
             try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                    info = ex.submit(lambda: t.info).result(timeout=6)
-                    if not isinstance(info, dict):
-                        info = {}
+                info = t.info
+                if not isinstance(info, dict):
+                    info = {}
             except Exception:
                 info = {}
 
