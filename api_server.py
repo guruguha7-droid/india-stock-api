@@ -842,7 +842,8 @@ def stock_analysis():
                 divs = t.dividends
                 if divs is not None and len(divs) > 0:
                     import pandas as pd
-                    one_yr = divs[divs.index >= (pd.Timestamp.now() - pd.DateOffset(years=1))]
+                    cutoff = pd.Timestamp.now(tz=divs.index.tz)
+                    one_yr = divs[divs.index >= (cutoff - pd.DateOffset(years=1))]
                     annual = float(one_yr.sum())
                     if annual > 0 and price and float(price) > 0:
                         return round(annual / float(price), 6)
