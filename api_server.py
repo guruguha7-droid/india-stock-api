@@ -810,40 +810,71 @@ def stock_analysis():
             result["fundamentals"] = {}
 
     def fetch_valuation():
-        try:
-            import yfinance as yf
-            t  = yf.Ticker(f"{symbol}.NS")
-            fi = t.fast_info
+        import yfinance as yf
+        import concurrent.futures
+        t  = yf.Ticker(f"{symbol}.NS")
+        fi = t.fast_info
 
-            price = getattr(fi, 'last_price', None)
-            eps   = getattr(fi, 'eps_trailing_twelve_months', None)
-            pe    = None
-            if price and eps and float(eps) > 0:
-                pe = round(float(price) / float(eps), 1)
+        price  = getattr(fi, 'last_price', None)
+        shares = getattr(fi, 'shares', None)
+        pe, eps, div_yield = None, None, None
 
-            div_yield = None
+        # EPS = net income / shares — from income statement
+        def _get_eps():
             try:
-                ann_div = getattr(fi, 'last_dividend_value', None)
-                if ann_div and price and float(price) > 0:
-                    div_yield = round(float(ann_div) / float(price), 6)
+                inc = t.income_stmt
+                if inc is not None and not inc.empty:
+                    ni_row = None
+                    for k in inc.index:
+                        if 'net income' in str(k).lower():
+                            ni_row = k
+                            break
+                    if ni_row is not None and shares and float(shares) > 0:
+                        ni = float(inc.loc[ni_row].iloc[0])
+                        return round(ni / float(shares), 2)
             except Exception:
                 pass
+            return None
 
-            result["valuation"] = {
-                "pe_ratio":        pe,
-                "pb_ratio":        getattr(fi, 'price_to_book', None),
-                "profit_margin":   None,
-                "revenue_growth":  None,
-                "earnings_growth": None,
-                "debt_to_equity":  None,
-                "dividend_yield":  div_yield,
-                "eps":             eps,
-            }
-            return
-        except Exception:
-            pass
+        # Div yield = trailing 12m dividends / price
+        def _get_div():
+            try:
+                divs = t.dividends
+                if divs is not None and len(divs) > 0:
+                    import pandas as pd
+                    one_yr = divs[divs.index >= (pd.Timestamp.now() - pd.DateOffset(years=1))]
+                    annual = float(one_yr.sum())
+                    if annual > 0 and price and float(price) > 0:
+                        return round(annual / float(price), 6)
+            except Exception:
+                pass
+            return None
 
-        result["valuation"] = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+            f_eps = ex.submit(_get_eps)
+            f_div = ex.submit(_get_div)
+            try:
+                eps = f_eps.result(timeout=6)
+            except Exception:
+                eps = None
+            try:
+                div_yield = f_div.result(timeout=6)
+            except Exception:
+                div_yield = None
+
+        if price and eps and float(eps) > 0:
+            pe = round(float(price) / float(eps), 1)
+
+        result["valuation"] = {
+            "pe_ratio":        pe,
+            "pb_ratio":        None,
+            "profit_margin":   None,
+            "revenue_growth":  None,
+            "earnings_growth": None,
+            "debt_to_equity":  None,
+            "dividend_yield":  div_yield,
+            "eps":             eps,
+        }
 
     def fetch_sentiment():
         try:
