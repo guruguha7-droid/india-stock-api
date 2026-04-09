@@ -635,73 +635,123 @@ def stock_analysis():
             features = saved['features']
             accuracy = saved['accuracy']
 
-            # Get Nifty — use cache if warm, else download directly
-            nifty_close = get_nifty_close()
-            if nifty_close is None:
-                nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
-                                        auto_adjust=True, progress=False)
-                if hasattr(nifty_df.columns, 'levels'):
-                    nifty_df.columns = nifty_df.columns.get_level_values(0)
-                nifty_close = pd.Series(nifty_df['Close'].squeeze().values,
-                                        index=nifty_df.index, dtype=float)
-                _nifty_cache['data'] = nifty_close
-                _nifty_cache['ts']   = time.time()
+            # Always download fresh — bypass all caches for single-stock calls
+            stock_df = _yf.download(f"{symbol}.NS", period="2y", interval="1d",
+                                    auto_adjust=True, progress=False)
+            nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
+                                    auto_adjust=True, progress=False)
 
-            # Get stock features — use cache if warm, else compute directly
-            f = get_stock_features_cached(symbol, nifty_close)
-            if f is None:
-                from ml_screener import get_features
-                f = get_features(symbol, nifty_close)
+            if stock_df is None or len(stock_df) < 100:
+                result["ml"] = {"error": "Insufficient price history"}
+                return
 
-            if f:
-                # Inject fundamentals
-                try:
-                    sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),
-                                          'screener_fundamentals.csv'))
-                    csv_sym = {'LTM':'LTIM'}.get(symbol, symbol)
-                    row     = sdf[sdf['symbol'] == csv_sym]
-                    r       = row.iloc[0].to_dict() if not row.empty else {}
-                    f.update({
-                        'roce_latest_pct':  float(r.get('roce_latest_pct')  or 12.0),
-                        'opm_latest_pct':   float(r.get('opm_latest_pct')   or 12.0),
-                        'sales_cagr_5y':    float(r.get('sales_cagr_5y')    or 10.0),
-                        'profit_cagr_5y':   float(r.get('profit_cagr_5y')   or 8.0),
-                        'eps_cagr_5y':      float(r.get('eps_cagr_5y')      or 8.0),
-                        'sales_growth_1y':  float(r.get('sales_growth_1y')  or 8.0),
-                        'profit_growth_1y': float(r.get('profit_growth_1y') or 8.0),
-                        'opm_trend_5y':     float(r.get('opm_trend_5y')     or 0.0),
-                        'roce_trend_5y':    float(r.get('roce_trend_5y')    or 0.0),
-                        'promoter_pct':     float(r.get('promoter_pct')     or 45.0),
-                        'fii_pct':          float(r.get('fii_pct')          or 15.0),
-                        'fcf_positive_3y':  float(bool(r.get('fcf_positive_3y'))),
-                        'debt_reducing':    float(bool(r.get('debt_reducing'))),
-                        'screener_de':      float(r.get('screener_de')      or 50.0),
-                    })
-                except Exception:
-                    for k,v in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),
-                                 ('sales_cagr_5y',10.0),('profit_cagr_5y',8.0),
-                                 ('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
-                                 ('profit_growth_1y',8.0),('opm_trend_5y',0.0),
-                                 ('roce_trend_5y',0.0),('promoter_pct',45.0),
-                                 ('fii_pct',15.0),('fcf_positive_3y',0.5),
-                                 ('debt_reducing',0.5),('screener_de',50.0)]:
-                        f.setdefault(k, v)
+            if hasattr(stock_df.columns, 'levels'):
+                stock_df.columns = stock_df.columns.get_level_values(0)
+            if hasattr(nifty_df.columns, 'levels'):
+                nifty_df.columns = nifty_df.columns.get_level_values(0)
 
-                X    = pd.DataFrame([{k: f[k] for k in features}])
-                prob = float(model.predict_proba(X)[0][1])
-                pred = int(model.predict(X)[0])
-                result["ml"] = {
-                    "ml_score":     round(prob * 100, 1),
-                    "prediction":   "OUTPERFORM" if pred == 1 else "UNDERPERFORM",
-                    "accuracy":     round(accuracy * 100, 1),
-                    "rsi":          round(f['rsi'], 1),
-                    "pos52_pct":    round(f['pos52'] * 100, 1),
-                    "ret_1m_pct":   round(f['ret_1m'] * 100, 1),
-                    "ret_3m_pct":   round(f['ret_3m'] * 100, 1),
-                    "golden_cross": bool(f['golden_cross']),
-                }
+            sw_s = pd.Series(stock_df['Close'].squeeze().values,
+                             index=stock_df.index, dtype=float)
+
+            # Align with Nifty for relative-strength features; graceful fallback if Nifty fails
+            nw = None
+            if nifty_df is not None and len(nifty_df) >= 100:
+                nw_s   = pd.Series(nifty_df['Close'].squeeze().values,
+                                   index=nifty_df.index, dtype=float)
+                common = sw_s.index.intersection(nw_s.index)
+                if len(common) >= 100:
+                    sw = sw_s.loc[common].values.astype(float)
+                    nw = nw_s.loc[common].values.astype(float)
+                else:
+                    sw = sw_s.values.astype(float)
             else:
-                result["ml"] = {"error": "Could not compute features"}
+                sw = sw_s.values.astype(float)
+
+            cp = float(sw[-1])
+            if cp <= 0 or np.isnan(cp):
+                result["ml"] = {"error": "Invalid price data"}
+                return
+
+            def sr(arr, b):
+                return float(arr[-1] / arr[-b] - 1) if len(arr) > b and arr[-b] > 0 else 0.0
+
+            ret_1m = sr(sw, 22); ret_3m = sr(sw, 63)
+            ret_6m = sr(sw, 126); ret_1y = sr(sw, min(200, len(sw) - 1))
+            rs_1m  = ret_1m - sr(nw, 22) if nw is not None else 0.0
+            rs_3m  = ret_3m - sr(nw, 63) if nw is not None else 0.0
+
+            n50  = min(50,  len(sw)); ma50  = float(np.mean(sw[-n50:]))
+            n200 = min(200, len(sw)); ma200 = float(np.mean(sw[-n200:]))
+
+            dr = np.diff(sw) / sw[:-1]; dr = dr[~np.isnan(dr)]
+            vol_1m = float(np.std(dr[-22:]) * np.sqrt(252)) if len(dr) >= 22 else 0.3
+            vol_3m = float(np.std(dr[-63:]) * np.sqrt(252)) if len(dr) >= 63 else 0.3
+
+            h52 = float(np.max(sw[-252:])) if len(sw) >= 252 else float(np.max(sw))
+            l52 = float(np.min(sw[-252:])) if len(sw) >= 252 else float(np.min(sw))
+            rng = h52 - l52
+
+            d_rsi = np.diff(sw[-16:]) if len(sw) >= 16 else np.array([0.001, -0.001])
+            g     = d_rsi[d_rsi > 0].mean() if len(d_rsi[d_rsi > 0]) > 0 else 0.001
+            ls    = abs(d_rsi[d_rsi < 0].mean()) if len(d_rsi[d_rsi < 0]) > 0 else 0.001
+
+            f = {
+                'ret_1m': ret_1m,           'ret_3m': ret_3m,
+                'ret_6m': ret_6m,           'ret_1y': ret_1y,
+                'rs_1m':  rs_1m,            'rs_3m':  rs_3m,
+                'price_to_ma50':  cp / ma50  - 1 if ma50  > 0 else 0,
+                'price_to_ma200': cp / ma200 - 1 if ma200 > 0 else 0,
+                'golden_cross':   1 if ma50 > ma200 else 0,
+                'vol_1m': vol_1m,           'vol_3m': vol_3m,
+                'pos52':  float((cp - l52) / rng) if rng > 0 else 0.5,
+                'rsi':    float(100 - 100 / (1 + g / ls)),
+                'vol_trend': float(vol_1m / vol_3m) if vol_3m > 0 else 1.0,
+                # Fundamental defaults — overwritten from CSV below
+                'roce_latest_pct': 12.0, 'opm_latest_pct':  12.0,
+                'sales_cagr_5y':   10.0, 'profit_cagr_5y':   8.0,
+                'eps_cagr_5y':      8.0, 'sales_growth_1y':  8.0,
+                'profit_growth_1y': 8.0, 'opm_trend_5y':     0.0,
+                'roce_trend_5y':    0.0, 'promoter_pct':    45.0,
+                'fii_pct':         15.0, 'fcf_positive_3y':  0.5,
+                'debt_reducing':    0.5, 'screener_de':     50.0,
+            }
+
+            # Inject CSV fundamentals — overwrites defaults above
+            try:
+                sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),
+                                      'screener_fundamentals.csv'))
+                csv_sym = {'LTM': 'LTIM'}.get(symbol, symbol)
+                row     = sdf[sdf['symbol'] == csv_sym]
+                r       = row.iloc[0].to_dict() if not row.empty else {}
+                for k, default in [
+                    ('roce_latest_pct', 12.0), ('opm_latest_pct',  12.0),
+                    ('sales_cagr_5y',   10.0), ('profit_cagr_5y',   8.0),
+                    ('eps_cagr_5y',      8.0), ('sales_growth_1y',  8.0),
+                    ('profit_growth_1y', 8.0), ('opm_trend_5y',     0.0),
+                    ('roce_trend_5y',    0.0), ('promoter_pct',    45.0),
+                    ('fii_pct',         15.0), ('fcf_positive_3y',  0.5),
+                    ('debt_reducing',    0.5), ('screener_de',     50.0),
+                ]:
+                    try:
+                        f[k] = float(r.get(k) or default)
+                    except Exception:
+                        f[k] = default
+            except Exception:
+                pass  # defaults already set above
+
+            X    = pd.DataFrame([{k: f[k] for k in features}])
+            prob = float(model.predict_proba(X)[0][1])
+            pred = int(model.predict(X)[0])
+            result["ml"] = {
+                "ml_score":     round(prob * 100, 1),
+                "prediction":   "OUTPERFORM" if pred == 1 else "UNDERPERFORM",
+                "accuracy":     round(accuracy * 100, 1),
+                "rsi":          round(f['rsi'], 1),
+                "pos52_pct":    round(f['pos52'] * 100, 1),
+                "ret_1m_pct":   round(ret_1m * 100, 1),
+                "ret_3m_pct":   round(ret_3m * 100, 1),
+                "golden_cross": bool(f['golden_cross']),
+            }
         except Exception as e:
             result["ml"] = {"error": str(e)}
 
@@ -742,35 +792,48 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            t    = yf.Ticker(f"{symbol}.NS")
-            info = t.info
-            if not info or not info.get('trailingPE'):
-                # Try fast_info as fallback
-                fi = t.fast_info
-                result["valuation"] = {
-                    "pe_ratio":        getattr(fi, 'pe_ratio', None),
-                    "pb_ratio":        getattr(fi, 'price_to_book', None),
-                    "profit_margin":   None,
-                    "revenue_growth":  None,
-                    "earnings_growth": None,
-                    "debt_to_equity":  None,
-                    "dividend_yield":  None,
-                    "eps":             getattr(fi, 'eps_trailing_twelve_months', None),
-                }
-            else:
-                result["valuation"] = {
-                    "pe_ratio":        info.get('trailingPE'),
-                    "pb_ratio":        info.get('priceToBook'),
-                    "profit_margin":   info.get('profitMargins'),
-                    "revenue_growth":  info.get('revenueGrowth'),
-                    "earnings_growth": info.get('earningsGrowth'),
-                    "debt_to_equity":  info.get('debtToEquity'),
-                    "dividend_yield":  _safe_div_yield(
-                                         info.get('dividendYield'),
-                                         info.get('dividendRate'),
-                                         info.get('currentPrice')),
-                    "eps":             info.get('trailingEps'),
-                }
+            import concurrent.futures
+            t = yf.Ticker(f"{symbol}.NS")
+
+            # .info can hang indefinitely on Render free tier — hard cap at 6s
+            info = {}
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                    info = ex.submit(lambda: t.info).result(timeout=6)
+                    if not isinstance(info, dict):
+                        info = {}
+            except Exception:
+                info = {}
+
+            pe  = info.get('trailingPE')
+            eps = info.get('trailingEps')
+
+            # If .info timed out, derive P/E from fast_info price ÷ EPS
+            if not pe or not eps:
+                try:
+                    fi       = t.fast_info
+                    fi_price = getattr(fi, 'last_price', None)
+                    fi_eps   = getattr(fi, 'eps_trailing_twelve_months', None)
+                    if not eps and fi_eps:
+                        eps = fi_eps
+                    if not pe and fi_price and eps and float(eps) > 0:
+                        pe = round(float(fi_price) / float(eps), 1)
+                except Exception:
+                    pass
+
+            result["valuation"] = {
+                "pe_ratio":        pe,
+                "pb_ratio":        info.get('priceToBook'),
+                "profit_margin":   info.get('profitMargins'),
+                "revenue_growth":  info.get('revenueGrowth'),
+                "earnings_growth": info.get('earningsGrowth'),
+                "debt_to_equity":  info.get('debtToEquity'),
+                "dividend_yield":  _safe_div_yield(
+                                     info.get('dividendYield'),
+                                     info.get('dividendRate'),
+                                     info.get('currentPrice')),
+                "eps": eps,
+            }
         except Exception:
             result["valuation"] = {}
 
