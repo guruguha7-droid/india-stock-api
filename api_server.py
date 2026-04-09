@@ -804,53 +804,38 @@ def stock_analysis():
     def fetch_valuation():
         try:
             import yfinance as yf
-            import concurrent.futures
+            t  = yf.Ticker(f"{symbol}.NS")
+            fi = t.fast_info
 
-            def _get_info():
-                return yf.Ticker(f"{symbol}.NS").info
+            price = getattr(fi, 'last_price', None)
+            eps   = getattr(fi, 'eps_trailing_twelve_months', None)
+            pe    = None
+            if price and eps and float(eps) > 0:
+                pe = round(float(price) / float(eps), 1)
 
-            info = {}
+            div_yield = None
             try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                    fut = ex.submit(_get_info)
-                    try:
-                        info = fut.result(timeout=8)
-                    except concurrent.futures.TimeoutError:
-                        info = {}
-                if not isinstance(info, dict):
-                    info = {}
+                ann_div = getattr(fi, 'last_dividend_value', None)
+                if ann_div and price and float(price) > 0:
+                    div_yield = round(float(ann_div) / float(price), 6)
             except Exception:
-                info = {}
-
-            # If .info timed out or returned nothing, try fast_info for P/E and EPS
-            pe  = info.get('trailingPE') or info.get('forwardPE')
-            eps = info.get('trailingEps')
-            if not pe or not eps:
-                try:
-                    fi    = yf.Ticker(f"{symbol}.NS").fast_info
-                    price = getattr(fi, 'last_price', None)
-                    if not eps:
-                        eps = getattr(fi, 'eps_trailing_twelve_months', None)
-                    if not pe and price and eps and float(eps) > 0:
-                        pe = round(float(price) / float(eps), 1)
-                except Exception:
-                    pass
+                pass
 
             result["valuation"] = {
                 "pe_ratio":        pe,
-                "pb_ratio":        info.get('priceToBook'),
-                "profit_margin":   info.get('profitMargins'),
-                "revenue_growth":  info.get('revenueGrowth'),
-                "earnings_growth": info.get('earningsGrowth'),
-                "debt_to_equity":  info.get('debtToEquity'),
-                "dividend_yield":  _safe_div_yield(
-                                     info.get('dividendYield'),
-                                     info.get('dividendRate'),
-                                     info.get('currentPrice')),
-                "eps": eps,
+                "pb_ratio":        getattr(fi, 'price_to_book', None),
+                "profit_margin":   None,
+                "revenue_growth":  None,
+                "earnings_growth": None,
+                "debt_to_equity":  None,
+                "dividend_yield":  div_yield,
+                "eps":             eps,
             }
+            return
         except Exception:
-            result["valuation"] = {}
+            pass
+
+        result["valuation"] = {}
 
     def fetch_sentiment():
         try:
