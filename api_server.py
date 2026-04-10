@@ -766,10 +766,21 @@ def stock_analysis():
                 fi = _yf2.Ticker(f"{symbol}.NS").fast_info
                 price = getattr(fi, 'last_price', None)
                 # PE from income_stmt EPS
-                eps = f.get('eps_cagr_5y', 8.0)
-                if price and eps and float(eps) > 0:
-                    f['pe_ratio'] = round(float(price) / float(eps), 1)
-                    f['peg_ratio'] = round(f['pe_ratio'] / max(float(eps), 0.1), 2)
+                eps_latest = f.get('eps_latest_approx', None)
+                eps_cagr   = f.get('eps_cagr_5y', 8.0)
+                # Try to get eps_latest from screener CSV
+                try:
+                    _sdf2    = pd.read_csv(os.path.join(os.path.dirname(__file__),
+                                           'screener_fundamentals.csv'))
+                    _csv_sym2 = {'LTM': 'LTIM'}.get(symbol, symbol)
+                    _row2    = _sdf2[_sdf2['symbol'] == _csv_sym2]
+                    if not _row2.empty:
+                        eps_latest = float(_row2.iloc[0].get('eps_latest') or 0) or None
+                except Exception:
+                    pass
+                if price and eps_latest and float(eps_latest) > 0:
+                    f['pe_ratio']  = round(float(price) / float(eps_latest), 1)
+                    f['peg_ratio'] = round(f['pe_ratio'] / max(float(eps_cagr), 0.1), 2)
             except Exception:
                 pass
 
@@ -1093,8 +1104,8 @@ def stock_analysis():
 
                 # 4-quadrant classification
                 is_quality   = scr_raw >= 60
-                is_expensive = cur_pe > fair_pe * 1.15 if cur_pe > 0 else False
-                is_cheap     = cur_pe < fair_pe * 0.90 if cur_pe > 0 else False
+                is_expensive = cur_price > fair_value * 1.15
+                is_cheap     = cur_price < fair_value * 0.90
 
                 if is_quality and is_cheap:
                     sig_label = "Undervalued Quality"
