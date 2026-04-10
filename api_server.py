@@ -837,6 +837,77 @@ def stock_analysis():
         except Exception:
             result["fundamentals"] = {}
 
+    def fetch_chart_insights():
+        try:
+            from screener_scraper import get_page, parse_table, parse_num
+            import math
+
+            SYMBOL_MAP = {'LTM': 'LTIMINDTREE', 'M&M': 'M&M', 'BAJAJ-AUTO': 'BAJAJ-AUTO'}
+            scr_sym = SYMBOL_MAP.get(symbol, symbol)
+            soup = get_page(scr_sym)
+            pl   = parse_table(soup, 'profit-loss')
+            bs   = parse_table(soup, 'balance-sheet')
+            rat  = parse_table(soup, 'ratios')
+
+            def clean(arr):
+                return [float(v) for v in arr if v is not None and not math.isnan(float(v if v else 0))]
+
+            def trend_desc(vals, label, unit='', higher_is_good=True):
+                if len(vals) < 3:
+                    return None
+                recent  = vals[-3:]
+                older   = vals[:3]
+                avg_rec = sum(recent) / len(recent)
+                avg_old = sum(older)  / len(older)
+                if avg_old == 0:
+                    return None
+                chg = (avg_rec - avg_old) / abs(avg_old) * 100
+
+                if higher_is_good:
+                    if chg > 20:   trend, quality = "strong uptrend", "good"
+                    elif chg > 5:  trend, quality = "gradual uptrend", "good"
+                    elif chg > -5: trend, quality = "relatively flat", "neutral"
+                    elif chg > -20:trend, quality = "gradual decline", "bad"
+                    else:          trend, quality = "sharp decline", "bad"
+                else:
+                    if chg > 20:   trend, quality = "sharp increase", "bad"
+                    elif chg > 5:  trend, quality = "gradual increase", "bad"
+                    elif chg > -5: trend, quality = "relatively flat", "neutral"
+                    elif chg > -20:trend, quality = "gradual reduction", "good"
+                    else:          trend, quality = "sharp reduction", "good"
+
+                latest = vals[-1]
+                return {"trend": trend, "quality": quality, "change_pct": round(chg, 1),
+                        "latest": round(latest, 1), "unit": unit}
+
+            sales  = clean(pl.get('Sales', pl.get('Revenue', [])))
+            profit = clean(pl.get('Net Profit', []))
+            roce   = clean(rat.get('ROCE %', rat.get('ROE %', [])))
+            debt   = clean(bs.get('Borrowings', []))
+            eq_cap = clean(bs.get('Equity Capital', []))
+            res    = clean(bs.get('Reserves', []))
+            equity = [e + r for e, r in zip(eq_cap, res)] if eq_cap and res else []
+
+            insights = {}
+            r = trend_desc(sales,  'Revenue',  '₹ Cr', higher_is_good=True)
+            if r: insights['revenue'] = {**r, 'summary': f"Revenue shows a {r['trend']} — {'positive sign of business growth' if r['quality']=='good' else 'watch for demand slowdown' if r['quality']=='bad' else 'stable but limited growth'}."}
+
+            p = trend_desc(profit, 'Profit',   '₹ Cr', higher_is_good=True)
+            if p: insights['profit'] = {**p, 'summary': f"Net profit in a {p['trend']} — {'earnings are expanding, good for shareholders' if p['quality']=='good' else 'profitability is under pressure' if p['quality']=='bad' else 'margins holding steady'}."}
+
+            rc = trend_desc(roce,  'ROCE',     '%',    higher_is_good=True)
+            if rc: insights['roce'] = {**rc, 'summary': f"ROCE is in a {rc['trend']} — {'capital is being deployed more efficiently' if rc['quality']=='good' else 'returns on capital are declining, needs monitoring' if rc['quality']=='bad' else 'capital efficiency is stable'}."}
+
+            d = trend_desc(debt,   'Debt',     '₹ Cr', higher_is_good=False)
+            if d: insights['debt'] = {**d, 'summary': f"Debt shows a {d['trend']} — {'balance sheet is strengthening' if d['quality']=='good' else 'rising debt increases financial risk' if d['quality']=='bad' else 'debt levels are stable'}."}
+
+            eq = trend_desc(equity,'Equity',   '₹ Cr', higher_is_good=True)
+            if eq: insights['equity'] = {**eq, 'summary': f"Equity in a {eq['trend']} — {'net worth is building up, good sign' if eq['quality']=='good' else 'equity base is eroding, concerning' if eq['quality']=='bad' else 'equity is stable'}."}
+
+            result['chart_insights'] = insights
+        except Exception:
+            result['chart_insights'] = {}
+
     def fetch_valuation():
         import yfinance as yf
         import concurrent.futures
@@ -936,6 +1007,7 @@ def stock_analysis():
         threading.Thread(target=fetch_valuation),
         threading.Thread(target=fetch_sentiment),
         threading.Thread(target=fetch_macro),
+        threading.Thread(target=fetch_chart_insights),
     ]
     for t in threads:
         t.start()
