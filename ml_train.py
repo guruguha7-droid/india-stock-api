@@ -79,6 +79,9 @@ FUND_FEATURES = [
     'fcf_positive_3y',    # cash generation (boolean → 0/1)
     'debt_reducing',      # balance sheet improving (boolean → 0/1)
     'screener_de',        # debt/equity ratio
+    'pe_ratio',           # market valuation
+    'pb_ratio',           # price vs book value
+    'peg_ratio',          # PE relative to growth — key for value vs growth distinction
 ]
 
 ALL_FEATURES = TECH_FEATURES + FUND_FEATURES
@@ -99,6 +102,9 @@ FUND_DEFAULTS = {
     'fcf_positive_3y':   0.5,
     'debt_reducing':     0.5,
     'screener_de':      50.0,
+    'pe_ratio':         22.0,
+    'pb_ratio':          3.0,
+    'peg_ratio':         2.5,
 }
 
 
@@ -121,7 +127,7 @@ def download_data():
         try:
             df = yf.download(sym, period=PERIOD, interval="1d",
                              auto_adjust=True, progress=False)
-            if len(df) > 200:
+            if len(df) > 100:
                 close = df['Close'].squeeze()
                 name = sym.replace('.NS','')
                 all_prices[name] = close
@@ -139,6 +145,26 @@ def download_data():
         print(f"Failed: {[s.replace('.NS','') for s in failed]}")
 
     return all_prices
+
+
+# ── Step 1b: Download valuation ratios ────────────────────────────────────────
+def download_valuation():
+    print("\nDownloading valuation ratios (PE, PB)...")
+    val_dict = {}
+    for sym in NSE_STOCKS:
+        name = sym.replace('.NS', '')
+        try:
+            import time
+            info = yf.Ticker(sym).info
+            pe = float(info.get('trailingPE') or info.get('forwardPE') or 22.0)
+            pb = float(info.get('priceToBook') or 3.0)
+            val_dict[name] = {'pe_ratio': pe, 'pb_ratio': pb}
+            print(f"  OK {name} — PE:{pe:.1f} PB:{pb:.1f}")
+            time.sleep(0.3)
+        except Exception:
+            val_dict[name] = {'pe_ratio': 22.0, 'pb_ratio': 3.0}
+            print(f"  FAIL {name} — using defaults")
+    return val_dict
 
 
 # ── Step 2: Load Screener fundamentals ───────────────────────────────────────
@@ -186,7 +212,7 @@ def load_fundamentals():
 
 
 # ── Step 3: Engineer features ─────────────────────────────────────────────────
-def engineer_features(prices: dict, fund_dict: dict) -> pd.DataFrame:
+def engineer_features(prices: dict, fund_dict: dict, val_dict: dict = None) -> pd.DataFrame:
     print("\nEngineering features...")
 
     nifty = prices.get('NIFTY')
@@ -309,6 +335,13 @@ def engineer_features(prices: dict, fund_dict: dict) -> pd.DataFrame:
                     'fcf_positive_3y':  fund.get('fcf_positive_3y',  0.5),
                     'debt_reducing':    fund.get('debt_reducing',    0.5),
                     'screener_de':      fund.get('screener_de',      FUND_DEFAULTS['screener_de']),
+                    # Valuation features
+                    'pe_ratio':  (val_dict or {}).get(sym, {}).get('pe_ratio',  FUND_DEFAULTS['pe_ratio']),
+                    'pb_ratio':  (val_dict or {}).get(sym, {}).get('pb_ratio',  FUND_DEFAULTS['pb_ratio']),
+                    'peg_ratio': round(
+                        (val_dict or {}).get(sym, {}).get('pe_ratio', FUND_DEFAULTS['pe_ratio']) /
+                        max(fund.get('eps_cagr_5y', FUND_DEFAULTS['eps_cagr_5y']), 0.1), 2
+                    ),
                     # Label
                     'outperforms': outperforms,
                 }
@@ -491,9 +524,10 @@ if __name__ == "__main__":
     print("  Technical + Fundamental Features | 6-Month Horizon")
     print("=" * 65)
 
-    prices   = download_data()
+    prices    = download_data()
     fund_dict = load_fundamentals()
-    df       = engineer_features(prices, fund_dict)
+    val_dict  = download_valuation()
+    df        = engineer_features(prices, fund_dict, val_dict)
 
     if len(df) < 100:
         print("Not enough data to train. Check your internet connection.")
