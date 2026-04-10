@@ -1038,6 +1038,99 @@ def stock_analysis():
         reason   = reasons[0].capitalize() + (', ' + reasons[1] if len(reasons) > 1 else '')
         score_10 = round(combined / 10, 1)
 
+        # ── Valuation Signal + Buy Zone ───────────────────────────────
+        val_signal = None
+        try:
+            import pandas as _pd
+            _sdf     = _pd.read_csv(os.path.join(os.path.dirname(__file__),
+                                    'screener_fundamentals.csv'))
+            _csv_sym = {'LTM': 'LTIM'}.get(symbol, symbol)
+            _row     = _sdf[_sdf['symbol'] == _csv_sym]
+            _r       = _row.iloc[0].to_dict() if not _row.empty else {}
+
+            eps_latest  = float(_r.get('eps_latest')   or 0)
+            eps_cagr    = float(_r.get('eps_cagr_5y')  or 8)
+            roce_l      = float(_r.get('roce_latest_pct') or 10)
+            roce_a      = float(_r.get('roce_avg_5y')  or roce_l)
+            fcf_ok      = bool(_r.get('fcf_positive_3y'))
+            debt_red    = bool(_r.get('debt_reducing'))
+            cur_pe      = float(result.get('valuation', {}).get('pe_ratio') or 0)
+            cur_price   = float(str(result.get('quote', {}).get('price') or 0)
+                                .replace(',', '')) or None
+
+            if eps_latest > 0 and cur_price:
+                # Graham fair PE — capped at 45 for safety
+                fair_pe    = min(8.5 + 2 * eps_cagr, 45)
+                fair_value = round(eps_latest * fair_pe, 1)
+
+                # Margin of safety — higher quality = less discount needed
+                if scr_raw >= 75:   mos = 0.10   # 10% for great businesses
+                elif scr_raw >= 60: mos = 0.15   # 15% for good businesses
+                else:               mos = 0.25   # 25% for average businesses
+
+                buy_zone_high = round(fair_value * (1 - mos * 0.5), 1)
+                buy_zone_low  = round(fair_value * (1 - mos), 1)
+
+                # Premium/discount to fair value
+                pct_vs_fair = round((cur_price - fair_value) / fair_value * 100, 1) \
+                              if fair_value > 0 else 0
+
+                # Confidence score — how reliable is this fair value estimate
+                confidence = 50
+                if eps_cagr > 15:    confidence += 15
+                elif eps_cagr > 10:  confidence += 10
+                elif eps_cagr > 5:   confidence += 5
+                elif eps_cagr < 0:   confidence -= 15
+                if roce_l > roce_a:  confidence += 10  # ROCE improving
+                if fcf_ok:           confidence += 10
+                if debt_red:         confidence += 5
+                if scr_raw >= 75:    confidence += 10
+                elif scr_raw < 45:   confidence -= 10
+                if cur_pe <= 0:      confidence -= 10
+                confidence = max(20, min(90, confidence))
+
+                # 4-quadrant classification
+                is_quality   = scr_raw >= 60
+                is_expensive = cur_pe > fair_pe * 1.15 if cur_pe > 0 else False
+                is_cheap     = cur_pe < fair_pe * 0.90 if cur_pe > 0 else False
+
+                if is_quality and is_cheap:
+                    sig_label = "Undervalued Quality"
+                    sig_color = "green"
+                    sig_desc  = "Strong business trading below fair value — opportunity"
+                elif is_quality and is_expensive:
+                    sig_label = "Overvalued Quality"
+                    sig_color = "gold"
+                    sig_desc  = "Strong business but priced above fair value — wait for dip"
+                elif is_quality:
+                    sig_label = "Fairly Valued Quality"
+                    sig_color = "green"
+                    sig_desc  = "Strong business at a fair price"
+                elif is_cheap:
+                    sig_label = "Value Trap Risk"
+                    sig_color = "red"
+                    sig_desc  = "Cheap valuation but weak fundamentals — be cautious"
+                else:
+                    sig_label = "Overpriced Weak Business"
+                    sig_color = "red"
+                    sig_desc  = "Weak fundamentals and expensive — avoid"
+
+                val_signal = {
+                    "label":          sig_label,
+                    "color":          sig_color,
+                    "description":    sig_desc,
+                    "fair_value":     fair_value,
+                    "fair_pe":        round(fair_pe, 1),
+                    "current_pe":     cur_pe if cur_pe > 0 else None,
+                    "pct_vs_fair":    pct_vs_fair,
+                    "buy_zone_low":   buy_zone_low,
+                    "buy_zone_high":  buy_zone_high,
+                    "confidence":     confidence,
+                    "current_price":  cur_price,
+                }
+        except Exception:
+            val_signal = None
+
         result["combined"] = {
             "score":          combined,
             "grade":          grade,
@@ -1051,6 +1144,7 @@ def stock_analysis():
             "risk_color":     risk_color,
             "reason":         reason,
             "score_10":       score_10,
+            "valuation_signal": val_signal,
         }
     except Exception:
         result["combined"] = {"score": 50, "grade": "C"}
