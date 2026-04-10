@@ -652,11 +652,18 @@ def stock_analysis():
             except Exception:
                 pass
 
-            # Always download fresh — bypass all caches for single-stock calls
-            stock_df = _yf.download(f"{symbol}.NS", period="2y", interval="1d",
+            # Download stock fresh — but reuse cached Nifty (changes daily at most)
+            stock_df = _yf.download(f"{symbol}.NS", period="14mo", interval="1d",
                                     auto_adjust=True, progress=False)
-            nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
-                                    auto_adjust=True, progress=False)
+            # Use Nifty cache if available — saves 2-3s per request
+            nifty_close_cached = get_nifty_close()
+            if nifty_close_cached is not None and len(nifty_close_cached) >= 100:
+                import pandas as _pd
+                nifty_df = _pd.DataFrame({'Close': nifty_close_cached})
+                nifty_df.index = nifty_close_cached.index
+            else:
+                nifty_df = _yf.download("^NSEI", period="2y", interval="1d",
+                                        auto_adjust=True, progress=False)
 
             if stock_df is None or len(stock_df) < 100:
                 result["ml"] = {"error": "Insufficient price history"}
@@ -838,6 +845,13 @@ def stock_analysis():
             result["fundamentals"] = {}
 
     def fetch_chart_insights():
+        # Cache insights per symbol for 6 hours — Screener data doesn't change intraday
+        _ci_cache = getattr(fetch_chart_insights, '_cache', {})
+        fetch_chart_insights._cache = _ci_cache
+        cached = _ci_cache.get(symbol)
+        if cached and (time.time() - cached['ts']) < 21600:
+            result['chart_insights'] = cached['data']
+            return
         try:
             from screener_scraper import get_page, parse_table, parse_num
             import math
@@ -905,6 +919,7 @@ def stock_analysis():
             if eq: insights['equity'] = {**eq, 'summary': f"Equity in a {eq['trend']} — {'net worth is building up, good sign' if eq['quality']=='good' else 'equity base is eroding, concerning' if eq['quality']=='bad' else 'equity is stable'}."}
 
             result['chart_insights'] = insights
+            _ci_cache[symbol] = {'data': insights, 'ts': time.time()}
         except Exception:
             result['chart_insights'] = {}
 
