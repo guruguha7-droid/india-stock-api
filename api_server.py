@@ -1060,7 +1060,9 @@ def stock_analysis():
 
             if eps_latest > 0 and cur_price:
                 # Graham fair PE — capped at 45 for safety
-                fair_pe    = min(8.5 + 2 * eps_cagr, 45)
+                # Cap EPS CAGR at 25% for Graham — prevents distortion from cyclical recovery
+                graham_cagr = min(eps_cagr, 25)
+                fair_pe     = min(8.5 + 2 * graham_cagr, 40)
                 fair_value = round(eps_latest * fair_pe, 1)
 
                 # Margin of safety — higher quality = less discount needed
@@ -1163,9 +1165,9 @@ def stock_analysis():
         price_now   = float(str(quote.get("price") or 0).replace(",","")) or None
 
         # ── Base CAGRs from historical Screener data ───────────────────
-        sales_cagr  = float(fund.get("sales_cagr_5y")  or 8)
-        profit_cagr = float(fund.get("profit_cagr_5y") or 8)
-        eps_cagr    = float(fund.get("eps_cagr_5y") or profit_cagr)
+        sales_cagr  = min(float(fund.get("sales_cagr_5y")  or 8), 25)
+        profit_cagr = min(float(fund.get("profit_cagr_5y") or 8), 30)
+        eps_cagr    = min(float(fund.get("eps_cagr_5y") or profit_cagr), 30)
         roce_latest = float(fund.get("roce") or fund.get("roce_latest_pct") or 10)
         roce_avg    = float(fund.get("roce_avg_5y") or roce_latest)
         ocf         = fund.get("ocf_latest_cr")
