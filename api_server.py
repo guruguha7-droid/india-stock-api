@@ -673,8 +673,11 @@ def stock_analysis():
             # Align with Nifty for relative-strength features; graceful fallback if Nifty fails
             nw = None
             if nifty_df is not None and len(nifty_df) >= 100:
-                nw_s   = pd.Series(nifty_df['Close'].squeeze().values,
-                                   index=nifty_df.index, dtype=float)
+                nifty_close_col = nifty_df['Close']
+                if hasattr(nifty_close_col, 'columns'):
+                    nifty_close_col = nifty_close_col.iloc[:, 0]
+                nw_s = pd.Series(nifty_close_col.squeeze().values,
+                                 index=nifty_df.index, dtype=float)
                 common = sw_s.index.intersection(nw_s.index)
                 if len(common) >= 100:
                     sw = sw_s.loc[common].values.astype(float)
@@ -731,6 +734,7 @@ def stock_analysis():
                 'roce_trend_5y':    0.0, 'promoter_pct':    45.0,
                 'fii_pct':         15.0, 'fcf_positive_3y':  0.5,
                 'debt_reducing':    0.5, 'screener_de':     50.0,
+                'pe_ratio':        22.0, 'pb_ratio':         3.0, 'peg_ratio': 2.5,
             }
 
             # Inject CSV fundamentals — overwrites defaults above
@@ -755,6 +759,19 @@ def stock_analysis():
                         f[k] = default
             except Exception:
                 pass  # defaults already set above
+
+            # Inject live PE/PB from fast_info
+            try:
+                import yfinance as _yf2
+                fi = _yf2.Ticker(f"{symbol}.NS").fast_info
+                price = getattr(fi, 'last_price', None)
+                # PE from income_stmt EPS
+                eps = f.get('eps_cagr_5y', 8.0)
+                if price and eps and float(eps) > 0:
+                    f['pe_ratio'] = round(float(price) / float(eps), 1)
+                    f['peg_ratio'] = round(f['pe_ratio'] / max(float(eps), 0.1), 2)
+            except Exception:
+                pass
 
             X    = pd.DataFrame([{k: f[k] for k in features}])
             prob = float(model.predict_proba(X)[0][1])
