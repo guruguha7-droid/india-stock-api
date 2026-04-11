@@ -79,6 +79,31 @@ def get_nifty_close():
         return _nifty_cache['data']  # return stale if download fails
 
 
+# ── Nightly precomputed cache ─────────────────────────────────────────────────
+_nightly_cache = {'data': None, 'ts': 0}
+NIGHTLY_CACHE_TTL = 3600  # reload from disk every hour
+
+
+def get_nightly_cache():
+    """Load nightly_cache.json, cached in memory 1 hour."""
+    import json
+    now = time.time()
+    if _nightly_cache['data'] and (now - _nightly_cache['ts']) < NIGHTLY_CACHE_TTL:
+        return _nightly_cache['data']
+    try:
+        path = os.path.join(os.path.dirname(__file__), 'nightly_cache.json')
+        if os.path.exists(path):
+            with open(path) as f:
+                data = json.load(f)
+            _nightly_cache['data'] = data
+            _nightly_cache['ts']   = now
+            print(f"  Nightly cache loaded — {len(data.get('stocks',{}))} stocks, built {data.get('built_at','?')[:16]}")
+            return data
+    except Exception as e:
+        print(f"  Nightly cache load error: {e}")
+    return None
+
+
 # ── Per-stock ML features cache — 5 minutes ──────────────────────────────────
 _ml_features_cache = {}
 ML_FEATURES_TTL = 300
@@ -632,6 +657,19 @@ def stock_analysis():
             result["quote"] = {}
 
     def fetch_ml():
+        # ── Try nightly cache first ───────────────────────────────────
+        try:
+            nc = get_nightly_cache()
+            if nc and symbol in nc.get('stocks', {}):
+                cached = nc['stocks'][symbol]
+                result['ml']            = cached['ml']
+                result['_val_from_cache'] = cached.get('valuation')
+                result['chart_insights']  = cached.get('chart_insights', {})
+                return
+        except Exception:
+            pass
+
+        # ── Fallback: compute live ────────────────────────────────────
         try:
             import joblib
             import pandas as pd
@@ -643,7 +681,7 @@ def stock_analysis():
             features = saved['features']
             accuracy = saved['accuracy']
 
-            # Patch sklearn version mismatch — add _fill_dtype if missing from SimpleImputer
+            # Patch sklearn version mismatch
             try:
                 steps = model.steps if hasattr(model, 'steps') else []
                 for _, step in steps:
@@ -652,10 +690,8 @@ def stock_analysis():
             except Exception:
                 pass
 
-            # Download stock fresh — but reuse cached Nifty (changes daily at most)
             stock_df = _yf.download(f"{symbol}.NS", period="14mo", interval="1d",
                                     auto_adjust=True, progress=False)
-            # Use Nifty cache if available — saves 2-3s per request
             nifty_close_cached = get_nifty_close()
             if nifty_close_cached is not None and len(nifty_close_cached) >= 100:
                 import pandas as _pd
@@ -676,8 +712,6 @@ def stock_analysis():
 
             sw_s = pd.Series(stock_df['Close'].squeeze().values,
                              index=stock_df.index, dtype=float)
-
-            # Align with Nifty for relative-strength features; graceful fallback if Nifty fails
             nw = None
             if nifty_df is not None and len(nifty_df) >= 100:
                 nifty_close_col = nifty_df['Close']
@@ -723,17 +757,16 @@ def stock_analysis():
             ls    = abs(d_rsi[d_rsi < 0].mean()) if len(d_rsi[d_rsi < 0]) > 0 else 0.001
 
             f = {
-                'ret_1m': ret_1m,           'ret_3m': ret_3m,
-                'ret_6m': ret_6m,           'ret_1y': ret_1y,
-                'rs_1m':  rs_1m,            'rs_3m':  rs_3m,
+                'ret_1m': ret_1m, 'ret_3m': ret_3m,
+                'ret_6m': ret_6m, 'ret_1y': ret_1y,
+                'rs_1m':  rs_1m,  'rs_3m':  rs_3m,
                 'price_to_ma50':  cp / ma50  - 1 if ma50  > 0 else 0,
                 'price_to_ma200': cp / ma200 - 1 if ma200 > 0 else 0,
                 'golden_cross':   1 if ma50 > ma200 else 0,
-                'vol_1m': vol_1m,           'vol_3m': vol_3m,
+                'vol_1m': vol_1m, 'vol_3m': vol_3m,
                 'pos52':  float((cp - l52) / rng) if rng > 0 else 0.5,
                 'rsi':    float(100 - 100 / (1 + g / ls)),
                 'vol_trend': float(vol_1m / vol_3m) if vol_3m > 0 else 1.0,
-                # Fundamental defaults — overwritten from CSV below
                 'roce_latest_pct': 12.0, 'opm_latest_pct':  12.0,
                 'sales_cagr_5y':   10.0, 'profit_cagr_5y':   8.0,
                 'eps_cagr_5y':      8.0, 'sales_growth_1y':  8.0,
@@ -744,7 +777,6 @@ def stock_analysis():
                 'pe_ratio':        22.0, 'pb_ratio':         3.0, 'peg_ratio': 2.5,
             }
 
-            # Inject CSV fundamentals — overwrites defaults above
             try:
                 sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),
                                       'screener_fundamentals.csv'))
@@ -765,17 +797,14 @@ def stock_analysis():
                     except Exception:
                         f[k] = default
             except Exception:
-                pass  # defaults already set above
+                pass
 
-            # Inject live PE/PB from fast_info
             try:
                 import yfinance as _yf2
                 fi = _yf2.Ticker(f"{symbol}.NS").fast_info
                 price = getattr(fi, 'last_price', None)
-                # PE from income_stmt EPS
                 eps_latest = f.get('eps_latest_approx', None)
                 eps_cagr   = f.get('eps_cagr_5y', 8.0)
-                # Try to get eps_latest from screener CSV
                 try:
                     _sdf2    = pd.read_csv(os.path.join(os.path.dirname(__file__),
                                            'screener_fundamentals.csv'))
@@ -924,6 +953,12 @@ def stock_analysis():
             result['chart_insights'] = {}
 
     def fetch_valuation():
+        # Use nightly cache if available — avoids yfinance call entirely
+        cached_val = result.get('_val_from_cache')
+        if cached_val:
+            result['valuation'] = cached_val
+            return
+
         import yfinance as yf
         import concurrent.futures
         t  = yf.Ticker(f"{symbol}.NS")
