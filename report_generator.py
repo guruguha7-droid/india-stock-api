@@ -314,11 +314,11 @@ def generate_report(data: dict) -> bytes:
     # Stock name block
     story.append(Table([[
         Paragraph(company, S('cn', fontName='Helvetica-Bold', fontSize=26,
-                              textColor=C_WHITE)),
+                              textColor=C_WHITE, leading=32)),
     ], [
         Paragraph(f'{symbol}   \u00b7   NSE   \u00b7   {sector}',
-                  S('sym', fontSize=11, textColor=C_MUTED)),
-    ]], colWidths=[W-40*mm]))
+                  S('sym', fontSize=11, textColor=C_MUTED, leading=16)),
+    ]], colWidths=[W-40*mm], rowHeights=[36, 20]))
     story[-1].setStyle(TableStyle([
         ('BACKGROUND',    (0,0), (-1,-1), C_BG),
         ('LEFTPADDING',   (0,0), (-1,-1), 0),
