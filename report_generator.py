@@ -688,8 +688,13 @@ def generate_report(data: dict) -> bytes:
             _bz = f"wait for a dip to Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} for a better risk-reward entry." if buy_low else "enter on dips rather than chasing."
             p4 = f"Bottom line: {company} is a quality business \u2014 {_bz}"
         elif verdict == 'HOLD':
-            _bz2 = f"wait for the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} if you don't." if buy_low else "reassess at the next quarterly results."
-            p4 = f"Bottom line: Hold if you already own {company} and {_bz2}"
+            if buy_low and cur_price < float(buy_low):
+                p4 = f"Bottom line: If you own {company}, hold. If you don't, current price of Rs.{cur_price:,.0f} is already below the buy zone \u2014 this is a reasonable entry point."
+            elif buy_low:
+                _bz2 = f"wait for a dip to Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f}"
+                p4 = f"Bottom line: Hold if you already own {company}. New investors should {_bz2} for a better risk-reward entry."
+            else:
+                p4 = f"Bottom line: Hold existing positions in {company} and reassess at the next quarterly results."
         else:
             p4 = (f"Bottom line: Avoid {company} at current levels \u2014 "
                   f"better opportunities exist elsewhere until the fundamentals improve.")
