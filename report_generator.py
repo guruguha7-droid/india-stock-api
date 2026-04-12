@@ -320,13 +320,15 @@ def generate_report(data: dict) -> bytes:
                   S('sym', fontSize=11, textColor=C_MUTED)),
     ]], colWidths=[W-40*mm]))
     story[-1].setStyle(TableStyle([
-        ('BACKGROUND',   (0,0), (-1,-1), C_BG),
-        ('LEFTPADDING',  (0,0), (-1,-1), 0),
-        ('RIGHTPADDING', (0,0), (-1,-1), 0),
-        ('TOPPADDING',   (0,0), (-1,-1), 2),
-        ('BOTTOMPADDING',(0,0), (-1,-1), 2),
+        ('BACKGROUND',    (0,0), (-1,-1), C_BG),
+        ('LEFTPADDING',   (0,0), (-1,-1), 0),
+        ('RIGHTPADDING',  (0,0), (-1,-1), 0),
+        ('TOPPADDING',    (0,0), (0,0),   4),
+        ('BOTTOMPADDING', (0,0), (0,0),   8),
+        ('TOPPADDING',    (0,1), (0,1),   0),
+        ('BOTTOMPADDING', (0,1), (0,1),   4),
     ]))
-    story.append(Spacer(1, 2*mm))
+    story.append(Spacer(1, 4*mm))
 
     story.append(Spacer(1, 10*mm))
     story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
