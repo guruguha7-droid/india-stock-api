@@ -1645,6 +1645,350 @@ def compare():
     return jsonify({"status":"ok","count":len(ordered),"data":ordered})
 
 
+# ── PDF Report Generator ──────────────────────────────────────────────────────
+@app.route("/generate-report")
+def generate_report_endpoint():
+    symbol = request.args.get("symbol", "").upper().strip()
+    if not symbol:
+        return jsonify({"error": "symbol required"}), 400
+    try:
+        from report_generator import generate_report
+        from flask import Response
+        import math, threading
+
+        # Fetch all data in parallel — same pattern as stock_analysis
+        data = {"symbol": symbol, "status": "ok"}
+
+        def _quote():
+            try: data["quote"] = nse_quote(symbol)
+            except Exception: data["quote"] = {}
+
+        def _ml():
+            try:
+                nc = get_nightly_cache()
+                if nc and symbol in nc.get('stocks', {}):
+                    cached = nc['stocks'][symbol]
+                    data['ml']              = cached['ml']
+                    data['_val_from_cache'] = cached.get('valuation')
+                    data['chart_insights']  = cached.get('chart_insights', {})
+                    return
+            except Exception:
+                pass
+            try:
+                import joblib, pandas as pd, yfinance as _yf, numpy as np
+                saved    = joblib.load(os.path.join(os.path.dirname(__file__), 'ml_model.pkl'))
+                model    = saved['model']; features = saved['features']; accuracy = saved['accuracy']
+                stock_df = _yf.download(f"{symbol}.NS", period="14mo", interval="1d",
+                                        auto_adjust=True, progress=False)
+                nc = get_nifty_close()
+                nifty_df = pd.DataFrame({'Close': nc}, index=nc.index) if nc is not None and len(nc) >= 100 \
+                           else _yf.download("^NSEI", period="2y", interval="1d", auto_adjust=True, progress=False)
+                if stock_df is None or len(stock_df) < 100:
+                    data["ml"] = {"error": "Insufficient history"}; return
+                if hasattr(stock_df.columns, 'levels'): stock_df.columns = stock_df.columns.get_level_values(0)
+                if hasattr(nifty_df.columns, 'levels'): nifty_df.columns = nifty_df.columns.get_level_values(0)
+                sw_s = pd.Series(stock_df['Close'].squeeze().values, index=stock_df.index, dtype=float)
+                nw_s = pd.Series(nifty_df['Close'].squeeze().values, index=nifty_df.index, dtype=float)
+                common = sw_s.index.intersection(nw_s.index)
+                sw = sw_s.loc[common].values.astype(float) if len(common) >= 100 else sw_s.values.astype(float)
+                nw = nw_s.loc[common].values.astype(float) if len(common) >= 100 else None
+                cp = float(sw[-1])
+                def sr(a, b): return float(a[-1]/a[-b]-1) if len(a) > b and a[-b] > 0 else 0.0
+                ret_1m=sr(sw,22); ret_3m=sr(sw,63); ret_6m=sr(sw,126); ret_1y=sr(sw,min(200,len(sw)-1))
+                ma50=float(np.mean(sw[-min(50,len(sw)):])); ma200=float(np.mean(sw[-min(200,len(sw)):]))
+                dr=np.diff(sw)/sw[:-1]; dr=dr[~np.isnan(dr)]
+                vol_1m=float(np.std(dr[-22:])*np.sqrt(252)) if len(dr)>=22 else 0.3
+                vol_3m=float(np.std(dr[-63:])*np.sqrt(252)) if len(dr)>=63 else 0.3
+                h52=float(np.max(sw[-252:])) if len(sw)>=252 else float(np.max(sw))
+                l52=float(np.min(sw[-252:])) if len(sw)>=252 else float(np.min(sw))
+                rng=h52-l52
+                d_r=np.diff(sw[-16:]) if len(sw)>=16 else np.array([0.001,-0.001])
+                g=d_r[d_r>0].mean() if len(d_r[d_r>0])>0 else 0.001
+                ls=abs(d_r[d_r<0].mean()) if len(d_r[d_r<0])>0 else 0.001
+                f = {
+                    'ret_1m':ret_1m,'ret_3m':ret_3m,'ret_6m':ret_6m,'ret_1y':ret_1y,
+                    'rs_1m':ret_1m-sr(nw,22) if nw is not None else 0.0,
+                    'rs_3m':ret_3m-sr(nw,63) if nw is not None else 0.0,
+                    'price_to_ma50':cp/ma50-1 if ma50>0 else 0,
+                    'price_to_ma200':cp/ma200-1 if ma200>0 else 0,
+                    'golden_cross':1 if ma50>ma200 else 0,
+                    'vol_1m':vol_1m,'vol_3m':vol_3m,
+                    'pos52':float((cp-l52)/rng) if rng>0 else 0.5,
+                    'rsi':float(100-100/(1+g/ls)),
+                    'vol_trend':float(vol_1m/vol_3m) if vol_3m>0 else 1.0,
+                    'roce_latest_pct':12.0,'opm_latest_pct':12.0,'sales_cagr_5y':10.0,
+                    'profit_cagr_5y':8.0,'eps_cagr_5y':8.0,'sales_growth_1y':8.0,
+                    'profit_growth_1y':8.0,'opm_trend_5y':0.0,'roce_trend_5y':0.0,
+                    'promoter_pct':45.0,'fii_pct':15.0,'fcf_positive_3y':0.5,
+                    'debt_reducing':0.5,'screener_de':50.0,
+                    'pe_ratio':22.0,'pb_ratio':3.0,'peg_ratio':2.5,
+                }
+                try:
+                    sdf=pd.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
+                    csv_sym={'LTM':'LTIM'}.get(symbol,symbol)
+                    row=sdf[sdf['symbol']==csv_sym]
+                    r=row.iloc[0].to_dict() if not row.empty else {}
+                    for k, d in [('roce_latest_pct',12.0),('opm_latest_pct',12.0),('sales_cagr_5y',10.0),
+                                  ('profit_cagr_5y',8.0),('eps_cagr_5y',8.0),('sales_growth_1y',8.0),
+                                  ('profit_growth_1y',8.0),('opm_trend_5y',0.0),('roce_trend_5y',0.0),
+                                  ('promoter_pct',45.0),('fii_pct',15.0),('fcf_positive_3y',0.5),
+                                  ('debt_reducing',0.5),('screener_de',50.0)]:
+                        try: f[k]=float(r.get(k) or d)
+                        except: f[k]=d
+                    eps_l=float(r.get('eps_latest') or 0) or None
+                    if eps_l and eps_l > 0 and cp > 0:
+                        f['pe_ratio']=round(cp/eps_l,1)
+                        f['peg_ratio']=round(f['pe_ratio']/max(f['eps_cagr_5y'],0.1),2)
+                except Exception: pass
+                X=pd.DataFrame([{k:f[k] for k in features}])
+                prob=float(model.predict_proba(X)[0][1]); pred=int(model.predict(X)[0])
+                data["ml"]={
+                    "ml_score":round(prob*100,1),"prediction":"OUTPERFORM" if pred==1 else "UNDERPERFORM",
+                    "accuracy":round(accuracy*100,1),"rsi":round(f['rsi'],1),
+                    "pos52_pct":round(f['pos52']*100,1),"ret_1m_pct":round(ret_1m*100,1),
+                    "ret_3m_pct":round(ret_3m*100,1),"golden_cross":bool(f['golden_cross']),
+                }
+            except Exception as e:
+                data["ml"] = {"error": str(e)}
+
+        def _fund():
+            try:
+                import pandas as pd
+                sdf=pd.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
+                csv_sym={'LTM':'LTIM'}.get(symbol,symbol)
+                row=sdf[sdf['symbol']==csv_sym]
+                if not row.empty:
+                    r=row.iloc[0].to_dict()
+                    data["fundamentals"]={
+                        "roce":r.get('roce_latest_pct'),"sales_cagr_5y":r.get('sales_cagr_5y'),
+                        "profit_cagr_5y":r.get('profit_cagr_5y'),"eps_cagr_5y":r.get('eps_cagr_5y'),
+                        "promoter_pct":r.get('promoter_pct'),"fcf_positive_3y":r.get('fcf_positive_3y'),
+                        "debt_reducing":r.get('debt_reducing'),"investment_score":r.get('investment_score'),
+                        "investment_grade":r.get('investment_grade'),"opm_latest_pct":r.get('opm_latest_pct'),
+                        "roce_avg_5y":r.get('roce_avg_5y'),
+                    }
+                else: data["fundamentals"]={}
+            except Exception: data["fundamentals"]={}
+
+        def _val():
+            cached_val = data.get('_val_from_cache')
+            if cached_val:
+                data['valuation'] = cached_val; return
+            try:
+                import yfinance as yf, concurrent.futures, pandas as pd
+                t=yf.Ticker(f"{symbol}.NS"); fi=t.fast_info
+                price=getattr(fi,'last_price',None); shares=getattr(fi,'shares',None)
+                def _eps():
+                    try:
+                        inc=t.income_stmt
+                        if inc is not None and not inc.empty:
+                            for k in inc.index:
+                                if 'net income' in str(k).lower():
+                                    ni=float(inc.loc[k].iloc[0])
+                                    return round(ni/float(shares),2) if shares and float(shares)>0 else None
+                    except Exception: pass
+                def _div():
+                    try:
+                        divs=t.dividends
+                        if divs is not None and len(divs)>0:
+                            cutoff=pd.Timestamp.now(tz=divs.index.tz)
+                            one_yr=divs[divs.index>=(cutoff-pd.DateOffset(years=1))]
+                            annual=float(one_yr.sum())
+                            return round(annual/float(price),6) if annual>0 and price and float(price)>0 else None
+                    except Exception: pass
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as ex:
+                    fe=ex.submit(_eps); fd=ex.submit(_div)
+                    try: eps=fe.result(timeout=6)
+                    except Exception: eps=None
+                    try: div_yield=fd.result(timeout=6)
+                    except Exception: div_yield=None
+                pe=round(float(price)/float(eps),1) if price and eps and float(eps)>0 else None
+                data["valuation"]={"pe_ratio":pe,"eps":eps,"dividend_yield":div_yield,
+                                    "pb_ratio":None,"profit_margin":None,"revenue_growth":None,
+                                    "earnings_growth":None,"debt_to_equity":None}
+            except Exception: data["valuation"]={}
+
+        def _sent():
+            try:
+                from news_sentiment import get_sentiment_score
+                data["sentiment"]=get_sentiment_score(symbol)
+            except Exception: data["sentiment"]={"sentiment_score":0,"sentiment_label":"neutral"}
+
+        def _macro():
+            try:
+                from ml_screener import _cache as _mc
+                from macro_sentiment import get_macro_sentiment, apply_macro_to_stock as _apply
+                mc=_mc.get('macro_news',{})
+                macro_data=mc.get('data') if mc.get('data') and mc.get('ts',0)>0 else get_macro_sentiment()
+                data["macro"]=_apply(symbol,macro_data)
+            except Exception: data["macro"]={"macro_score":0,"macro_label":"neutral"}
+
+        threads=[threading.Thread(target=f) for f in [_quote,_ml,_fund,_val,_sent,_macro]]
+        for t in threads: t.start()
+        for t in threads: t.join(timeout=35)
+
+        # Build combined score (same logic as stock_analysis)
+        try:
+            ml_raw=data.get("ml",{}).get("ml_score",50) or 50
+            scr_raw=data.get("fundamentals",{}).get("investment_score",50) or 50
+            pe=data.get("valuation",{}).get("pe_ratio") or 20
+            yfin_score=50
+            if pe<12: yfin_score+=20
+            elif pe<18: yfin_score+=12
+            elif pe<25: yfin_score+=5
+            elif pe>40: yfin_score-=15
+            yfin_score=max(0,min(100,yfin_score))
+            sent_raw=data.get("sentiment",{}).get("sentiment_score",0) or 0
+            sent_score=max(0,min(100,50+sent_raw*0.5))
+            macro_raw=data.get("macro",{}).get("macro_score",0) or 0
+            macro_score=max(0,min(100,50+macro_raw*0.5))
+            combined=round(ml_raw*0.35+scr_raw*0.20+yfin_score*0.15+sent_score*0.15+macro_score*0.15,1)
+            grade='A+' if combined>=80 else 'A' if combined>=70 else 'B' if combined>=60 else 'C' if combined>=50 else 'D'
+            verdict='BUY' if combined>=65 else 'HOLD' if combined>=50 else 'SELL'
+            verdict_color='green' if verdict=='BUY' else 'gold' if verdict=='HOLD' else 'red'
+            rsi_val=float(data.get('ml',{}).get('rsi') or 50)
+            pos52=float(data.get('ml',{}).get('pos52_pct') or 50)
+            ret_1m=float(data.get('ml',{}).get('ret_1m_pct') or 0)
+            if sent_raw<-15 and scr_raw>=60 and rsi_val<45 and pos52<40 and ret_1m<-5 and combined>=42:
+                verdict='BUY' if scr_raw<75 else 'STRONG BUY'; verdict_color='green'
+            mcap_str=data.get('quote',{}).get('market_cap','') or ''
+            try:
+                mc_val=float(mcap_str.replace('₹','').replace('L Cr','').replace('T Cr','').replace('Cr','').replace(',','').strip() or 0)
+                is_large='L Cr' in mcap_str and mc_val>50
+            except Exception: is_large=False
+            de=float(data.get('valuation',{}).get('debt_to_equity') or 50)
+            vol=abs(float(data.get('ml',{}).get('ret_1m_pct') or 0))
+            risk='Low' if is_large and de<60 and vol<10 else 'Medium' if is_large or de<100 else 'High'
+            reasons=[]
+            if scr_raw>=70: reasons.append('Strong fundamentals')
+            elif scr_raw<45: reasons.append('Weak fundamentals')
+            if ml_raw>=60: reasons.append('positive ML signal')
+            elif ml_raw<40: reasons.append('negative ML signal')
+            if sent_raw>10: reasons.append('positive news')
+            elif sent_raw<-10: reasons.append('negative news')
+            reason=reasons[0].capitalize()+(', '+reasons[1] if len(reasons)>1 else '') if reasons else 'Mixed signals'
+
+            # Valuation signal
+            val_signal=None
+            try:
+                import pandas as pd
+                sdf=pd.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
+                csv_sym={'LTM':'LTIM'}.get(symbol,symbol)
+                row=sdf[sdf['symbol']==csv_sym]
+                r=row.iloc[0].to_dict() if not row.empty else {}
+                eps_latest=float(r.get('eps_latest') or 0)
+                eps_cagr_v=float(r.get('eps_cagr_5y') or 8)
+                cur_price=float(str(data.get('quote',{}).get('price') or 0).replace(',','')) or None
+                cur_pe=float(data.get('valuation',{}).get('pe_ratio') or 0)
+                if eps_latest>0 and cur_price:
+                    fair_pe=min(8.5+2*min(eps_cagr_v,25),40)
+                    fair_value=round(eps_latest*fair_pe,1)
+                    mos=0.10 if scr_raw>=75 else 0.15 if scr_raw>=60 else 0.25
+                    buy_zone_high=round(fair_value*(1-mos*0.5),1)
+                    buy_zone_low=round(fair_value*(1-mos),1)
+                    pct_vs_fair=round((cur_price-fair_value)/fair_value*100,1) if fair_value>0 else 0
+                    confidence=50
+                    if eps_cagr_v>15: confidence+=15
+                    elif eps_cagr_v>10: confidence+=10
+                    elif eps_cagr_v>5: confidence+=5
+                    if float(r.get('roce_latest_pct') or 0)>float(r.get('roce_avg_5y') or 0): confidence+=10
+                    if r.get('fcf_positive_3y'): confidence+=10
+                    if r.get('debt_reducing'): confidence+=5
+                    if scr_raw>=75: confidence+=10
+                    elif scr_raw<45: confidence-=10
+                    confidence=max(20,min(90,confidence))
+                    is_quality=scr_raw>=60
+                    is_expensive=cur_price>fair_value*1.15
+                    is_cheap=cur_price<fair_value*0.90
+                    if is_quality and is_cheap: sig_label,sig_color='Undervalued Quality','green'
+                    elif is_quality and is_expensive: sig_label,sig_color='Overvalued Quality','gold'
+                    elif is_quality: sig_label,sig_color='Fairly Valued Quality','green'
+                    elif is_cheap: sig_label,sig_color='Value Trap Risk','red'
+                    else: sig_label,sig_color='Overpriced Weak Business','red'
+                    val_signal={'label':sig_label,'color':sig_color,'fair_value':fair_value,
+                                'fair_pe':round(fair_pe,1),'current_pe':cur_pe if cur_pe>0 else None,
+                                'pct_vs_fair':pct_vs_fair,'buy_zone_low':buy_zone_low,
+                                'buy_zone_high':buy_zone_high,'confidence':confidence,'current_price':cur_price,
+                                'description': 'Strong business trading below fair value — opportunity' if sig_label=='Undervalued Quality'
+                                               else 'Strong business but priced above fair value — wait for dip' if sig_label=='Overvalued Quality'
+                                               else 'Strong business at a fair price' if sig_label=='Fairly Valued Quality'
+                                               else 'Cheap valuation but weak fundamentals — be cautious' if sig_label=='Value Trap Risk'
+                                               else 'Weak fundamentals and expensive — avoid'}
+            except Exception: val_signal=None
+
+            data["combined"]={
+                "score":combined,"grade":grade,"yfin_score":round(yfin_score,1),
+                "sent_score":round(sent_score,1),"macro_score":round(macro_score,1),
+                "screener_score":round(scr_raw,1),"verdict":verdict,"verdict_color":verdict_color,
+                "risk":risk,"risk_color":'green' if risk=='Low' else 'gold' if risk=='Medium' else 'red',
+                "reason":reason,"score_10":round(combined/10,1),"valuation_signal":val_signal,
+            }
+        except Exception: data["combined"]={"score":50,"grade":"C","verdict":"HOLD"}
+
+        # Build forecast (simplified)
+        try:
+            fund=data.get("fundamentals") or {}
+            quote_d=data.get("quote") or {}
+            ml_d=data.get("ml") or {}
+            sent_d=data.get("sentiment") or {}
+            macro_d=data.get("macro") or {}
+            pe_v=float(data.get("valuation",{}).get("pe_ratio") or 20)
+            price_now=float(str(quote_d.get("price") or 0).replace(",","")) or None
+            sales_cagr=min(float(fund.get("sales_cagr_5y") or 8),25)
+            profit_cagr=min(float(fund.get("profit_cagr_5y") or 8),30)
+            eps_cagr_f=min(float(fund.get("eps_cagr_5y") or profit_cagr),30)
+            ml_s=float(ml_d.get("ml_score") or 50)
+            news_s=float(sent_d.get("sentiment_score") or 0)
+            macro_s=float(macro_d.get("macro_score") or 0)
+            macro_mult=max(0.80,min(1.20,1+(macro_s/100)*0.20))
+            roce_l=float(fund.get("roce") or 10); roce_a=float(fund.get("roce_avg_5y") or roce_l)
+            roce_mult=1.10 if roce_l-roce_a>5 else 1.05 if roce_l-roce_a>2 else 1.02 if roce_l-roce_a>0 else 0.98 if roce_l-roce_a>-3 else 0.92
+            fcf_ok=fund.get("fcf_positive_3y"); debt_red=fund.get("debt_reducing")
+            capex_mult=1.0+(0.05 if fcf_ok else 0)+(0.03 if debt_red else 0)
+            momentum_mult=max(0.85,min(1.15,1+(float(ml_d.get("ret_3m_pct") or 0)/100)*0.3))
+            news_mult=max(0.90,min(1.10,1+(news_s/100)*0.10))
+            prom=float(fund.get("promoter_pct") or 40)
+            promoter_mult=1.05 if prom>60 else 1.02 if prom>45 else 0.97 if prom<30 else 1.0
+            base_out=ml_s/100
+            def proj(yrs,sc,pc):
+                if not price_now: return {"price_target":None,"revenue_growth_pct":round(sc,1),"profit_growth_pct":round(pc,1),"outperform_prob":round(base_out*100,1)}
+                rev_f=min(sc*(0.85**yrs)+max(0,sc-10)*(1-0.85**yrs),25)
+                prof_f=min(pc*(0.80**yrs)+max(0,pc-8)*(1-0.80**yrs),30)
+                mult=macro_mult*roce_mult*capex_mult*momentum_mult*news_mult*promoter_mult
+                mult=max(0.60,min(1.40,mult))
+                pt=round(price_now*(1+prof_f/100)**yrs*mult,0)
+                op=min(75,max(35,base_out*100+(ml_s-50)*0.1-yrs*1.3))
+                return {"price_target":pt,"revenue_growth_pct":round(rev_f,1),"profit_growth_pct":round(prof_f,1),"outperform_prob":round(op,1)}
+            data["forecast"]={
+                "current_price":price_now,
+                "1y":proj(1,sales_cagr,profit_cagr),
+                "3y":proj(3,sales_cagr*0.85,profit_cagr*0.80),
+                "5y":proj(5,sales_cagr*0.75,profit_cagr*0.70),
+            }
+        except Exception: data["forecast"]={}
+
+        def fix_nan(obj):
+            if isinstance(obj,dict): return {k:fix_nan(v) for k,v in obj.items()}
+            elif isinstance(obj,list): return [fix_nan(v) for v in obj]
+            elif isinstance(obj,float) and math.isnan(obj): return None
+            return obj
+
+        pdf_bytes = generate_report(fix_nan(data))
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={
+                'Content-Disposition': f'attachment; filename="{symbol}_Investment_Report.pdf"',
+                'Content-Length': str(len(pdf_bytes)),
+                'Access-Control-Expose-Headers': 'Content-Disposition',
+            }
+        )
+    except Exception as e:
+        import traceback
+        print(f"[report ERROR] {traceback.format_exc()}", flush=True)
+        return jsonify({"error": str(e)}), 500
+
+
 # ── Price history ─────────────────────────────────────────────────────────────
 @app.route("/price-history")
 def price_history():
