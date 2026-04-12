@@ -595,15 +595,20 @@ def generate_report(data: dict) -> bytes:
                   f"The ML model gives it a {ml_s:.0f}% outperform probability, "
                   f"and the overall score of {score_10}/10 suggests this is worth serious attention.")
         elif verdict in ('BUY', 'STRONG BUY'):
+            _qual = 'strong' if scr >= 70 else 'decent'
+            _val_note = 'The stock is fairly priced near its Graham fair value.' if abs(pct_fair) < 10 else f'At Rs.{cur_price:,.0f}, it trades {abs(pct_fair):.0f}% above fair value so patience may be rewarded.'
             p1 = (f"{company} is rated BUY with a score of {score_10}/10. "
-                  f"The business shows {'strong' if scr >= 70 else 'decent'} fundamentals "
+                  f"The business shows {_qual} fundamentals "
                   f"with a {profit_c:.0f}% profit CAGR over 5 years, "
                   f"and the ML model predicts it will outperform Nifty over the next 3 months. "
-                  f"{'The stock is fairly priced near its Graham fair value.' if abs(pct_fair) < 10 else f'At Rs.{cur_price:,.0f}, it trades {abs(pct_fair):.0f}% above fair value so patience may be rewarded.'}")
+                  f"{_val_note}")
         elif verdict == 'HOLD':
+            _hqual = 'strong' if scr >= 70 else 'moderate'
+            _hdir  = 'above' if pct_fair > 0 else 'below'
+            _hval  = 'is fairly priced' if abs(pct_fair) < 15 else f'trades {abs(pct_fair):.0f}% {_hdir} Graham fair value'
             p1 = (f"{company} is a HOLD at current levels \u2014 the business quality is "
-                  f"{'strong' if scr >= 70 else 'moderate'} (score {score_10}/10) "
-                  f"but the stock {'is fairly priced' if abs(pct_fair) < 15 else f'trades {abs(pct_fair):.0f}% {\"above\" if pct_fair > 0 else \"below\"} Graham fair value'}. "
+                  f"{_hqual} (score {score_10}/10) "
+                  f"but the stock {_hval}. "
                   f"Existing holders should stay in; new investors should wait for a better entry.")
         else:
             p1 = (f"{company} is rated SELL with a score of {score_10}/10. "
@@ -673,18 +678,14 @@ def generate_report(data: dict) -> bytes:
 
         # ── Paragraph 4: Bottom line ──────────────────────────────────
         if verdict in ('BUY', 'STRONG BUY') and pct_fair < -5:
-            p4 = (f"Bottom line: {company} offers a rare combination of quality fundamentals "
-                  f"and attractive valuation \u2014 consider accumulating below Rs.{buy_high:,.0f} "
-                  f"with a 1-year target of Rs.{pt_1y:,.0f}." if pt_1y and pt_1y != '—' else
-                  f"Bottom line: {company} offers quality at a reasonable price \u2014 worth accumulating on dips.")
+            _pt = f"with a 1-year target of Rs.{pt_1y:,.0f}." if pt_1y and pt_1y != '—' else "worth accumulating on dips."
+            p4 = f"Bottom line: {company} offers a rare combination of quality fundamentals and attractive valuation \u2014 consider accumulating below Rs.{buy_high:,.0f} {_pt}"
         elif verdict in ('BUY', 'STRONG BUY'):
-            p4 = (f"Bottom line: {company} is a quality business \u2014 "
-                  f"wait for a dip to Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} for a better risk-reward entry." if buy_low else
-                  f"Bottom line: {company} is a quality business worth holding, but enter on dips rather than chasing.")
+            _bz = f"wait for a dip to Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} for a better risk-reward entry." if buy_low else "enter on dips rather than chasing."
+            p4 = f"Bottom line: {company} is a quality business \u2014 {_bz}"
         elif verdict == 'HOLD':
-            p4 = (f"Bottom line: Hold if you already own it and wait for the buy zone "
-                  f"of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} if you don't." if buy_low else
-                  f"Bottom line: Hold existing positions and reassess at the next quarterly results.")
+            _bz2 = f"wait for the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} if you don't." if buy_low else "reassess at the next quarterly results."
+            p4 = f"Bottom line: Hold if you already own {company} and {_bz2}"
         else:
             p4 = (f"Bottom line: Avoid {company} at current levels \u2014 "
                   f"better opportunities exist elsewhere until the fundamentals improve.")
