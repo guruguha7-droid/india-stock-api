@@ -603,13 +603,13 @@ def generate_report(data: dict) -> bytes:
                   f"and the ML model predicts it will outperform Nifty over the next 3 months. "
                   f"{_val_note}")
         elif verdict == 'HOLD':
-            _hqual = 'strong' if scr >= 70 else 'moderate'
-            _hdir  = 'above' if pct_fair > 0 else 'below'
-            _hval  = 'is fairly priced' if abs(pct_fair) < 15 else f'trades {abs(pct_fair):.0f}% {_hdir} Graham fair value'
-            p1 = (f"{company} is a HOLD at current levels \u2014 the business quality is "
-                  f"{_hqual} (score {score_10}/10) "
-                  f"but the stock {_hval}. "
-                  f"Existing holders should stay in; new investors should wait for a better entry.")
+            _hqual   = 'strong' if scr >= 70 else 'moderate'
+            _hdir    = 'above' if pct_fair > 0 else 'below'
+            _vs_fair = f"trades {abs(pct_fair):.0f}% {_hdir} Graham fair value of Rs.{fair_val:,.0f}" if abs(pct_fair) >= 10 else "is fairly priced near Graham fair value"
+            _action  = "new investors can consider buying at current levels \u2014 the discount to fair value provides a margin of safety" if pct_fair < -10 else "new investors should wait for a pullback"
+            p1 = (f"{company} is rated HOLD with a score of {score_10}/10 \u2014 "
+                  f"the business quality is {_hqual} and the stock {_vs_fair}. "
+                  f"Existing holders should stay in; {_action}.")
         else:
             p1 = (f"{company} is rated SELL with a score of {score_10}/10. "
                   f"{'Weak fundamentals combined with ' if scr < 50 else ''}"
@@ -621,22 +621,26 @@ def generate_report(data: dict) -> bytes:
 
         # ── Paragraph 2: Who should buy and at what price ─────────────
         if buy_low and buy_high and cur_price:
+            _vol_note = "high recent volatility" if abs(float(safe(ml, 'ret_1m_pct', default=0))) > 8 else "market uncertainty"
             if cur_price < buy_low:
-                p2 = (f"The stock is already trading below the buy zone of "
-                      f"Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f}, making it attractive for "
-                      f"{'conservative and moderate' if scr >= 70 else 'moderate and aggressive'} investors right now. "
-                      f"With {confidence}% confidence in the fair value estimate of Rs.{fair_val:,.0f}, "
-                      f"this could offer significant upside from current levels.")
+                _upside = round((float(buy_high) - cur_price) / cur_price * 100, 0) if buy_high else 0
+                _below_pct = round((float(buy_low) - cur_price) / cur_price * 100, 0)
+                _inv = 'Conservative and moderate' if scr >= 70 else 'Moderate and aggressive'
+                p2 = (f"At Rs.{cur_price:,.0f}, the stock is trading {_below_pct:.0f}% below the buy zone \u2014 "
+                      f"this is actually a better entry than the buy zone itself. "
+                      f"{_inv} investors can start buying now with a target of Rs.{buy_high:,.0f}\u2013Rs.{fair_val:,.0f}, "
+                      f"implying up to {_upside:.0f}% upside from current levels.")
             elif cur_price <= buy_high:
-                p2 = (f"The stock is currently within the buy zone of "
-                      f"Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} \u2014 suitable for "
-                      f"{'all investor types' if scr >= 75 else 'moderate to aggressive investors'}. "
-                      f"A staggered entry \u2014 buying in two or three tranches \u2014 is advisable "
-                      f"given {'the high volatility' if abs(float(safe(ml,'ret_1m_pct',default=0))) > 8 else 'market uncertainty'}.")
+                _inv2 = 'all investor types' if scr >= 75 else 'moderate to aggressive investors'
+                p2 = (f"The stock is within the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} \u2014 "
+                      f"a good entry point for {_inv2}. "
+                      f"Consider a staggered entry across 2\u20133 tranches to manage {_vol_note}.")
             else:
-                p2 = (f"Wait for a dip to the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} "
-                      f"before entering \u2014 the stock currently trades {pct_fair:.0f}% above fair value. "
-                      f"{'Conservative investors should avoid at current price.' if scr < 70 or risk == 'High' else 'Only aggressive investors comfortable with premium valuations should consider entering now.'}")
+                _premium = round(pct_fair, 0)
+                _caution = 'Only aggressive investors should consider entering at current price.' if scr >= 70 else 'Avoid at current levels.'
+                p2 = (f"The stock is trading {_premium:.0f}% above fair value \u2014 "
+                      f"wait for a dip to the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} before entering. "
+                      f"{_caution}")
         else:
             inv_type = 'conservative' if scr >= 75 and risk == 'Low' else 'aggressive' if risk == 'High' else 'moderate'
             p2 = (f"This stock is best suited for {inv_type} investors. "
