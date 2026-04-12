@@ -312,19 +312,21 @@ def generate_report(data: dict) -> bytes:
     story.append(Spacer(1, 12*mm))
 
     # Stock name block
-    story.append(Paragraph(company, S('cn', fontName='Helvetica-Bold', fontSize=26,
-                                       textColor=C_WHITE)))
-    story.append(Spacer(1, 2*mm))
     story.append(Table([[
-        Paragraph(symbol, S('sym', fontName='Helvetica-Bold', fontSize=13,
-                             textColor=C_ACCENT)),
-        Paragraph(f'NSE  ·  {sector}', S('sec', fontSize=10, textColor=C_MUTED,
-                                           alignment=TA_RIGHT)),
-    ]], colWidths=[(W-40*mm)*0.4, (W-40*mm)*0.6]))
-    story[-1].setStyle(TableStyle([('LEFTPADDING',(0,0),(-1,-1),0),
-                                    ('RIGHTPADDING',(0,0),(-1,-1),0),
-                                    ('TOPPADDING',(0,0),(-1,-1),0),
-                                    ('BOTTOMPADDING',(0,0),(-1,-1),0)]))
+        Paragraph(company, S('cn', fontName='Helvetica-Bold', fontSize=26,
+                              textColor=C_WHITE)),
+    ], [
+        Paragraph(f'{symbol}   \u00b7   NSE   \u00b7   {sector}',
+                  S('sym', fontSize=11, textColor=C_MUTED)),
+    ]], colWidths=[W-40*mm]))
+    story[-1].setStyle(TableStyle([
+        ('BACKGROUND',   (0,0), (-1,-1), C_BG),
+        ('LEFTPADDING',  (0,0), (-1,-1), 0),
+        ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ('TOPPADDING',   (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 2),
+    ]))
+    story.append(Spacer(1, 2*mm))
 
     story.append(Spacer(1, 10*mm))
     story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
@@ -467,7 +469,7 @@ def generate_report(data: dict) -> bytes:
         ('P/E Ratio',    fmt_num(val.get('pe_ratio')),  C_TEXT),
         ('EPS',          fmt_price(val.get('eps')),      C_TEXT),
         ('Dividend Yield',div_str,                       C_TEXT),
-        ('Market Cap',   str(mcap),                      C_TEXT),
+        ('Market Cap',   str(mcap).replace('₹','Rs.').replace('\u20b9','Rs.'), C_TEXT),
         ('52W High',     fmt_price(w52_high),             C_RED),
         ('52W Low',      fmt_price(w52_low),              C_GREEN),
         ('52W Position', fmt_pct(pos52),                  C_TEXT),
