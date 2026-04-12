@@ -50,7 +50,7 @@ def score_color(score):
 def fmt_price(v):
     if v is None: return '—'
     try:
-        return f"\u20b9{float(v):,.2f}"
+        return f"Rs.{float(v):,.2f}"
     except Exception:
         return str(v)
 
@@ -104,7 +104,7 @@ def section_header(title):
         ('BOTTOMPADDING',(0,0), (-1,-1), 7),
         ('LINEBELOW',    (0,0), (-1,-1), 1.5, C_ACCENT),
     ]))
-    return [Spacer(1, 6*mm), t, Spacer(1, 4*mm)]
+    return [Spacer(1, 3*mm), t, Spacer(1, 2*mm)]
 
 
 def kv_table(rows, col_widths=None):
@@ -330,37 +330,40 @@ def generate_report(data: dict) -> bytes:
     story.append(HRFlowable(width='100%', thickness=0.5, color=C_BORDER))
     story.append(Spacer(1, 10*mm))
 
-    # Key metrics row
+    # Key metrics row — flat 2-row table: labels on top, values below
     price_str = fmt_price(price)
-    story.append(Table([[
-        Table([[
-            Paragraph('CURRENT PRICE', S('ml', textColor=C_MUTED, fontSize=8)),
-            Paragraph(price_str, S('mv', fontName='Helvetica-Bold', fontSize=20,
-                                    textColor=C_WHITE)),
-        ]], colWidths=[W-40*mm]),
-        Table([[
-            Paragraph('VERDICT', S('ml', textColor=C_MUTED, fontSize=8)),
-            Paragraph(verdict, S('mv', fontName='Helvetica-Bold', fontSize=20,
-                                  textColor=vc)),
-        ]], colWidths=[W-40*mm]),
-        Table([[
-            Paragraph('SCORE', S('ml', textColor=C_MUTED, fontSize=8)),
-            Paragraph(f"{score_10}/10", S('mv', fontName='Helvetica-Bold', fontSize=20,
-                                           textColor=score_color(combined.get('score', 50)))),
-        ]], colWidths=[W-40*mm]),
-        Table([[
-            Paragraph('GRADE', S('ml', textColor=C_MUTED, fontSize=8)),
-            Paragraph(str(grade), S('mv', fontName='Helvetica-Bold', fontSize=20,
-                                     textColor=C_GOLD)),
-        ]], colWidths=[W-40*mm]),
-    ]], colWidths=[(W-40*mm)/4]*4))
-    story[-1].setStyle(TableStyle([
+    cw4 = [(W-40*mm)/4] * 4
+    metrics_labels = Table([[
+        Paragraph('CURRENT PRICE', S('ml', textColor=C_MUTED, fontSize=8)),
+        Paragraph('VERDICT',       S('ml', textColor=C_MUTED, fontSize=8)),
+        Paragraph('SCORE',         S('ml', textColor=C_MUTED, fontSize=8)),
+        Paragraph('GRADE',         S('ml', textColor=C_MUTED, fontSize=8)),
+    ]], colWidths=cw4)
+    metrics_labels.setStyle(TableStyle([
         ('BACKGROUND',   (0,0), (-1,-1), C_SURFACE),
         ('LEFTPADDING',  (0,0), (-1,-1), 14),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
         ('TOPPADDING',   (0,0), (-1,-1), 12),
-        ('BOTTOMPADDING',(0,0), (-1,-1), 12),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 2),
         ('LINEAFTER',    (0,0), (-2,-1), 0.5, C_BORDER),
     ]))
+    metrics_values = Table([[
+        Paragraph(str(price_str), S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_WHITE)),
+        Paragraph(str(verdict),   S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=vc)),
+        Paragraph(f"{score_10}/10", S('mv', fontName='Helvetica-Bold', fontSize=18,
+                                      textColor=score_color(combined.get('score', 50)))),
+        Paragraph(str(grade),     S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_GOLD)),
+    ]], colWidths=cw4)
+    metrics_values.setStyle(TableStyle([
+        ('BACKGROUND',   (0,0), (-1,-1), C_SURFACE),
+        ('LEFTPADDING',  (0,0), (-1,-1), 14),
+        ('RIGHTPADDING', (0,0), (-1,-1), 4),
+        ('TOPPADDING',   (0,0), (-1,-1), 2),
+        ('BOTTOMPADDING',(0,0), (-1,-1), 14),
+        ('LINEAFTER',    (0,0), (-2,-1), 0.5, C_BORDER),
+    ]))
+    story.append(metrics_labels)
+    story.append(metrics_values)
 
     story.append(Spacer(1, 6*mm))
     story.append(Paragraph(f'Report generated: {date_str}',
@@ -568,16 +571,21 @@ def generate_report(data: dict) -> bytes:
         'on historical data and may not be achieved. Always consult a SEBI-registered investment '
         'advisor before making investment decisions. The authors accept no liability for investment '
         'decisions made based on this report.',
-        S('disc', fontSize=7.5, textColor=C_MUTED, leading=11)))
+        S('disc', fontSize=7.5, textColor=colors.HexColor('#64748b'), leading=11)))
 
     # ── Build ─────────────────────────────────────────────────────────────────
     def on_page(canvas, doc):
         canvas.saveState()
-        # Footer
+        # Dark page background
+        canvas.setFillColor(C_BG)
+        canvas.rect(0, 0, W, H, fill=1, stroke=0)
+        # Footer bar
+        canvas.setFillColor(C_SURFACE)
+        canvas.rect(0, 0, W, 16*mm, fill=1, stroke=0)
         canvas.setFillColor(C_MUTED)
         canvas.setFont('Helvetica', 7)
-        canvas.drawString(20*mm, 8*mm, f'Graham India Equity Screener  ·  {symbol}  ·  {date_str}')
-        canvas.drawRightString(W - 20*mm, 8*mm, f'Page {doc.page}')
+        canvas.drawString(20*mm, 6*mm, f'Graham India Equity Screener  ·  {symbol}  ·  {date_str}')
+        canvas.drawRightString(W - 20*mm, 6*mm, f'Page {doc.page}')
         canvas.restoreState()
 
     doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
