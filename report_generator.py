@@ -563,6 +563,144 @@ def generate_report(data: dict) -> bytes:
         story.append(mt)
 
     # ══════════════════════════════════════════════════════════════════════════
+    # GRAHAM'S ADVICE
+    # ══════════════════════════════════════════════════════════════════════════
+    story += section_header("GRAHAM'S ADVICE")
+    try:
+        vs_label  = vs.get('label', '') if vs else ''
+        fair_val  = vs.get('fair_value') if vs else None
+        buy_low   = vs.get('buy_zone_low') if vs else None
+        buy_high  = vs.get('buy_zone_high') if vs else None
+        pct_fair  = float(vs.get('pct_vs_fair') or 0) if vs else 0
+        cur_price = float(vs.get('current_price') or price or 0)
+        confidence= int(vs.get('confidence') or 0) if vs else 0
+
+        scr       = float(safe(fund, 'investment_score', default=50))
+        ml_s      = float(safe(ml, 'ml_score', default=50))
+        roce_v    = float(safe(fund, 'roce', default=10))
+        promoter  = float(safe(fund, 'promoter_pct', default=40))
+        fcf_ok    = fund.get('fcf_positive_3y')
+        debt_red  = fund.get('debt_reducing')
+        sent_lbl  = safe(sent, 'sentiment_label', default='neutral')
+        news_s    = float(safe(sent, 'sentiment_score', default=0))
+        pt_1y     = safe(forecast, '1y', 'price_target')
+        eps_cagr  = float(safe(fund, 'eps_cagr_5y', default=8))
+        profit_c  = float(safe(fund, 'profit_cagr_5y', default=8))
+
+        # ── Paragraph 1: Overall verdict ──────────────────────────────
+        if verdict in ('BUY', 'STRONG BUY') and pct_fair < -10:
+            p1 = (f"{company} looks like a compelling opportunity right now \u2014 "
+                  f"the stock is trading {abs(pct_fair):.0f}% below its Graham fair value of "
+                  f"Rs.{fair_val:,.0f}, with strong fundamentals backing the case. "
+                  f"The ML model gives it a {ml_s:.0f}% outperform probability, "
+                  f"and the overall score of {score_10}/10 suggests this is worth serious attention.")
+        elif verdict in ('BUY', 'STRONG BUY'):
+            p1 = (f"{company} is rated BUY with a score of {score_10}/10. "
+                  f"The business shows {'strong' if scr >= 70 else 'decent'} fundamentals "
+                  f"with a {profit_c:.0f}% profit CAGR over 5 years, "
+                  f"and the ML model predicts it will outperform Nifty over the next 3 months. "
+                  f"{'The stock is fairly priced near its Graham fair value.' if abs(pct_fair) < 10 else f'At Rs.{cur_price:,.0f}, it trades {abs(pct_fair):.0f}% above fair value so patience may be rewarded.'}")
+        elif verdict == 'HOLD':
+            p1 = (f"{company} is a HOLD at current levels \u2014 the business quality is "
+                  f"{'strong' if scr >= 70 else 'moderate'} (score {score_10}/10) "
+                  f"but the stock {'is fairly priced' if abs(pct_fair) < 15 else f'trades {abs(pct_fair):.0f}% {\"above\" if pct_fair > 0 else \"below\"} Graham fair value'}. "
+                  f"Existing holders should stay in; new investors should wait for a better entry.")
+        else:
+            p1 = (f"{company} is rated SELL with a score of {score_10}/10. "
+                  f"{'Weak fundamentals combined with ' if scr < 50 else ''}"
+                  f"{'negative news sentiment' if news_s < -10 else 'unfavourable signals'} "
+                  f"suggest caution. "
+                  f"The stock trades {abs(pct_fair):.0f}% {'above' if pct_fair > 0 else 'below'} "
+                  f"its estimated fair value of Rs.{fair_val:,.0f}." if fair_val else
+                  f"{company} is rated SELL \u2014 multiple signals suggest avoiding this stock at current levels.")
+
+        # ── Paragraph 2: Who should buy and at what price ─────────────
+        if buy_low and buy_high and cur_price:
+            if cur_price < buy_low:
+                p2 = (f"The stock is already trading below the buy zone of "
+                      f"Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f}, making it attractive for "
+                      f"{'conservative and moderate' if scr >= 70 else 'moderate and aggressive'} investors right now. "
+                      f"With {confidence}% confidence in the fair value estimate of Rs.{fair_val:,.0f}, "
+                      f"this could offer significant upside from current levels.")
+            elif cur_price <= buy_high:
+                p2 = (f"The stock is currently within the buy zone of "
+                      f"Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} \u2014 suitable for "
+                      f"{'all investor types' if scr >= 75 else 'moderate to aggressive investors'}. "
+                      f"A staggered entry \u2014 buying in two or three tranches \u2014 is advisable "
+                      f"given {'the high volatility' if abs(float(safe(ml,'ret_1m_pct',default=0))) > 8 else 'market uncertainty'}.")
+            else:
+                p2 = (f"Wait for a dip to the buy zone of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} "
+                      f"before entering \u2014 the stock currently trades {pct_fair:.0f}% above fair value. "
+                      f"{'Conservative investors should avoid at current price.' if scr < 70 or risk == 'High' else 'Only aggressive investors comfortable with premium valuations should consider entering now.'}")
+        else:
+            inv_type = 'conservative' if scr >= 75 and risk == 'Low' else 'aggressive' if risk == 'High' else 'moderate'
+            p2 = (f"This stock is best suited for {inv_type} investors. "
+                  f"{'The strong ROCE of ' + str(roce_v) + '% and ' + str(promoter) + '% promoter holding signal a quality business.' if scr >= 70 else 'Exercise caution given the moderate fundamentals.'}")
+
+        # ── Paragraph 3: Key risks ────────────────────────────────────
+        risks = []
+        if pct_fair > 20:
+            risks.append(f"valuation is stretched {pct_fair:.0f}% above fair value")
+        if profit_c < 5:
+            risks.append("profit growth has been weak")
+        if not fcf_ok:
+            risks.append("free cash flow has been inconsistent")
+        if not debt_red:
+            risks.append("debt is not reducing")
+        if promoter < 35:
+            risks.append(f"low promoter holding of {promoter:.0f}% raises governance concerns")
+        if news_s < -10:
+            risks.append("recent news sentiment is negative")
+        if float(safe(ml, 'ret_3m_pct', default=0)) < -10:
+            risks.append("the stock has been weak over the past 3 months")
+        if sent_lbl == 'negative':
+            risks.append("market sentiment is currently against this stock")
+
+        if risks:
+            risk_str = risks[0].capitalize()
+            if len(risks) > 1:
+                risk_str += f", and {risks[1]}"
+            if len(risks) > 2:
+                risk_str += f". Additionally, {risks[2]}"
+            p3 = (f"Key risks to watch: {risk_str}. "
+                  f"Always size your position according to your risk tolerance and "
+                  f"never invest money you cannot afford to lose.")
+        else:
+            p3 = (f"No major red flags are visible at this time \u2014 fundamentals are solid, "
+                  f"debt is {'reducing' if debt_red else 'stable'}, "
+                  f"and promoter holding of {promoter:.0f}% shows skin in the game. "
+                  f"Standard market risks apply.")
+
+        # ── Paragraph 4: Bottom line ──────────────────────────────────
+        if verdict in ('BUY', 'STRONG BUY') and pct_fair < -5:
+            p4 = (f"Bottom line: {company} offers a rare combination of quality fundamentals "
+                  f"and attractive valuation \u2014 consider accumulating below Rs.{buy_high:,.0f} "
+                  f"with a 1-year target of Rs.{pt_1y:,.0f}." if pt_1y and pt_1y != '—' else
+                  f"Bottom line: {company} offers quality at a reasonable price \u2014 worth accumulating on dips.")
+        elif verdict in ('BUY', 'STRONG BUY'):
+            p4 = (f"Bottom line: {company} is a quality business \u2014 "
+                  f"wait for a dip to Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} for a better risk-reward entry." if buy_low else
+                  f"Bottom line: {company} is a quality business worth holding, but enter on dips rather than chasing.")
+        elif verdict == 'HOLD':
+            p4 = (f"Bottom line: Hold if you already own it and wait for the buy zone "
+                  f"of Rs.{buy_low:,.0f}\u2013Rs.{buy_high:,.0f} if you don't." if buy_low else
+                  f"Bottom line: Hold existing positions and reassess at the next quarterly results.")
+        else:
+            p4 = (f"Bottom line: Avoid {company} at current levels \u2014 "
+                  f"better opportunities exist elsewhere until the fundamentals improve.")
+
+        advice_color = C_GREEN if verdict in ('BUY', 'STRONG BUY') else C_RED if verdict == 'SELL' else C_GOLD
+        for i, para in enumerate([p1, p2, p3, p4]):
+            story.append(Paragraph(para, S(f'adv{i}',
+                fontSize=10, textColor=advice_color if i == 0 else C_TEXT, leading=15)))
+            story.append(Spacer(1, 3*mm))
+
+    except Exception as _e:
+        story.append(Paragraph(
+            'Advice unavailable at this time. Please refer to the analysis sections above.',
+            S('adv_err', fontSize=10, textColor=C_MUTED)))
+
+    # ══════════════════════════════════════════════════════════════════════════
     # DISCLAIMER
     # ══════════════════════════════════════════════════════════════════════════
     story.append(Spacer(1, 8*mm))
