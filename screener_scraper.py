@@ -16,7 +16,7 @@ HEADERS = {
 
 # Symbols that differ between NSE and Screener.in URLs
 SCREENER_SYMBOL_MAP = {
-    'LTIM':       'MINDTREE',      # LTIMindtree listed as MINDTREE on screener
+    'LTM':        'LTIMINDTREE',   # LTIMindtree: NSE symbol LTM, screener URL LTIMINDTREE
     'M&M':        'M&M',           # screener uses literal M&M in URL
     'BAJAJ-AUTO': 'BAJAJ-AUTO',
     'LICHOUSFIN': 'LICHSGFIN',     # LIC Housing Finance screener symbol
@@ -305,20 +305,57 @@ def scrape_all(symbols: list, delay: float = 2.5) -> pd.DataFrame:
 if __name__ == "__main__":
     import pandas as pd
 
+    # All stocks in the screener universe
+    ALL_STOCKS = [
+        "HDFCBANK","ICICIBANK","KOTAKBANK","AXISBANK","SBIN","BAJFINANCE","BAJAJFINSV",
+        "SHRIRAMFIN","TCS","INFY","WIPRO","HCLTECH","TECHM","LTIM","RELIANCE","ONGC",
+        "BPCL","IOC","POWERGRID","NTPC","ADANIPORTS","ADANIENT","TATAPOWER","HINDUNILVR",
+        "ITC","NESTLEIND","BRITANNIA","TATACONSUM","MARUTI","M&M","BAJAJ-AUTO","HEROMOTOCO",
+        "EICHERMOT","SUNPHARMA","DRREDDY","CIPLA","DIVISLAB","APOLLOHOSP","TATASTEEL",
+        "JSWSTEEL","HINDALCO","COALINDIA","VEDL","LT","ULTRACEMCO","GRASIM","BHARTIARTL",
+        "ASIANPAINT","TITAN","BANKBARODA","PNB","CANBK","MUTHOOTFIN","CHOLAFIN","MANAPPURAM",
+        "MARICO","DABUR","COLPAL","GODREJCP","EMAMILTD","TORNTPHARM","LUPIN","AUROPHARMA",
+        "ALKEM","PERSISTENT","MPHASIS","COFORGE","KPITTECH","TVSMOTOR","MOTHERSON",
+        "BALKRISIND","APOLLOTYRE","SIEMENS","HAVELLS","ABB","CUMMINSIND","DLF","OBEROIRLTY",
+        "RAMCOCEM","FEDERALBNK","IDFCFIRSTB","BANDHANBNK","AUBANK","RBLBANK","INDIANB",
+        "MAHABANK","HDFCAMC","ICICIGI","SBICARD","SUNDARMFIN","TATAELXSI","LTTS",
+        "HAPPSTMNDS","ZENSARTECH","MANKIND","ABBOTINDIA","NATCOPHARM","GRANULES","GLENMARK",
+        "IPCALAB","MAXHEALTH","RADICO","UBL","VBL","BIKAJI","ZYDUSWELL","ASHOKLEY",
+        "BOSCHLTD","TIINDIA","ENDURANCE","SUNDRMFAST","SCHAEFFLER","ADANIGREEN","ADANIPOWER",
+        "TORNTPOWER","CESC","NHPC","SJVN","HINDPETRO","GAIL","AMBUJACEM","ACC","JKCEMENT",
+        "DALMIACEM","IRB","KNRCON","NMDC","SAIL","NATIONALUM","MOIL","WELCORP","GODREJPROP",
+        "BRIGADE","SOBHA","PRESTIGE","PHOENIXLTD","HAL","BEL","BEML","MAZDOCK",
+        "COCHINSHIP","MIDHANI","DATAPATTNS","PARAS","INDUSINDBK","SBILIFE","HDFCLIFE",
+        "LICI","BAJAJHLDNG","RECLTD","PFC","IRFC","INDIGO","PIDILITIND","BERGEPAINT",
+        "KANSAINER","CYIENT","MASTEK","SONACOMS","SYRMA","KAYNES","DIXON","AMBER",
+        "APLAPOLLO","LAURUSLABS","SOLARA","SUVEN","GLAND","MEDANTA","FORTIS","RAINBOW",
+        "KRSNAA","METROPOLIS","POLYMED","TRENT","DMART","ABFRL","VSTIND","GODFRYPHLP",
+        "PGHH","HONAUT","WHIRLPOOL","VOLTAS","BLUESTARCO","KAJARIACER","CERA","ANGELONE",
+        "CDSL","BSE","MCX","NAUKRI","POLICYBZR","PAYTM","NYKAA","CARTRADE","NAVINFLUOR",
+        "FLUOROCHEM","DEEPAKNTR","TATACHEM","GNFC","COROMANDEL","PIIND","RALLIS","DHANUKA",
+        "UPL","CHAMBLFERT","NCC","PNCINFRA","HGINFRA","ASHOKA","GPPL","GRAVITA","DYNAMIC",
+        "PGEL","IDEAFORGE","RATEGAIN","EASEMYTRIP","IXIGO","YATHARTH","HAPPYFORGE",
+        "SANSERA","CRAFTSMAN","SUPRAJIT","FINEORG","GALAXYSURF","CLEAN","ROSSARI",
+        "SUDARSCHEM","IIFL","CREDITACC","UJJIVANSFB","EQUITASBNK","ESAFSFB","UTKARSHBNK",
+        "FUSION","SPANDANA","INDHOTEL","LEMONTREE","CHALET","TAJGVK","EIHOTEL","DELHIVERY",
+        "BLUEDART","GICRE","NIACL","CONCOR","ALLCARGO","MAHLOG","ZEEL","SUNTV","PVRINOX",
+        "SAREGAMA","PAGEIND","RAYMOND","TRIDENT","WELSPUNLIV","KITEX","TECHNOELEC",
+    ]
+
     existing = pd.read_csv('screener_fundamentals.csv')
-    failed = ['M&M', 'DALMIACEM']
+    existing_syms = set(existing['symbol'].tolist())
 
-    print(f"Re-scraping {failed}...")
-    new_data = scrape_all(failed, delay=2.5)
+    # Only scrape stocks not already in CSV
+    to_scrape = [s for s in ALL_STOCKS if s not in existing_syms]
+    print(f"Already have: {len(existing_syms)} stocks")
+    print(f"Need to scrape: {len(to_scrape)} new stocks")
 
-    # Remove old rows for these symbols then append
-    combined = pd.concat(
-        [existing[~existing['symbol'].isin(failed)], new_data],
-        ignore_index=True
-    )
-    combined.to_csv('screener_fundamentals.csv', index=False)
-    print(f"Updated: {len(combined)} stocks total")
-
-    ok = new_data[new_data['status'] == 'ok']
-    for _, row in ok.iterrows():
-        print(f"  {row['symbol']}: Score={row['investment_score']}  ROCE={row['roce_latest_pct']}%")
+    if not to_scrape:
+        print("All stocks already in CSV — nothing to do.")
+    else:
+        new_data = scrape_all(to_scrape, delay=3.0)
+        combined = pd.concat([existing, new_data], ignore_index=True)
+        combined.to_csv('screener_fundamentals.csv', index=False)
+        print(f"\nUpdated: {len(combined)} stocks total")
+        ok = new_data[new_data['status'] == 'ok']
+        print(f"Successfully scraped: {len(ok)}/{len(to_scrape)}")
