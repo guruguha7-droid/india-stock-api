@@ -1,22 +1,22 @@
 {
-  "built_at": "2026-04-12T23:16:09.751163",
+  "built_at": "2026-04-13T17:51:15.956184",
   "accuracy": 58.1,
   "stocks": {
     "HDFCBANK": {
       "ml": {
-        "ml_score": 55.6,
+        "ml_score": 58.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 41.0,
-        "pos52_pct": 28.0,
-        "ret_1m_pct": -3.6,
-        "ret_3m_pct": -15.8,
+        "rsi": 39.2,
+        "pos52_pct": 22.4,
+        "ret_1m_pct": -6.4,
+        "ret_3m_pct": -16.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 16.7,
+        "pe_ratio": 16.4,
         "eps": 48.54,
-        "dividend_yield": 0.014377,
+        "dividend_yield": 0.01466,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -49,23 +49,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 810.3
+      "cached_price": 794.7
     },
     "ICICIBANK": {
       "ml": {
-        "ml_score": 69.9,
+        "ml_score": 67.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.9,
-        "pos52_pct": 42.8,
-        "ret_1m_pct": 3.4,
-        "ret_3m_pct": -6.3,
+        "rsi": 48.6,
+        "pos52_pct": 53.5,
+        "ret_1m_pct": 3.0,
+        "ret_3m_pct": -5.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 17.8,
+        "pe_ratio": 18.2,
         "eps": 74.19,
-        "dividend_yield": 0.00842,
+        "dividend_yield": 0.008238,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -98,23 +98,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1321.9
+      "cached_price": 1351.1
     },
     "KOTAKBANK": {
       "ml": {
-        "ml_score": 36.8,
+        "ml_score": 39.4,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.2,
-        "pos52_pct": 21.2,
-        "ret_1m_pct": -3.1,
-        "ret_3m_pct": -12.7,
+        "rsi": 44.8,
+        "pos52_pct": 18.5,
+        "ret_1m_pct": -5.1,
+        "ret_3m_pct": -13.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 19.8,
+        "pe_ratio": 19.7,
         "eps": 18.9,
-        "dividend_yield": 0.001015,
+        "dividend_yield": 0.001022,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -147,23 +147,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 374.55
+      "cached_price": 371.9
     },
     "AXISBANK": {
       "ml": {
-        "ml_score": 48.0,
+        "ml_score": 48.1,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.2,
-        "pos52_pct": 85.4,
-        "ret_1m_pct": 4.9,
-        "ret_3m_pct": 4.4,
+        "rsi": 52.2,
+        "pos52_pct": 86.2,
+        "ret_1m_pct": 3.0,
+        "ret_3m_pct": 4.5,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 16.0,
         "eps": 84.66,
-        "dividend_yield": 0.000629,
+        "dividend_yield": 0.000628,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -196,23 +196,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1350.8
+      "cached_price": 1353.6
     },
     "SBIN": {
       "ml": {
-        "ml_score": 53.0,
+        "ml_score": 56.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.0,
-        "pos52_pct": 67.8,
-        "ret_1m_pct": -2.9,
-        "ret_3m_pct": 4.7,
+        "rsi": 52.3,
+        "pos52_pct": 67.2,
+        "ret_1m_pct": -4.4,
+        "ret_3m_pct": 5.6,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 11.6,
         "eps": 91.71,
-        "dividend_yield": 0.015478,
+        "dividend_yield": 0.015523,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -245,23 +245,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1066.7
+      "cached_price": 1063.55
     },
     "BAJFINANCE": {
       "ml": {
-        "ml_score": 52.9,
+        "ml_score": 54.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.3,
-        "pos52_pct": 42.0,
-        "ret_1m_pct": -1.4,
-        "ret_3m_pct": -5.4,
+        "rsi": 49.1,
+        "pos52_pct": 33.3,
+        "ret_1m_pct": -4.3,
+        "ret_3m_pct": -7.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 31.9,
+        "pe_ratio": 31.0,
         "eps": 29.0,
-        "dividend_yield": 0.006587,
+        "dividend_yield": 0.006775,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -294,23 +294,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 924.55
+      "cached_price": 898.95
     },
     "BAJAJFINSV": {
       "ml": {
-        "ml_score": 50.6,
+        "ml_score": 55.7,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.8,
-        "pos52_pct": 32.6,
-        "ret_1m_pct": -1.8,
-        "ret_3m_pct": -11.5,
+        "rsi": 53.0,
+        "pos52_pct": 28.7,
+        "ret_1m_pct": -4.3,
+        "ret_3m_pct": -12.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 29.9,
+        "pe_ratio": 29.5,
         "eps": 60.59,
-        "dividend_yield": 0.000669,
+        "dividend_yield": 0.000677,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -343,23 +343,23 @@
           "summary": "Debt grew 10.2% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1809.2
+      "cached_price": 1788.3
     },
     "SHRIRAMFIN": {
       "ml": {
-        "ml_score": 41.5,
+        "ml_score": 44.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 48.7,
-        "pos52_pct": 85.6,
-        "ret_1m_pct": 4.1,
-        "ret_3m_pct": 2.5,
+        "rsi": 51.8,
+        "pos52_pct": 81.3,
+        "ret_1m_pct": -5.5,
+        "ret_3m_pct": 0.8,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 21.1,
+        "pe_ratio": 20.6,
         "eps": 48.63,
-        "dividend_yield": 0.008992,
+        "dividend_yield": 0.009202,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -392,23 +392,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1027.55
+      "cached_price": 1004.1
     },
     "TCS": {
       "ml": {
-        "ml_score": 37.5,
+        "ml_score": 36.7,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.0,
-        "pos52_pct": 14.7,
-        "ret_1m_pct": -0.1,
-        "ret_3m_pct": -21.1,
+        "rsi": 42.8,
+        "pos52_pct": 10.2,
+        "ret_1m_pct": -1.6,
+        "ret_3m_pct": -23.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 19.1,
+        "pe_ratio": 18.7,
         "eps": 131.88,
-        "dividend_yield": 0.049111,
+        "dividend_yield": 0.050138,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -441,23 +441,23 @@
           "summary": "Debt grew 16.4% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 2524.3
+      "cached_price": 2472.6
     },
     "INFY": {
       "ml": {
-        "ml_score": 40.4,
+        "ml_score": 41.7,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 42.3,
-        "pos52_pct": 15.3,
-        "ret_1m_pct": -1.7,
-        "ret_3m_pct": -19.8,
+        "rsi": 41.6,
+        "pos52_pct": 11.9,
+        "ret_1m_pct": -1.5,
+        "ret_3m_pct": -22.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 19.1,
+        "pe_ratio": 18.9,
         "eps": 67.73,
-        "dividend_yield": 0.03511,
+        "dividend_yield": 0.035542,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -490,23 +490,23 @@
           "summary": "Debt grew 6.4% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1292.5
+      "cached_price": 1276.8
     },
     "WIPRO": {
       "ml": {
-        "ml_score": 39.2,
+        "ml_score": 37.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 48.7,
-        "pos52_pct": 22.2,
-        "ret_1m_pct": 3.1,
-        "ret_3m_pct": -20.9,
+        "rsi": 50.2,
+        "pos52_pct": 19.7,
+        "ret_1m_pct": 1.0,
+        "ret_3m_pct": -23.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 16.2,
+        "pe_ratio": 16.0,
         "eps": 12.66,
-        "dividend_yield": 0.029676,
+        "dividend_yield": 0.029955,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -539,23 +539,23 @@
           "summary": "Debt reduced 15.8% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 204.88
+      "cached_price": 202.97
     },
     "HCLTECH": {
       "ml": {
-        "ml_score": 46.7,
+        "ml_score": 46.6,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.7,
-        "pos52_pct": 33.4,
-        "ret_1m_pct": 6.8,
-        "ret_3m_pct": -9.6,
+        "rsi": 44.4,
+        "pos52_pct": 28.1,
+        "ret_1m_pct": 5.0,
+        "ret_3m_pct": -12.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 23.9,
+        "pe_ratio": 23.6,
         "eps": 60.66,
-        "dividend_yield": 0.039292,
+        "dividend_yield": 0.039891,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -588,23 +588,23 @@
           "summary": "Debt grew 8.0% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1451.2
+      "cached_price": 1429.4
     },
     "TECHM": {
       "ml": {
         "ml_score": 51.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 60.0,
-        "pos52_pct": 38.2,
-        "ret_1m_pct": 7.8,
-        "ret_3m_pct": -10.1,
+        "rsi": 60.7,
+        "pos52_pct": 37.3,
+        "ret_1m_pct": 7.4,
+        "ret_3m_pct": -11.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 30.5,
+        "pe_ratio": 30.4,
         "eps": 47.21,
-        "dividend_yield": 0.030815,
+        "dividend_yield": 0.030918,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -637,23 +637,23 @@
           "summary": "Debt reduced 3.5% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1440.2
+      "cached_price": 1435.4
     },
     "RELIANCE": {
       "ml": {
-        "ml_score": 52.9,
+        "ml_score": 53.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.8,
-        "pos52_pct": 43.9,
-        "ret_1m_pct": -5.2,
-        "ret_3m_pct": -10.4,
+        "rsi": 46.1,
+        "pos52_pct": 35.7,
+        "ret_1m_pct": -6.7,
+        "ret_3m_pct": -12.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 22.0,
+        "pe_ratio": 21.4,
         "eps": 61.49,
-        "dividend_yield": 0.005007,
+        "dividend_yield": 0.00514,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -686,23 +686,23 @@
           "summary": "Debt grew 0.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1350.2
+      "cached_price": 1315.1
     },
     "ONGC": {
       "ml": {
-        "ml_score": 60.5,
+        "ml_score": 58.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 57.0,
-        "pos52_pct": 97.4,
-        "ret_1m_pct": 5.8,
-        "ret_3m_pct": 21.2,
+        "rsi": 57.6,
+        "pos52_pct": 98.7,
+        "ret_1m_pct": 6.8,
+        "ret_3m_pct": 23.1,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 9.5,
         "eps": 30.14,
-        "dividend_yield": 0.045236,
+        "dividend_yield": 0.04507,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -735,23 +735,23 @@
           "summary": "Debt reduced 6.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 286.5
+      "cached_price": 287.55
     },
     "BPCL": {
       "ml": {
-        "ml_score": 52.2,
-        "prediction": "OUTPERFORM",
+        "ml_score": 47.8,
+        "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.3,
-        "pos52_pct": 32.3,
-        "ret_1m_pct": -9.6,
-        "ret_3m_pct": -17.0,
+        "rsi": 47.2,
+        "pos52_pct": 27.4,
+        "ret_1m_pct": -10.1,
+        "ret_3m_pct": -18.2,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 5.3,
+        "pe_ratio": 5.2,
         "eps": 56.72,
-        "dividend_yield": 0.060631,
+        "dividend_yield": 0.061956,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -784,23 +784,23 @@
           "summary": "Debt reduced 13.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 299.35
+      "cached_price": 292.95
     },
     "IOC": {
       "ml": {
-        "ml_score": 50.9,
+        "ml_score": 51.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 41.7,
-        "pos52_pct": 35.1,
-        "ret_1m_pct": -10.2,
-        "ret_3m_pct": -11.7,
+        "rsi": 43.7,
+        "pos52_pct": 32.2,
+        "ret_1m_pct": -10.7,
+        "ret_3m_pct": -12.2,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 5.6,
         "eps": 25.33,
-        "dividend_yield": 0.053162,
+        "dividend_yield": 0.05387,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -833,23 +833,23 @@
           "summary": "Debt reduced 3.7% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 142.96
+      "cached_price": 141.08
     },
     "POWERGRID": {
       "ml": {
-        "ml_score": 57.0,
+        "ml_score": 60.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.6,
-        "pos52_pct": 87.9,
-        "ret_1m_pct": 2.6,
-        "ret_3m_pct": 14.0,
+        "rsi": 47.9,
+        "pos52_pct": 83.8,
+        "ret_1m_pct": 0.6,
+        "ret_3m_pct": 15.0,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 18.2,
+        "pe_ratio": 18.0,
         "eps": 16.68,
-        "dividend_yield": 0.029761,
+        "dividend_yield": 0.029998,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -882,23 +882,23 @@
           "summary": "Debt grew 3.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 302.75
+      "cached_price": 300.35
     },
     "NTPC": {
       "ml": {
-        "ml_score": 64.7,
+        "ml_score": 62.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.4,
-        "pos52_pct": 86.0,
-        "ret_1m_pct": 1.0,
-        "ret_3m_pct": 9.2,
+        "rsi": 45.3,
+        "pos52_pct": 94.2,
+        "ret_1m_pct": 2.4,
+        "ret_3m_pct": 11.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 15.2,
+        "pe_ratio": 15.5,
         "eps": 24.94,
-        "dividend_yield": 0.022965,
+        "dividend_yield": 0.022602,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -931,23 +931,23 @@
           "summary": "Debt grew 1.9% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 380.15
+      "cached_price": 386.25
     },
     "ADANIPORTS": {
       "ml": {
-        "ml_score": 59.7,
+        "ml_score": 59.2,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 58.0,
-        "pos52_pct": 79.6,
-        "ret_1m_pct": 3.8,
-        "ret_3m_pct": 0.1,
+        "rsi": 60.1,
+        "pos52_pct": 77.4,
+        "ret_1m_pct": 2.9,
+        "ret_3m_pct": 0.0,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 25.9,
+        "pe_ratio": 25.7,
         "eps": 56.93,
-        "dividend_yield": 0.005402,
+        "dividend_yield": 0.005439,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -980,23 +980,23 @@
           "summary": "Debt grew 10.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1475.3
+      "cached_price": 1465.3
     },
     "ADANIENT": {
       "ml": {
-        "ml_score": 57.9,
+        "ml_score": 55.2,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 66.4,
-        "pos52_pct": 35.7,
-        "ret_1m_pct": 4.4,
-        "ret_3m_pct": -7.6,
+        "rsi": 66.9,
+        "pos52_pct": 40.3,
+        "ret_1m_pct": 6.6,
+        "ret_3m_pct": -6.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 20.1,
+        "pe_ratio": 20.5,
         "eps": 103.69,
-        "dividend_yield": 0.000992,
+        "dividend_yield": 0.000972,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1029,23 +1029,23 @@
           "summary": "Debt grew 19.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 2086.8
+      "cached_price": 2129.0
     },
     "TATAPOWER": {
       "ml": {
-        "ml_score": 56.1,
+        "ml_score": 56.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 52.2,
-        "pos52_pct": 77.9,
-        "ret_1m_pct": 7.1,
-        "ret_3m_pct": 3.3,
+        "rsi": 52.8,
+        "pos52_pct": 92.6,
+        "ret_1m_pct": 7.4,
+        "ret_3m_pct": 7.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 33.6,
+        "pe_ratio": 34.5,
         "eps": 11.88,
-        "dividend_yield": 0.00596,
+        "dividend_yield": 0.005811,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1078,23 +1078,23 @@
           "summary": "Debt grew 11.5% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 399.35
+      "cached_price": 409.55
     },
     "HINDUNILVR": {
       "ml": {
-        "ml_score": 41.7,
+        "ml_score": 42.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 39.7,
-        "pos52_pct": 16.6,
-        "ret_1m_pct": -1.8,
-        "ret_3m_pct": -11.1,
+        "rsi": 39.1,
+        "pos52_pct": 12.1,
+        "ret_1m_pct": -2.9,
+        "ret_3m_pct": -11.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 34.9,
+        "pe_ratio": 34.4,
         "eps": 61.77,
-        "dividend_yield": 0.033531,
+        "dividend_yield": 0.033974,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1127,23 +1127,23 @@
           "summary": "Debt grew 7.7% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2155.3
+      "cached_price": 2127.2
     },
     "ITC": {
       "ml": {
-        "ml_score": 46.7,
+        "ml_score": 48.1,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 32.8,
-        "pos52_pct": 12.0,
-        "ret_1m_pct": -0.6,
-        "ret_3m_pct": -9.3,
+        "rsi": 28.9,
+        "pos52_pct": 7.9,
+        "ret_1m_pct": -3.4,
+        "ret_3m_pct": -10.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 10.9,
+        "pe_ratio": 10.7,
         "eps": 27.98,
-        "dividend_yield": 0.047823,
+        "dividend_yield": 0.048719,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1176,23 +1176,23 @@
           "summary": "Debt grew 27.4% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 304.25
+      "cached_price": 298.65
     },
     "NESTLEIND": {
       "ml": {
-        "ml_score": 46.6,
+        "ml_score": 46.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.9,
-        "pos52_pct": 68.6,
-        "ret_1m_pct": 1.1,
-        "ret_3m_pct": -4.8,
+        "rsi": 44.4,
+        "pos52_pct": 59.0,
+        "ret_1m_pct": -1.2,
+        "ret_3m_pct": -6.2,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 73.9,
+        "pe_ratio": 72.5,
         "eps": 16.91,
-        "dividend_yield": 0.010966,
+        "dividend_yield": 0.011174,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1225,23 +1225,23 @@
           "summary": "Debt reduced 59.1% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1249.3
+      "cached_price": 1226.1
     },
     "BRITANNIA": {
       "ml": {
-        "ml_score": 56.4,
+        "ml_score": 55.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 34.8,
-        "pos52_pct": 44.6,
-        "ret_1m_pct": -5.6,
-        "ret_3m_pct": -9.3,
+        "rsi": 35.0,
+        "pos52_pct": 47.0,
+        "ret_1m_pct": -6.4,
+        "ret_3m_pct": -9.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 55.4,
+        "pe_ratio": 55.7,
         "eps": 100.27,
-        "dividend_yield": 0.014974,
+        "dividend_yield": 0.01489,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1274,23 +1274,23 @@
           "summary": "Debt grew 76.1% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 5557.5
+      "cached_price": 5589.0
     },
     "TATACONSUM": {
       "ml": {
-        "ml_score": 59.9,
+        "ml_score": 60.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 36.6,
-        "pos52_pct": 39.9,
+        "rsi": 36.5,
+        "pos52_pct": 38.2,
         "ret_1m_pct": -0.8,
-        "ret_3m_pct": -9.6,
+        "ret_3m_pct": -10.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 73.6,
+        "pe_ratio": 73.4,
         "eps": 14.85,
-        "dividend_yield": 0.008686,
+        "dividend_yield": 0.008713,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1323,23 +1323,23 @@
           "summary": "Debt grew 7.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1093.7
+      "cached_price": 1090.3
     },
     "MARUTI": {
       "ml": {
-        "ml_score": 56.8,
+        "ml_score": 59.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.4,
-        "pos52_pct": 41.1,
-        "ret_1m_pct": 1.5,
-        "ret_3m_pct": -20.7,
+        "rsi": 40.4,
+        "pos52_pct": 30.7,
+        "ret_1m_pct": -5.7,
+        "ret_3m_pct": -22.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 28.9,
+        "pe_ratio": 27.5,
         "eps": 474.92,
-        "dividend_yield": 0.010047,
+        "dividend_yield": 0.010533,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1372,23 +1372,23 @@
           "summary": "Debt grew 14.9% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 13709.0
+      "cached_price": 13076.0
     },
     "M&M": {
       "ml": {
-        "ml_score": 68.8,
+        "ml_score": 73.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 52.2,
-        "pos52_pct": 59.2,
-        "ret_1m_pct": 2.3,
-        "ret_3m_pct": -13.9,
+        "rsi": 53.6,
+        "pos52_pct": 56.3,
+        "ret_1m_pct": -2.2,
+        "ret_3m_pct": -14.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 25.8,
+        "pe_ratio": 25.5,
         "eps": 126.47,
-        "dividend_yield": 0.008534,
+        "dividend_yield": 0.008639,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1421,23 +1421,23 @@
           "summary": "Debt reduced 1.8% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 3259.8
+      "cached_price": 3220.2
     },
     "BAJAJ-AUTO": {
       "ml": {
-        "ml_score": 45.8,
+        "ml_score": 43.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.2,
+        "rsi": 42.9,
         "pos52_pct": 90.1,
-        "ret_1m_pct": 4.6,
-        "ret_3m_pct": 1.6,
+        "ret_1m_pct": 2.1,
+        "ret_3m_pct": 0.3,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 30.9,
         "eps": 318.04,
-        "dividend_yield": 0.025927,
+        "dividend_yield": 0.02592,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1470,23 +1470,23 @@
           "summary": "Debt grew 110.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 9813.5
+      "cached_price": 9816.0
     },
     "HEROMOTOCO": {
       "ml": {
-        "ml_score": 40.8,
+        "ml_score": 45.8,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.7,
-        "pos52_pct": 73.0,
-        "ret_1m_pct": -0.2,
-        "ret_3m_pct": -7.1,
+        "rsi": 48.8,
+        "pos52_pct": 65.2,
+        "ret_1m_pct": -8.1,
+        "ret_3m_pct": -10.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 20.1,
+        "pe_ratio": 19.3,
         "eps": 272.09,
-        "dividend_yield": 0.037331,
+        "dividend_yield": 0.038893,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1519,23 +1519,23 @@
           "summary": "Debt grew 2.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 5466.5
+      "cached_price": 5247.0
     },
     "EICHERMOT": {
       "ml": {
-        "ml_score": 45.9,
+        "ml_score": 48.4,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.5,
-        "pos52_pct": 76.0,
-        "ret_1m_pct": 2.2,
-        "ret_3m_pct": -1.3,
+        "rsi": 47.0,
+        "pos52_pct": 64.3,
+        "ret_1m_pct": -6.5,
+        "ret_3m_pct": -7.0,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 38.0,
+        "pe_ratio": 36.1,
         "eps": 195.35,
-        "dividend_yield": 0.010788,
+        "dividend_yield": 0.01136,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1568,23 +1568,23 @@
           "summary": "Debt reduced 2.6% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 7424.0
+      "cached_price": 7050.0
     },
     "SUNPHARMA": {
       "ml": {
-        "ml_score": 71.6,
+        "ml_score": 70.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.7,
-        "pos52_pct": 37.3,
-        "ret_1m_pct": -8.4,
-        "ret_3m_pct": -5.4,
+        "rsi": 47.2,
+        "pos52_pct": 36.3,
+        "ret_1m_pct": -8.9,
+        "ret_3m_pct": -6.7,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 36.4,
+        "pe_ratio": 36.3,
         "eps": 45.5,
-        "dividend_yield": 0.00962,
+        "dividend_yield": 0.009636,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1617,23 +1617,23 @@
           "summary": "Debt grew 120.8% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1654.9
+      "cached_price": 1652.2
     },
     "DRREDDY": {
       "ml": {
-        "ml_score": 42.1,
+        "ml_score": 41.7,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 38.6,
-        "pos52_pct": 55.4,
-        "ret_1m_pct": -4.3,
-        "ret_3m_pct": -1.9,
+        "rsi": 37.3,
+        "pos52_pct": 56.7,
+        "ret_1m_pct": -6.0,
+        "ret_3m_pct": -0.6,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 18.5,
         "eps": 66.72,
-        "dividend_yield": 0.006501,
+        "dividend_yield": 0.006481,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1666,23 +1666,23 @@
           "summary": "Debt grew 25.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1232.2
+      "cached_price": 1235.9
     },
     "CIPLA": {
       "ml": {
-        "ml_score": 60.0,
+        "ml_score": 59.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.8,
-        "pos52_pct": 7.9,
-        "ret_1m_pct": -7.2,
-        "ret_3m_pct": -19.7,
+        "rsi": 39.9,
+        "pos52_pct": 4.0,
+        "ret_1m_pct": -9.2,
+        "ret_3m_pct": -17.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 21.8,
+        "pe_ratio": 21.5,
         "eps": 56.29,
-        "dividend_yield": 0.011444,
+        "dividend_yield": 0.011618,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1715,23 +1715,23 @@
           "summary": "Debt grew 6.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1229.5
+      "cached_price": 1211.1
     },
     "DIVISLAB": {
       "ml": {
-        "ml_score": 51.8,
+        "ml_score": 51.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.9,
-        "pos52_pct": 51.3,
-        "ret_1m_pct": -3.4,
-        "ret_3m_pct": -7.9,
+        "rsi": 56.4,
+        "pos52_pct": 48.6,
+        "ret_1m_pct": -4.7,
+        "ret_3m_pct": -8.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 65.5,
+        "pe_ratio": 65.0,
         "eps": 93.38,
-        "dividend_yield": 0.005497,
+        "dividend_yield": 0.005539,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1764,23 +1764,23 @@
           "summary": "Debt grew 2150.0% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 6116.5
+      "cached_price": 6070.0
     },
     "APOLLOHOSP": {
       "ml": {
-        "ml_score": 70.2,
+        "ml_score": 68.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.0,
-        "pos52_pct": 63.6,
-        "ret_1m_pct": -3.4,
-        "ret_3m_pct": 2.4,
+        "rsi": 41.4,
+        "pos52_pct": 64.0,
+        "ret_1m_pct": -3.7,
+        "ret_3m_pct": 1.1,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 59.9,
+        "pe_ratio": 60.0,
         "eps": 125.32,
-        "dividend_yield": 0.002169,
+        "dividend_yield": 0.002167,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1813,23 +1813,23 @@
           "summary": "Debt grew 1.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 7511.5
+      "cached_price": 7516.5
     },
     "TATASTEEL": {
       "ml": {
-        "ml_score": 49.4,
+        "ml_score": 45.5,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 51.1,
-        "pos52_pct": 90.2,
-        "ret_1m_pct": 8.2,
-        "ret_3m_pct": 11.0,
+        "rsi": 50.8,
+        "pos52_pct": 90.0,
+        "ret_1m_pct": 5.8,
+        "ret_3m_pct": 12.3,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 28.2,
         "eps": 7.33,
-        "dividend_yield": 0.046464,
+        "dividend_yield": 0.046514,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1862,23 +1862,23 @@
           "summary": "Debt grew 0.9% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 206.61
+      "cached_price": 206.39
     },
     "JSWSTEEL": {
       "ml": {
-        "ml_score": 54.1,
+        "ml_score": 53.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 39.7,
-        "pos52_pct": 81.3,
-        "ret_1m_pct": 1.9,
-        "ret_3m_pct": 3.3,
+        "rsi": 43.4,
+        "pos52_pct": 78.3,
+        "ret_1m_pct": -0.8,
+        "ret_3m_pct": 1.2,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 39.9,
+        "pe_ratio": 39.5,
         "eps": 30.47,
-        "dividend_yield": 0.006017,
+        "dividend_yield": 0.00607,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1911,23 +1911,23 @@
           "summary": "Debt grew 2.4% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1214.8
+      "cached_price": 1204.2
     },
     "HINDALCO": {
       "ml": {
-        "ml_score": 48.1,
+        "ml_score": 48.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.8,
-        "pos52_pct": 93.1,
-        "ret_1m_pct": 4.9,
-        "ret_3m_pct": 5.3,
+        "rsi": 48.4,
+        "pos52_pct": 90.2,
+        "ret_1m_pct": 2.3,
+        "ret_3m_pct": 4.2,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 13.9,
+        "pe_ratio": 13.7,
         "eps": 71.55,
-        "dividend_yield": 0.00505,
+        "dividend_yield": 0.005121,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -1960,23 +1960,23 @@
           "summary": "Debt grew 17.1% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 992.1
+      "cached_price": 978.25
     },
     "COALINDIA": {
       "ml": {
-        "ml_score": 60.4,
+        "ml_score": 60.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.3,
-        "pos52_pct": 70.5,
-        "ret_1m_pct": -0.8,
-        "ret_3m_pct": 3.0,
+        "rsi": 37.1,
+        "pos52_pct": 71.3,
+        "ret_1m_pct": -1.9,
+        "ret_3m_pct": 2.1,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 9.0,
         "eps": 48.45,
-        "dividend_yield": 0.051348,
+        "dividend_yield": 0.05123,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2009,23 +2009,23 @@
           "summary": "Debt grew 50.7% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 434.1
+      "cached_price": 435.1
     },
     "VEDL": {
       "ml": {
-        "ml_score": 63.0,
+        "ml_score": 64.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.0,
-        "pos52_pct": 97.9,
-        "ret_1m_pct": 6.8,
-        "ret_3m_pct": 21.8,
+        "rsi": 40.6,
+        "pos52_pct": 99.7,
+        "ret_1m_pct": 6.0,
+        "ret_3m_pct": 23.0,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 20.6,
+        "pe_ratio": 20.8,
         "eps": 36.25,
-        "dividend_yield": 0.054969,
+        "dividend_yield": 0.054428,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2058,23 +2058,23 @@
           "summary": "Debt reduced 7.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 745.15
+      "cached_price": 752.55
     },
     "LT": {
       "ml": {
-        "ml_score": 57.3,
+        "ml_score": 56.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.5,
-        "pos52_pct": 67.1,
-        "ret_1m_pct": 3.1,
-        "ret_3m_pct": -4.4,
+        "rsi": 59.1,
+        "pos52_pct": 66.7,
+        "ret_1m_pct": 2.0,
+        "ret_3m_pct": -4.9,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 33.5,
         "eps": 118.18,
-        "dividend_yield": 0.009253,
+        "dividend_yield": 0.009266,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2107,23 +2107,23 @@
           "summary": "Debt grew 1.2% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 3959.9
+      "cached_price": 3954.3
     },
     "ULTRACEMCO": {
       "ml": {
         "ml_score": 56.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 59.2,
-        "pos52_pct": 45.6,
-        "ret_1m_pct": 1.9,
-        "ret_3m_pct": -5.0,
+        "rsi": 63.1,
+        "pos52_pct": 42.4,
+        "ret_1m_pct": -1.3,
+        "ret_3m_pct": -5.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 44.6,
+        "pe_ratio": 44.2,
         "eps": 260.11,
-        "dividend_yield": 0.008529,
+        "dividend_yield": 0.008593,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2156,23 +2156,23 @@
           "summary": "Debt grew 4.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 11589.0
+      "cached_price": 11502.0
     },
     "GRASIM": {
       "ml": {
-        "ml_score": 64.7,
+        "ml_score": 65.7,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.0,
-        "pos52_pct": 52.9,
-        "ret_1m_pct": 2.3,
-        "ret_3m_pct": -4.3,
+        "rsi": 46.0,
+        "pos52_pct": 46.4,
+        "ret_1m_pct": -1.1,
+        "ret_3m_pct": -4.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 41.4,
+        "pe_ratio": 41.0,
         "eps": 66.19,
-        "dividend_yield": 0.004343,
+        "dividend_yield": 0.00439,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2205,23 +2205,23 @@
           "summary": "Debt grew 10.2% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2742.6
+      "cached_price": 2713.0
     },
     "BHARTIARTL": {
       "ml": {
-        "ml_score": 84.0,
+        "ml_score": 83.6,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 39.4,
-        "pos52_pct": 40.3,
-        "ret_1m_pct": 0.2,
-        "ret_3m_pct": -11.2,
+        "rsi": 35.7,
+        "pos52_pct": 40.5,
+        "ret_1m_pct": 1.1,
+        "ret_3m_pct": -10.2,
         "golden_cross": false
       },
       "valuation": {
         "pe_ratio": 35.1,
         "eps": 53.3,
-        "dividend_yield": 0.007979,
+        "dividend_yield": 0.007975,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2254,23 +2254,23 @@
           "summary": "Debt reduced 2.6% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1870.0
+      "cached_price": 1870.9
     },
     "ASIANPAINT": {
       "ml": {
-        "ml_score": 36.9,
+        "ml_score": 35.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.9,
-        "pos52_pct": 28.3,
-        "ret_1m_pct": 6.3,
-        "ret_3m_pct": -17.0,
+        "rsi": 52.7,
+        "pos52_pct": 27.3,
+        "ret_1m_pct": 3.2,
+        "ret_3m_pct": -16.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 58.9,
+        "pe_ratio": 58.7,
         "eps": 40.1,
-        "dividend_yield": 0.011043,
+        "dividend_yield": 0.011082,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2303,23 +2303,23 @@
           "summary": "Debt grew 55.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 2360.7
+      "cached_price": 2352.4
     },
     "TITAN": {
       "ml": {
-        "ml_score": 44.4,
+        "ml_score": 43.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.6,
-        "pos52_pct": 100.0,
-        "ret_1m_pct": 8.3,
-        "ret_3m_pct": 9.6,
+        "rsi": 56.8,
+        "pos52_pct": 95.6,
+        "ret_1m_pct": 5.2,
+        "ret_3m_pct": 3.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 83.9,
+        "pe_ratio": 82.7,
         "eps": 53.69,
-        "dividend_yield": 0.003456,
+        "dividend_yield": 0.003507,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2352,23 +2352,23 @@
           "summary": "Debt reduced 40.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 4505.0
+      "cached_price": 4439.3
     },
     "BANKBARODA": {
       "ml": {
-        "ml_score": 67.1,
+        "ml_score": 67.7,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.9,
-        "pos52_pct": 57.8,
-        "ret_1m_pct": -4.1,
-        "ret_3m_pct": -9.5,
+        "rsi": 49.8,
+        "pos52_pct": 57.4,
+        "ret_1m_pct": -6.3,
+        "ret_3m_pct": -10.6,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 7.3,
         "eps": 37.65,
-        "dividend_yield": 0.02864,
+        "dividend_yield": 0.028689,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2401,23 +2401,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 276.19
+      "cached_price": 275.72
     },
     "PNB": {
       "ml": {
-        "ml_score": 54.9,
+        "ml_score": 56.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 39.8,
-        "pos52_pct": 52.8,
-        "ret_1m_pct": -2.8,
-        "ret_3m_pct": -10.9,
+        "rsi": 44.0,
+        "pos52_pct": 50.4,
+        "ret_1m_pct": -5.8,
+        "ret_3m_pct": -11.9,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 7.2,
         "eps": 15.47,
-        "dividend_yield": 0.024866,
+        "dividend_yield": 0.025106,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2450,23 +2450,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 111.8
+      "cached_price": 110.73
     },
     "CANBK": {
       "ml": {
-        "ml_score": 64.0,
+        "ml_score": 67.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.8,
-        "pos52_pct": 74.9,
-        "ret_1m_pct": 0.2,
-        "ret_3m_pct": -8.9,
+        "rsi": 54.4,
+        "pos52_pct": 73.1,
+        "ret_1m_pct": -2.5,
+        "ret_3m_pct": -9.3,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 6.9,
         "eps": 20.25,
-        "dividend_yield": 0.030325,
+        "dividend_yield": 0.030626,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2499,23 +2499,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 140.15
+      "cached_price": 138.77
     },
     "MUTHOOTFIN": {
       "ml": {
-        "ml_score": 52.6,
+        "ml_score": 53.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 52.1,
-        "pos52_pct": 75.3,
-        "ret_1m_pct": 10.2,
-        "ret_3m_pct": -9.3,
+        "rsi": 57.8,
+        "pos52_pct": 74.8,
+        "ret_1m_pct": 8.5,
+        "ret_3m_pct": -10.0,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 16.5,
+        "pe_ratio": 16.4,
         "eps": 217.16,
-        "dividend_yield": 0.012152,
+        "dividend_yield": 0.012192,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2548,23 +2548,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 3573.9
+      "cached_price": 3562.3
     },
     "CHOLAFIN": {
       "ml": {
-        "ml_score": 71.2,
+        "ml_score": 72.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 57.2,
-        "pos52_pct": 50.4,
-        "ret_1m_pct": -0.1,
-        "ret_3m_pct": -12.4,
+        "rsi": 52.2,
+        "pos52_pct": 33.9,
+        "ret_1m_pct": -7.1,
+        "ret_3m_pct": -15.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 27.5,
+        "pe_ratio": 26.2,
         "eps": 57.57,
-        "dividend_yield": 0.001455,
+        "dividend_yield": 0.001526,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2597,23 +2597,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1581.2
+      "cached_price": 1507.2
     },
     "MANAPPURAM": {
       "ml": {
-        "ml_score": 54.4,
+        "ml_score": 51.6,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 52.7,
-        "pos52_pct": 46.2,
-        "ret_1m_pct": 4.2,
-        "ret_3m_pct": -13.0,
+        "rsi": 51.1,
+        "pos52_pct": 45.1,
+        "ret_1m_pct": 1.8,
+        "ret_3m_pct": -16.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 55.5,
+        "pe_ratio": 55.3,
         "eps": 4.82,
-        "dividend_yield": 0.005045,
+        "dividend_yield": 0.005064,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2646,23 +2646,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 267.6
+      "cached_price": 266.6
     },
     "MARICO": {
       "ml": {
-        "ml_score": 54.1,
+        "ml_score": 56.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.6,
-        "pos52_pct": 70.6,
-        "ret_1m_pct": -1.9,
-        "ret_3m_pct": -2.0,
+        "rsi": 52.4,
+        "pos52_pct": 63.3,
+        "ret_1m_pct": -4.7,
+        "ret_3m_pct": -2.7,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 57.7,
+        "pe_ratio": 57.0,
         "eps": 13.22,
-        "dividend_yield": 0.014373,
+        "dividend_yield": 0.014566,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2695,23 +2695,23 @@
           "summary": "Debt grew 3.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 763.25
+      "cached_price": 753.1
     },
     "DABUR": {
       "ml": {
-        "ml_score": 34.2,
+        "ml_score": 36.7,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 32.4,
-        "pos52_pct": 18.1,
-        "ret_1m_pct": -6.6,
-        "ret_3m_pct": -16.3,
+        "rsi": 29.0,
+        "pos52_pct": 10.3,
+        "ret_1m_pct": -11.7,
+        "ret_3m_pct": -18.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 41.8,
+        "pe_ratio": 40.8,
         "eps": 10.42,
-        "dividend_yield": 0.019142,
+        "dividend_yield": 0.019635,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2744,23 +2744,23 @@
           "summary": "Debt grew 36.9% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 435.7
+      "cached_price": 424.75
     },
     "COLPAL": {
       "ml": {
-        "ml_score": 39.1,
+        "ml_score": 39.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 33.9,
-        "pos52_pct": 17.0,
-        "ret_1m_pct": -10.1,
-        "ret_3m_pct": -7.2,
+        "rsi": 37.5,
+        "pos52_pct": 14.4,
+        "ret_1m_pct": -12.8,
+        "ret_3m_pct": -7.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 121.5,
+        "pe_ratio": 120.0,
         "eps": 15.96,
-        "dividend_yield": 0.005183,
+        "dividend_yield": 0.005246,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2787,23 +2787,23 @@
           "summary": "ROCE at 179.0% (5Y avg nan%) \u2014 capital efficiency stable."
         }
       },
-      "cached_price": 1939.1
+      "cached_price": 1915.9
     },
     "GODREJCP": {
       "ml": {
-        "ml_score": 49.8,
-        "prediction": "UNDERPERFORM",
+        "ml_score": 50.3,
+        "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 53.3,
-        "pos52_pct": 31.3,
-        "ret_1m_pct": -0.2,
-        "ret_3m_pct": -13.7,
+        "rsi": 54.4,
+        "pos52_pct": 25.2,
+        "ret_1m_pct": -4.7,
+        "ret_3m_pct": -14.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 60.5,
+        "pe_ratio": 59.5,
         "eps": 17.81,
-        "dividend_yield": 0.022799,
+        "dividend_yield": 0.023191,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2836,23 +2836,23 @@
           "summary": "Debt grew 2.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1078.1
+      "cached_price": 1059.9
     },
     "EMAMILTD": {
       "ml": {
-        "ml_score": 49.5,
+        "ml_score": 47.6,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 36.8,
-        "pos52_pct": 13.1,
-        "ret_1m_pct": -4.3,
-        "ret_3m_pct": -17.7,
+        "rsi": 37.8,
+        "pos52_pct": 13.0,
+        "ret_1m_pct": -4.7,
+        "ret_3m_pct": -18.5,
         "golden_cross": false
       },
       "valuation": {
         "pe_ratio": 23.3,
         "eps": 18.2,
-        "dividend_yield": 0.023176,
+        "dividend_yield": 0.023187,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2885,23 +2885,23 @@
           "summary": "Debt reduced 20.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 424.15
+      "cached_price": 423.95
     },
     "TORNTPHARM": {
       "ml": {
-        "ml_score": 60.6,
+        "ml_score": 58.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.1,
-        "pos52_pct": 78.4,
-        "ret_1m_pct": -5.0,
-        "ret_3m_pct": 6.3,
+        "rsi": 40.2,
+        "pos52_pct": 80.3,
+        "ret_1m_pct": -5.6,
+        "ret_3m_pct": 2.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 61.9,
+        "pe_ratio": 62.3,
         "eps": 67.12,
-        "dividend_yield": 0.009208,
+        "dividend_yield": 0.009151,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2934,23 +2934,23 @@
           "summary": "Debt reduced 11.9% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 4155.2
+      "cached_price": 4181.0
     },
     "LUPIN": {
       "ml": {
-        "ml_score": 68.1,
+        "ml_score": 70.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 51.9,
-        "pos52_pct": 95.4,
-        "ret_1m_pct": 1.3,
-        "ret_3m_pct": 8.6,
+        "rsi": 55.1,
+        "pos52_pct": 91.7,
+        "ret_1m_pct": -1.0,
+        "ret_3m_pct": 4.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 22.9,
+        "pe_ratio": 22.8,
         "eps": 101.7,
-        "dividend_yield": 0.007409,
+        "dividend_yield": 0.007468,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -2983,21 +2983,21 @@
           "summary": "Debt grew 14.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2333.8
+      "cached_price": 2315.1
     },
     "AUROPHARMA": {
       "ml": {
-        "ml_score": 33.7,
+        "ml_score": 33.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.5,
-        "pos52_pct": 100.0,
-        "ret_1m_pct": 8.2,
-        "ret_3m_pct": 9.6,
+        "rsi": 56.9,
+        "pos52_pct": 97.1,
+        "ret_1m_pct": 4.2,
+        "ret_3m_pct": 8.5,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 22.5,
+        "pe_ratio": 22.3,
         "eps": 60.04,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -3032,23 +3032,23 @@
           "summary": "Debt reduced 5.7% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1349.4
+      "cached_price": 1339.8
     },
     "ALKEM": {
       "ml": {
-        "ml_score": 46.6,
+        "ml_score": 47.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 51.5,
-        "pos52_pct": 66.1,
-        "ret_1m_pct": -0.4,
-        "ret_3m_pct": -3.0,
+        "rsi": 53.9,
+        "pos52_pct": 59.7,
+        "ret_1m_pct": -4.5,
+        "ret_3m_pct": -6.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 27.4,
+        "pe_ratio": 27.0,
         "eps": 198.32,
-        "dividend_yield": 0.009114,
+        "dividend_yield": 0.009242,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3081,23 +3081,23 @@
           "summary": "Debt grew 70.6% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 5440.0
+      "cached_price": 5364.5
     },
     "PERSISTENT": {
       "ml": {
-        "ml_score": 68.1,
+        "ml_score": 67.2,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 73.0,
-        "pos52_pct": 48.6,
-        "ret_1m_pct": 13.5,
-        "ret_3m_pct": -12.8,
+        "rsi": 71.0,
+        "pos52_pct": 46.3,
+        "ret_1m_pct": 11.4,
+        "ret_3m_pct": -17.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 49.0,
+        "pe_ratio": 48.5,
         "eps": 110.77,
-        "dividend_yield": 0.00796,
+        "dividend_yield": 0.008034,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3130,23 +3130,23 @@
           "summary": "Debt grew 29.9% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 5427.1
+      "cached_price": 5377.4
     },
     "MPHASIS": {
       "ml": {
-        "ml_score": 47.5,
-        "prediction": "UNDERPERFORM",
+        "ml_score": 51.7,
+        "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.6,
-        "pos52_pct": 29.3,
-        "ret_1m_pct": 6.4,
-        "ret_3m_pct": -17.4,
+        "rsi": 54.0,
+        "pos52_pct": 28.2,
+        "ret_1m_pct": 5.2,
+        "ret_3m_pct": -19.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 24.6,
+        "pe_ratio": 24.5,
         "eps": 94.57,
-        "dividend_yield": 0.026011,
+        "dividend_yield": 0.02613,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3179,23 +3179,23 @@
           "summary": "Debt grew 77.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 2326.7
+      "cached_price": 2316.1
     },
     "COFORGE": {
       "ml": {
-        "ml_score": 66.1,
+        "ml_score": 65.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 58.3,
-        "pos52_pct": 16.7,
-        "ret_1m_pct": 4.8,
-        "ret_3m_pct": -25.9,
+        "rsi": 53.5,
+        "pos52_pct": 17.5,
+        "ret_1m_pct": 8.1,
+        "ret_3m_pct": -27.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 33.8,
+        "pe_ratio": 34.0,
         "eps": 36.18,
-        "dividend_yield": 0.018615,
+        "dividend_yield": 0.018509,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3228,23 +3228,23 @@
           "summary": "Debt reduced 9.2% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1224.3
+      "cached_price": 1231.3
     },
     "KPITTECH": {
       "ml": {
-        "ml_score": 52.0,
+        "ml_score": 50.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.8,
-        "pos52_pct": 10.8,
-        "ret_1m_pct": 4.0,
-        "ret_3m_pct": -37.0,
+        "rsi": 52.4,
+        "pos52_pct": 10.0,
+        "ret_1m_pct": 2.4,
+        "ret_3m_pct": -41.1,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 27.3,
+        "pe_ratio": 27.1,
         "eps": 26.23,
-        "dividend_yield": 0.010245,
+        "dividend_yield": 0.01034,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3277,23 +3277,23 @@
           "summary": "Debt grew 53.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 716.45
+      "cached_price": 709.85
     },
     "TVSMOTOR": {
       "ml": {
-        "ml_score": 54.3,
+        "ml_score": 58.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 56.3,
-        "pos52_pct": 93.6,
-        "ret_1m_pct": 6.2,
-        "ret_3m_pct": -0.3,
+        "rsi": 54.4,
+        "pos52_pct": 87.2,
+        "ret_1m_pct": -0.9,
+        "ret_3m_pct": -2.3,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 63.0,
+        "pe_ratio": 61.4,
         "eps": 60.93,
-        "dividend_yield": 0.003333,
+        "dividend_yield": 0.003424,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3326,23 +3326,23 @@
           "summary": "Debt grew 10.4% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 3839.9
+      "cached_price": 3738.1
     },
     "MOTHERSON": {
       "ml": {
-        "ml_score": 51.8,
+        "ml_score": 54.2,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 53.6,
-        "pos52_pct": 78.8,
-        "ret_1m_pct": 3.9,
-        "ret_3m_pct": 1.4,
+        "rsi": 55.0,
+        "pos52_pct": 73.7,
+        "ret_1m_pct": -3.2,
+        "ret_3m_pct": 0.1,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 37.8,
+        "pe_ratio": 36.9,
         "eps": 3.23,
-        "dividend_yield": 0.004257,
+        "dividend_yield": 0.004366,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3375,23 +3375,23 @@
           "summary": "Debt grew 14.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 122.16
+      "cached_price": 119.11
     },
     "BALKRISIND": {
       "ml": {
-        "ml_score": 43.7,
+        "ml_score": 43.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 61.0,
-        "pos52_pct": 31.8,
-        "ret_1m_pct": 1.2,
-        "ret_3m_pct": -4.8,
+        "rsi": 63.8,
+        "pos52_pct": 26.9,
+        "ret_1m_pct": -0.4,
+        "ret_3m_pct": -6.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 33.4,
+        "pe_ratio": 32.9,
         "eps": 67.87,
-        "dividend_yield": 0.005686,
+        "dividend_yield": 0.005774,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3424,23 +3424,23 @@
           "summary": "Debt grew 12.7% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2268.9
+      "cached_price": 2234.3
     },
     "APOLLOTYRE": {
       "ml": {
-        "ml_score": 62.0,
+        "ml_score": 61.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 55.3,
-        "pos52_pct": 33.4,
-        "ret_1m_pct": 1.8,
-        "ret_3m_pct": -15.1,
+        "rsi": 53.1,
+        "pos52_pct": 29.4,
+        "ret_1m_pct": -1.2,
+        "ret_3m_pct": -15.9,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 30.1,
+        "pe_ratio": 29.7,
         "eps": 14.58,
-        "dividend_yield": 0.009312,
+        "dividend_yield": 0.009436,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3473,21 +3473,21 @@
           "summary": "Debt grew 2.4% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 438.15
+      "cached_price": 432.4
     },
     "SIEMENS": {
       "ml": {
-        "ml_score": 52.9,
+        "ml_score": 53.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 42.4,
-        "pos52_pct": 95.7,
-        "ret_1m_pct": 4.9,
-        "ret_3m_pct": 8.3,
+        "rsi": 45.4,
+        "pos52_pct": 89.3,
+        "ret_1m_pct": 2.1,
+        "ret_3m_pct": 6.7,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 68.3,
+        "pe_ratio": 67.4,
         "eps": 49.63,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -3522,23 +3522,23 @@
           "summary": "Debt reduced 48.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 3388.5
+      "cached_price": 3343.5
     },
     "HAVELLS": {
       "ml": {
-        "ml_score": 42.5,
+        "ml_score": 43.8,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 41.9,
-        "pos52_pct": 21.4,
-        "ret_1m_pct": -3.7,
-        "ret_3m_pct": -14.4,
+        "rsi": 43.2,
+        "pos52_pct": 19.7,
+        "ret_1m_pct": -6.2,
+        "ret_3m_pct": -14.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 54.1,
+        "pe_ratio": 53.8,
         "eps": 23.7,
-        "dividend_yield": 0.00795,
+        "dividend_yield": 0.007999,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3571,23 +3571,23 @@
           "summary": "Debt reduced 10.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1281.7
+      "cached_price": 1273.9
     },
     "ABB": {
       "ml": {
-        "ml_score": 55.9,
+        "ml_score": 57.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.1,
-        "pos52_pct": 100.0,
-        "ret_1m_pct": 14.7,
-        "ret_3m_pct": 31.3,
+        "rsi": 46.3,
+        "pos52_pct": 98.6,
+        "ret_1m_pct": 9.7,
+        "ret_3m_pct": 28.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 87.1,
+        "pe_ratio": 86.7,
         "eps": 78.73,
-        "dividend_yield": 0.005739,
+        "dividend_yield": 0.005766,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3620,23 +3620,23 @@
           "summary": "Debt grew 63.5% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 6859.5
+      "cached_price": 6828.5
     },
     "CUMMINSIND": {
       "ml": {
-        "ml_score": 54.8,
+        "ml_score": 54.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 48.6,
-        "pos52_pct": 100.0,
-        "ret_1m_pct": 9.5,
-        "ret_3m_pct": 25.0,
+        "rsi": 47.6,
+        "pos52_pct": 94.0,
+        "ret_1m_pct": 5.8,
+        "ret_3m_pct": 20.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 63.5,
+        "pe_ratio": 61.7,
         "eps": 80.87,
-        "dividend_yield": 0.011174,
+        "dividend_yield": 0.011504,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3669,23 +3669,23 @@
           "summary": "Debt reduced 20.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 5138.7
+      "cached_price": 4991.4
     },
     "DLF": {
       "ml": {
-        "ml_score": 57.0,
+        "ml_score": 57.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.4,
-        "pos52_pct": 17.7,
-        "ret_1m_pct": -0.9,
-        "ret_3m_pct": -19.4,
+        "rsi": 48.1,
+        "pos52_pct": 17.4,
+        "ret_1m_pct": -2.8,
+        "ret_3m_pct": -19.2,
         "golden_cross": false
       },
       "valuation": {
         "pe_ratio": 31.8,
         "eps": 17.89,
-        "dividend_yield": 0.010674,
+        "dividend_yield": 0.010697,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3718,23 +3718,23 @@
           "summary": "Debt reduced 56.7% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 569.6
+      "cached_price": 568.4
     },
     "OBEROIRLTY": {
       "ml": {
-        "ml_score": 53.6,
+        "ml_score": 52.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
         "rsi": 50.0,
-        "pos52_pct": 45.6,
-        "ret_1m_pct": 13.8,
-        "ret_3m_pct": -3.0,
+        "pos52_pct": 48.0,
+        "ret_1m_pct": 12.8,
+        "ret_3m_pct": -1.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 27.2,
+        "pe_ratio": 27.4,
         "eps": 61.53,
-        "dividend_yield": 0.004786,
+        "dividend_yield": 0.004747,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3767,23 +3767,23 @@
           "summary": "Debt reduced 8.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1671.7
+      "cached_price": 1685.2
     },
     "RAMCOCEM": {
       "ml": {
-        "ml_score": 51.6,
-        "prediction": "OUTPERFORM",
+        "ml_score": 43.6,
+        "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 43.0,
-        "pos52_pct": 36.7,
-        "ret_1m_pct": -3.3,
-        "ret_3m_pct": -7.9,
+        "rsi": 41.8,
+        "pos52_pct": 37.9,
+        "ret_1m_pct": -0.8,
+        "ret_3m_pct": -7.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 40.7,
+        "pe_ratio": 40.9,
         "eps": 24.35,
-        "dividend_yield": 0.004177,
+        "dividend_yield": 0.00416,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3816,23 +3816,23 @@
           "summary": "Debt grew 0.5% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 991.2
+      "cached_price": 995.25
     },
     "FEDERALBNK": {
       "ml": {
-        "ml_score": 46.7,
+        "ml_score": 47.8,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.8,
-        "pos52_pct": 92.9,
-        "ret_1m_pct": 6.7,
-        "ret_3m_pct": 13.6,
+        "rsi": 56.0,
+        "pos52_pct": 89.8,
+        "ret_1m_pct": 4.4,
+        "ret_3m_pct": 11.5,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 17.5,
+        "pe_ratio": 17.3,
         "eps": 16.65,
-        "dividend_yield": 0.004011,
+        "dividend_yield": 0.00406,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3865,23 +3865,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 291.7
+      "cached_price": 288.2
     },
     "IDFCFIRSTB": {
       "ml": {
-        "ml_score": 52.4,
+        "ml_score": 52.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 38.4,
-        "pos52_pct": 33.3,
-        "ret_1m_pct": -0.8,
-        "ret_3m_pct": -21.9,
+        "rsi": 39.2,
+        "pos52_pct": 28.7,
+        "ret_1m_pct": -3.6,
+        "ret_3m_pct": -23.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 32.3,
+        "pe_ratio": 31.6,
         "eps": 2.05,
-        "dividend_yield": 0.003776,
+        "dividend_yield": 0.003854,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -3914,17 +3914,17 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 66.21
+      "cached_price": 64.86
     },
     "BANDHANBNK": {
       "ml": {
-        "ml_score": 32.1,
+        "ml_score": 34.0,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.7,
-        "pos52_pct": 62.2,
-        "ret_1m_pct": -3.5,
-        "ret_3m_pct": 13.8,
+        "rsi": 48.9,
+        "pos52_pct": 59.6,
+        "ret_1m_pct": -8.5,
+        "ret_3m_pct": 12.9,
         "golden_cross": true
       },
       "valuation": {
@@ -3963,21 +3963,21 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 168.07
+      "cached_price": 166.73
     },
     "AUBANK": {
       "ml": {
-        "ml_score": 49.8,
+        "ml_score": 49.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 56.7,
-        "pos52_pct": 90.3,
-        "ret_1m_pct": 5.4,
-        "ret_3m_pct": -2.7,
+        "rsi": 59.8,
+        "pos52_pct": 89.6,
+        "ret_1m_pct": 4.3,
+        "ret_3m_pct": -2.5,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 73.3,
+        "pe_ratio": 73.1,
         "eps": 13.4,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -4012,23 +4012,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 981.8
+      "cached_price": 979.05
     },
     "RBLBANK": {
       "ml": {
-        "ml_score": 41.0,
+        "ml_score": 40.6,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 57.9,
-        "pos52_pct": 93.7,
-        "ret_1m_pct": 8.1,
-        "ret_3m_pct": 0.6,
+        "rsi": 59.8,
+        "pos52_pct": 90.0,
+        "ret_1m_pct": 2.5,
+        "ret_3m_pct": -0.8,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 27.3,
+        "pe_ratio": 26.8,
         "eps": 11.78,
-        "dividend_yield": 0.002918,
+        "dividend_yield": 0.002974,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4061,23 +4061,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 322.15
+      "cached_price": 316.1
     },
     "INDIANB": {
       "ml": {
-        "ml_score": 70.8,
+        "ml_score": 72.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 51.0,
-        "pos52_pct": 95.0,
-        "ret_1m_pct": 7.7,
-        "ret_3m_pct": 12.3,
+        "rsi": 56.1,
+        "pos52_pct": 94.8,
+        "ret_1m_pct": 4.0,
+        "ret_3m_pct": 11.8,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 11.3,
         "eps": 85.47,
-        "dividend_yield": 0.016781,
+        "dividend_yield": 0.016803,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4110,23 +4110,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 967.75
+      "cached_price": 966.5
     },
     "MAHABANK": {
       "ml": {
-        "ml_score": 62.3,
+        "ml_score": 64.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.8,
-        "pos52_pct": 85.1,
-        "ret_1m_pct": 7.5,
-        "ret_3m_pct": 11.2,
+        "rsi": 58.1,
+        "pos52_pct": 83.8,
+        "ret_1m_pct": 2.0,
+        "ret_3m_pct": 12.4,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 8.4,
+        "pe_ratio": 8.3,
         "eps": 8.42,
-        "dividend_yield": 0.025074,
+        "dividend_yield": 0.025235,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4159,23 +4159,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 70.59
+      "cached_price": 70.14
     },
     "HDFCAMC": {
       "ml": {
-        "ml_score": 37.9,
+        "ml_score": 38.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 57.1,
-        "pos52_pct": 70.7,
-        "ret_1m_pct": 6.4,
-        "ret_3m_pct": -0.1,
+        "rsi": 56.7,
+        "pos52_pct": 64.1,
+        "ret_1m_pct": 0.4,
+        "ret_3m_pct": -3.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 39.0,
+        "pe_ratio": 37.9,
         "eps": 67.15,
-        "dividend_yield": 0.019998,
+        "dividend_yield": 0.020573,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4208,408 +4208,16 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2619.3
+      "cached_price": 2546.1
     },
     "ICICIGI": {
       "ml": {
-        "ml_score": 42.2,
+        "ml_score": 44.4,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.0,
-        "pos52_pct": 26.3,
-        "ret_1m_pct": -5.5,
-        "ret_3m_pct": -11.1,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": null,
-        "eps": NaN,
-        "dividend_yield": null,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "gradual decline",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Revenue 5Y CAGR of nan% \u2014 stable but limited growth."
-        },
-        "profit": {
-          "trend": "gradual decline",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Profit 5Y CAGR of nan% \u2014 margins holding steady."
-        },
-        "roce": {
-          "trend": "relatively flat",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "ROCE at nan% (5Y avg nan%) \u2014 capital efficiency stable."
-        },
-        "debt": {
-          "trend": "sharp increase",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
-        }
-      },
-      "cached_price": 1786.0
-    },
-    "SBICARD": {
-      "ml": {
-        "ml_score": 40.3,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 43.4,
-        "pos52_pct": 11.2,
+        "rsi": 46.1,
+        "pos52_pct": 25.3,
         "ret_1m_pct": -5.7,
-        "ret_3m_pct": -24.6,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": null,
-        "eps": NaN,
-        "dividend_yield": null,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "gradual decline",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Revenue 5Y CAGR of nan% \u2014 stable but limited growth."
-        },
-        "profit": {
-          "trend": "gradual decline",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Profit 5Y CAGR of nan% \u2014 margins holding steady."
-        },
-        "roce": {
-          "trend": "relatively flat",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "ROCE at nan% (5Y avg nan%) \u2014 capital efficiency stable."
-        },
-        "debt": {
-          "trend": "sharp increase",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
-        }
-      },
-      "cached_price": 677.5
-    },
-    "SUNDARMFIN": {
-      "ml": {
-        "ml_score": 62.0,
-        "prediction": "OUTPERFORM",
-        "accuracy": 58.1,
-        "rsi": 51.0,
-        "pos52_pct": 51.2,
-        "ret_1m_pct": -8.9,
-        "ret_3m_pct": -6.6,
-        "golden_cross": true
-      },
-      "valuation": {
-        "pe_ratio": 26.6,
-        "eps": 185.21,
-        "dividend_yield": 0.007884,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 12.4,
-          "summary": "Revenue 5Y CAGR of 12.4% \u2014 strong business growth."
-        },
-        "profit": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 11.0,
-          "summary": "Profit 5Y CAGR of 11.0% \u2014 earnings expanding well."
-        },
-        "roce": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 3.0,
-          "summary": "ROCE at 15.0% (5Y avg 14.6%) \u2014 improving capital efficiency."
-        },
-        "debt": {
-          "trend": "sharp increase",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
-        }
-      },
-      "cached_price": 4932.5
-    },
-    "TATAELXSI": {
-      "ml": {
-        "ml_score": 39.0,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 45.3,
-        "pos52_pct": 17.7,
-        "ret_1m_pct": 3.3,
-        "ret_3m_pct": -16.8,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": 271.4,
-        "eps": 16.38,
-        "dividend_yield": 0.001253,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 17.0,
-          "summary": "Revenue 5Y CAGR of 17.0% \u2014 strong business growth."
-        },
-        "profit": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 15.8,
-          "summary": "Profit 5Y CAGR of 15.8% \u2014 earnings expanding well."
-        },
-        "roce": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 32.0,
-          "summary": "ROCE at 60.0% (5Y avg 34.4%) \u2014 improving capital efficiency."
-        },
-        "debt": {
-          "trend": "sharp increase",
-          "quality": "bad",
-          "change_pct": 73.5,
-          "summary": "Debt grew 73.5% YoY \u2014 rising debt increases financial risk."
-        }
-      },
-      "cached_price": 4445.3
-    },
-    "LTTS": {
-      "ml": {
-        "ml_score": 49.6,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 59.2,
-        "pos52_pct": 22.9,
-        "ret_1m_pct": 10.7,
-        "ret_3m_pct": -19.9,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": 29.0,
-        "eps": 118.73,
-        "dividend_yield": 0.015848,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 16.6,
-          "summary": "Revenue 5Y CAGR of 16.6% \u2014 strong business growth."
-        },
-        "profit": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 13.6,
-          "summary": "Profit 5Y CAGR of 13.6% \u2014 earnings expanding well."
-        },
-        "roce": {
-          "trend": "gradual decline",
-          "quality": "bad",
-          "change_pct": -15.0,
-          "summary": "ROCE at 28.0% (5Y avg 31.2%) \u2014 declining returns on capital, monitor closely."
-        },
-        "debt": {
-          "trend": "gradual increase",
-          "quality": "neutral",
-          "change_pct": 9.0,
-          "summary": "Debt grew 9.0% YoY \u2014 debt levels stable."
-        }
-      },
-      "cached_price": 3446.5
-    },
-    "HAPPSTMNDS": {
-      "ml": {
-        "ml_score": 15.5,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 59.5,
-        "pos52_pct": 12.8,
-        "ret_1m_pct": 11.2,
-        "ret_3m_pct": -16.7,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": 31.1,
-        "eps": 12.18,
-        "dividend_yield": 0.01576,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 23.9,
-          "summary": "Revenue 5Y CAGR of 23.9% \u2014 strong business growth."
-        },
-        "profit": {
-          "trend": "relatively flat",
-          "quality": "neutral",
-          "change_pct": 2.7,
-          "summary": "Profit 5Y CAGR of 2.7% \u2014 margins holding steady."
-        },
-        "roce": {
-          "trend": "gradual decline",
-          "quality": "bad",
-          "change_pct": -28.0,
-          "summary": "ROCE at 15.0% (5Y avg 26.8%) \u2014 declining returns on capital, monitor closely."
-        },
-        "debt": {
-          "trend": "gradual increase",
-          "quality": "neutral",
-          "change_pct": 2.4,
-          "summary": "Debt grew 2.4% YoY \u2014 debt levels stable."
-        }
-      },
-      "cached_price": 378.8
-    },
-    "ZENSARTECH": {
-      "ml": {
-        "ml_score": 57.3,
-        "prediction": "OUTPERFORM",
-        "accuracy": 58.1,
-        "rsi": 43.3,
-        "pos52_pct": 12.1,
-        "ret_1m_pct": 2.3,
-        "ret_3m_pct": -20.4,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": 17.1,
-        "eps": 32.58,
-        "dividend_yield": 0.026329,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "gradual uptrend",
-          "quality": "neutral",
-          "change_pct": 8.2,
-          "summary": "Revenue 5Y CAGR of 8.2% \u2014 stable but limited growth."
-        },
-        "profit": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 19.2,
-          "summary": "Profit 5Y CAGR of 19.2% \u2014 earnings expanding well."
-        },
-        "roce": {
-          "trend": "gradual uptrend",
-          "quality": "good",
-          "change_pct": 4.0,
-          "summary": "ROCE at 21.0% (5Y avg 20.6%) \u2014 improving capital efficiency."
-        },
-        "debt": {
-          "trend": "gradual reduction",
-          "quality": "good",
-          "change_pct": -6.4,
-          "summary": "Debt reduced 6.4% YoY \u2014 balance sheet strengthening."
-        }
-      },
-      "cached_price": 556.8
-    },
-    "MANKIND": {
-      "ml": {
-        "ml_score": 42.5,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 41.2,
-        "pos52_pct": 19.7,
-        "ret_1m_pct": -3.9,
-        "ret_3m_pct": -7.2,
-        "golden_cross": false
-      },
-      "valuation": {
-        "pe_ratio": 48.2,
-        "eps": 43.11,
-        "dividend_yield": null,
-        "pb_ratio": null,
-        "profit_margin": null,
-        "revenue_growth": null,
-        "earnings_growth": null,
-        "debt_to_equity": null
-      },
-      "chart_insights": {
-        "revenue": {
-          "trend": "strong uptrend",
-          "quality": "good",
-          "change_pct": 17.5,
-          "summary": "Revenue 5Y CAGR of 17.5% \u2014 strong business growth."
-        },
-        "profit": {
-          "trend": "gradual uptrend",
-          "quality": "neutral",
-          "change_pct": 6.9,
-          "summary": "Profit 5Y CAGR of 6.9% \u2014 margins holding steady."
-        },
-        "roce": {
-          "trend": "relatively flat",
-          "quality": "neutral",
-          "change_pct": NaN,
-          "summary": "ROCE at 16.0% (5Y avg 26.6%) \u2014 capital efficiency stable."
-        },
-        "debt": {
-          "trend": "gradual reduction",
-          "quality": "good",
-          "change_pct": -1.7,
-          "summary": "Debt reduced 1.7% YoY \u2014 balance sheet strengthening."
-        }
-      },
-      "cached_price": 2079.0
-    },
-    "ABBOTINDIA": {
-      "ml": {
-        "ml_score": 46.9,
-        "prediction": "UNDERPERFORM",
-        "accuracy": 58.1,
-        "rsi": 58.5,
-        "pos52_pct": 3.0,
-        "ret_1m_pct": -5.2,
         "ret_3m_pct": -9.4,
         "golden_cross": false
       },
@@ -4649,23 +4257,415 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 25780.0
+      "cached_price": 1782.2
     },
-    "NATCOPHARM": {
+    "SBICARD": {
       "ml": {
-        "ml_score": 44.9,
+        "ml_score": 43.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 53.3,
-        "pos52_pct": 94.9,
-        "ret_1m_pct": 10.1,
-        "ret_3m_pct": 19.5,
+        "rsi": 43.7,
+        "pos52_pct": 9.5,
+        "ret_1m_pct": -6.0,
+        "ret_3m_pct": -24.0,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": null,
+        "eps": NaN,
+        "dividend_yield": null,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "gradual decline",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Revenue 5Y CAGR of nan% \u2014 stable but limited growth."
+        },
+        "profit": {
+          "trend": "gradual decline",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Profit 5Y CAGR of nan% \u2014 margins holding steady."
+        },
+        "roce": {
+          "trend": "relatively flat",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "ROCE at nan% (5Y avg nan%) \u2014 capital efficiency stable."
+        },
+        "debt": {
+          "trend": "sharp increase",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
+        }
+      },
+      "cached_price": 671.05
+    },
+    "SUNDARMFIN": {
+      "ml": {
+        "ml_score": 60.8,
+        "prediction": "OUTPERFORM",
+        "accuracy": 58.1,
+        "rsi": 48.2,
+        "pos52_pct": 41.4,
+        "ret_1m_pct": -12.0,
+        "ret_3m_pct": -9.3,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 12.7,
+        "pe_ratio": 25.9,
+        "eps": 185.21,
+        "dividend_yield": 0.008096,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 12.4,
+          "summary": "Revenue 5Y CAGR of 12.4% \u2014 strong business growth."
+        },
+        "profit": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 11.0,
+          "summary": "Profit 5Y CAGR of 11.0% \u2014 earnings expanding well."
+        },
+        "roce": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 3.0,
+          "summary": "ROCE at 15.0% (5Y avg 14.6%) \u2014 improving capital efficiency."
+        },
+        "debt": {
+          "trend": "sharp increase",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
+        }
+      },
+      "cached_price": 4803.5
+    },
+    "TATAELXSI": {
+      "ml": {
+        "ml_score": 38.5,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 47.7,
+        "pos52_pct": 16.4,
+        "ret_1m_pct": 1.3,
+        "ret_3m_pct": -24.6,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": 269.3,
+        "eps": 16.38,
+        "dividend_yield": 0.001263,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 17.0,
+          "summary": "Revenue 5Y CAGR of 17.0% \u2014 strong business growth."
+        },
+        "profit": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 15.8,
+          "summary": "Profit 5Y CAGR of 15.8% \u2014 earnings expanding well."
+        },
+        "roce": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 32.0,
+          "summary": "ROCE at 60.0% (5Y avg 34.4%) \u2014 improving capital efficiency."
+        },
+        "debt": {
+          "trend": "sharp increase",
+          "quality": "bad",
+          "change_pct": 73.5,
+          "summary": "Debt grew 73.5% YoY \u2014 rising debt increases financial risk."
+        }
+      },
+      "cached_price": 4411.4
+    },
+    "LTTS": {
+      "ml": {
+        "ml_score": 49.4,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 59.5,
+        "pos52_pct": 17.3,
+        "ret_1m_pct": 6.5,
+        "ret_3m_pct": -23.6,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": 28.3,
+        "eps": 118.73,
+        "dividend_yield": 0.016275,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 16.6,
+          "summary": "Revenue 5Y CAGR of 16.6% \u2014 strong business growth."
+        },
+        "profit": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 13.6,
+          "summary": "Profit 5Y CAGR of 13.6% \u2014 earnings expanding well."
+        },
+        "roce": {
+          "trend": "gradual decline",
+          "quality": "bad",
+          "change_pct": -15.0,
+          "summary": "ROCE at 28.0% (5Y avg 31.2%) \u2014 declining returns on capital, monitor closely."
+        },
+        "debt": {
+          "trend": "gradual increase",
+          "quality": "neutral",
+          "change_pct": 9.0,
+          "summary": "Debt grew 9.0% YoY \u2014 debt levels stable."
+        }
+      },
+      "cached_price": 3356.1
+    },
+    "HAPPSTMNDS": {
+      "ml": {
+        "ml_score": 19.4,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 64.0,
+        "pos52_pct": 11.2,
+        "ret_1m_pct": -6.7,
+        "ret_3m_pct": -19.3,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": 30.7,
+        "eps": 12.18,
+        "dividend_yield": 0.015973,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 23.9,
+          "summary": "Revenue 5Y CAGR of 23.9% \u2014 strong business growth."
+        },
+        "profit": {
+          "trend": "relatively flat",
+          "quality": "neutral",
+          "change_pct": 2.7,
+          "summary": "Profit 5Y CAGR of 2.7% \u2014 margins holding steady."
+        },
+        "roce": {
+          "trend": "gradual decline",
+          "quality": "bad",
+          "change_pct": -28.0,
+          "summary": "ROCE at 15.0% (5Y avg 26.8%) \u2014 declining returns on capital, monitor closely."
+        },
+        "debt": {
+          "trend": "gradual increase",
+          "quality": "neutral",
+          "change_pct": 2.4,
+          "summary": "Debt grew 2.4% YoY \u2014 debt levels stable."
+        }
+      },
+      "cached_price": 373.75
+    },
+    "ZENSARTECH": {
+      "ml": {
+        "ml_score": 59.6,
+        "prediction": "OUTPERFORM",
+        "accuracy": 58.1,
+        "rsi": 42.4,
+        "pos52_pct": 10.0,
+        "ret_1m_pct": -2.1,
+        "ret_3m_pct": -21.7,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": 16.9,
+        "eps": 32.58,
+        "dividend_yield": 0.026669,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "gradual uptrend",
+          "quality": "neutral",
+          "change_pct": 8.2,
+          "summary": "Revenue 5Y CAGR of 8.2% \u2014 stable but limited growth."
+        },
+        "profit": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 19.2,
+          "summary": "Profit 5Y CAGR of 19.2% \u2014 earnings expanding well."
+        },
+        "roce": {
+          "trend": "gradual uptrend",
+          "quality": "good",
+          "change_pct": 4.0,
+          "summary": "ROCE at 21.0% (5Y avg 20.6%) \u2014 improving capital efficiency."
+        },
+        "debt": {
+          "trend": "gradual reduction",
+          "quality": "good",
+          "change_pct": -6.4,
+          "summary": "Debt reduced 6.4% YoY \u2014 balance sheet strengthening."
+        }
+      },
+      "cached_price": 549.7
+    },
+    "MANKIND": {
+      "ml": {
+        "ml_score": 45.9,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 43.6,
+        "pos52_pct": 19.5,
+        "ret_1m_pct": -7.2,
+        "ret_3m_pct": -10.1,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": 48.2,
+        "eps": 43.11,
+        "dividend_yield": null,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "strong uptrend",
+          "quality": "good",
+          "change_pct": 17.5,
+          "summary": "Revenue 5Y CAGR of 17.5% \u2014 strong business growth."
+        },
+        "profit": {
+          "trend": "gradual uptrend",
+          "quality": "neutral",
+          "change_pct": 6.9,
+          "summary": "Profit 5Y CAGR of 6.9% \u2014 margins holding steady."
+        },
+        "roce": {
+          "trend": "relatively flat",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "ROCE at 16.0% (5Y avg 26.6%) \u2014 capital efficiency stable."
+        },
+        "debt": {
+          "trend": "gradual reduction",
+          "quality": "good",
+          "change_pct": -1.7,
+          "summary": "Debt reduced 1.7% YoY \u2014 balance sheet strengthening."
+        }
+      },
+      "cached_price": 2077.4
+    },
+    "ABBOTINDIA": {
+      "ml": {
+        "ml_score": 45.4,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 58.6,
+        "pos52_pct": 2.5,
+        "ret_1m_pct": -4.0,
+        "ret_3m_pct": -9.7,
+        "golden_cross": false
+      },
+      "valuation": {
+        "pe_ratio": null,
+        "eps": NaN,
+        "dividend_yield": null,
+        "pb_ratio": null,
+        "profit_margin": null,
+        "revenue_growth": null,
+        "earnings_growth": null,
+        "debt_to_equity": null
+      },
+      "chart_insights": {
+        "revenue": {
+          "trend": "gradual decline",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Revenue 5Y CAGR of nan% \u2014 stable but limited growth."
+        },
+        "profit": {
+          "trend": "gradual decline",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Profit 5Y CAGR of nan% \u2014 margins holding steady."
+        },
+        "roce": {
+          "trend": "relatively flat",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "ROCE at nan% (5Y avg nan%) \u2014 capital efficiency stable."
+        },
+        "debt": {
+          "trend": "sharp increase",
+          "quality": "neutral",
+          "change_pct": NaN,
+          "summary": "Debt grew nan% YoY \u2014 debt levels stable."
+        }
+      },
+      "cached_price": 25725.0
+    },
+    "NATCOPHARM": {
+      "ml": {
+        "ml_score": 45.4,
+        "prediction": "UNDERPERFORM",
+        "accuracy": 58.1,
+        "rsi": 52.0,
+        "pos52_pct": 87.8,
+        "ret_1m_pct": 3.7,
+        "ret_3m_pct": 14.1,
+        "golden_cross": true
+      },
+      "valuation": {
+        "pe_ratio": 12.4,
         "eps": 86.94,
-        "dividend_yield": 0.004727,
+        "dividend_yield": 0.004846,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4698,23 +4698,23 @@
           "summary": "Debt reduced 6.5% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1104.2
+      "cached_price": 1077.25
     },
     "GRANULES": {
       "ml": {
-        "ml_score": 43.8,
+        "ml_score": 43.4,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 70.3,
-        "pos52_pct": 94.2,
-        "ret_1m_pct": 13.0,
-        "ret_3m_pct": 3.2,
+        "rsi": 67.4,
+        "pos52_pct": 94.5,
+        "ret_1m_pct": 8.8,
+        "ret_3m_pct": 3.5,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 28.1,
         "eps": 22.48,
-        "dividend_yield": 0.002484,
+        "dividend_yield": 0.002483,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4747,23 +4747,23 @@
           "summary": "Debt grew 24.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 631.95
+      "cached_price": 632.4
     },
     "GLENMARK": {
       "ml": {
-        "ml_score": 52.3,
+        "ml_score": 53.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 48.2,
-        "pos52_pct": 88.3,
-        "ret_1m_pct": 2.2,
-        "ret_3m_pct": 4.3,
+        "rsi": 47.3,
+        "pos52_pct": 91.5,
+        "ret_1m_pct": -1.5,
+        "ret_3m_pct": 3.8,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 57.3,
+        "pe_ratio": 58.1,
         "eps": 37.74,
-        "dividend_yield": 0.00122,
+        "dividend_yield": 0.001204,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4796,23 +4796,23 @@
           "summary": "Debt reduced 50.5% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 2163.2
+      "cached_price": 2193.1
     },
     "IPCALAB": {
       "ml": {
-        "ml_score": 35.3,
+        "ml_score": 36.5,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 22.8,
-        "pos52_pct": 56.4,
-        "ret_1m_pct": -3.1,
-        "ret_3m_pct": -0.9,
+        "rsi": 24.4,
+        "pos52_pct": 54.8,
+        "ret_1m_pct": -2.7,
+        "ret_3m_pct": -4.2,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 40.6,
+        "pe_ratio": 40.5,
         "eps": 35.86,
-        "dividend_yield": 0.003447,
+        "dividend_yield": 0.00346,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4845,23 +4845,23 @@
           "summary": "Debt reduced 6.2% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1456.2
+      "cached_price": 1451.0
     },
     "MAXHEALTH": {
       "ml": {
-        "ml_score": 80.3,
+        "ml_score": 80.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.2,
-        "pos52_pct": 5.9,
-        "ret_1m_pct": -8.5,
-        "ret_3m_pct": -9.3,
+        "rsi": 51.3,
+        "pos52_pct": 5.5,
+        "ret_1m_pct": -8.8,
+        "ret_3m_pct": -8.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 65.3,
+        "pe_ratio": 65.2,
         "eps": 14.59,
-        "dividend_yield": 0.00214,
+        "dividend_yield": 0.002144,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4894,23 +4894,23 @@
           "summary": "Debt grew 8.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 953.35
+      "cached_price": 951.7
     },
     "RADICO": {
       "ml": {
-        "ml_score": 73.3,
+        "ml_score": 70.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 56.0,
-        "pos52_pct": 48.4,
-        "ret_1m_pct": 1.5,
-        "ret_3m_pct": -10.7,
+        "rsi": 51.6,
+        "pos52_pct": 49.8,
+        "ret_1m_pct": 1.6,
+        "ret_3m_pct": -12.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 72.3,
+        "pe_ratio": 72.7,
         "eps": 38.62,
-        "dividend_yield": 0.002073,
+        "dividend_yield": 0.002062,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4943,23 +4943,23 @@
           "summary": "Debt reduced 16.8% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 2792.7
+      "cached_price": 2807.7
     },
     "UBL": {
       "ml": {
-        "ml_score": 43.4,
+        "ml_score": 43.6,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.2,
-        "pos52_pct": 3.8,
-        "ret_1m_pct": -15.5,
-        "ret_3m_pct": -8.6,
+        "rsi": 47.6,
+        "pos52_pct": 4.7,
+        "ret_1m_pct": -13.9,
+        "ret_3m_pct": -7.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 94.1,
+        "pe_ratio": 94.5,
         "eps": 15.46,
-        "dividend_yield": 0.006382,
+        "dividend_yield": 0.006349,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -4992,23 +4992,23 @@
           "summary": "Debt grew 25.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1454.2
+      "cached_price": 1461.7
     },
     "VBL": {
       "ml": {
-        "ml_score": 50.9,
-        "prediction": "OUTPERFORM",
+        "ml_score": 49.6,
+        "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 56.5,
-        "pos52_pct": 28.8,
-        "ret_1m_pct": -1.3,
-        "ret_3m_pct": -13.4,
+        "rsi": 59.7,
+        "pos52_pct": 28.2,
+        "ret_1m_pct": -1.2,
+        "ret_3m_pct": -15.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 48.1,
+        "pe_ratio": 48.0,
         "eps": 8.98,
-        "dividend_yield": 0.003545,
+        "dividend_yield": 0.003553,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5041,23 +5041,23 @@
           "summary": "Debt reduced 11.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 431.6
+      "cached_price": 430.6
     },
     "BIKAJI": {
       "ml": {
-        "ml_score": 45.1,
+        "ml_score": 45.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 43.1,
-        "pos52_pct": 18.8,
-        "ret_1m_pct": 5.7,
-        "ret_3m_pct": -10.0,
+        "rsi": 48.1,
+        "pos52_pct": 17.3,
+        "ret_1m_pct": 3.6,
+        "ret_3m_pct": -11.4,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 65.2,
+        "pe_ratio": 64.9,
         "eps": 9.83,
-        "dividend_yield": 0.001842,
+        "dividend_yield": 0.00185,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5090,23 +5090,23 @@
           "summary": "Debt grew 34.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 640.6
+      "cached_price": 637.75
     },
     "ZYDUSWELL": {
       "ml": {
-        "ml_score": 40.6,
+        "ml_score": 35.3,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 54.6,
-        "pos52_pct": 81.7,
-        "ret_1m_pct": 31.1,
-        "ret_3m_pct": 2.4,
+        "rsi": 57.8,
+        "pos52_pct": 96.6,
+        "ret_1m_pct": 36.7,
+        "ret_3m_pct": 9.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 75.2,
+        "pe_ratio": 79.5,
         "eps": 6.51,
-        "dividend_yield": 0.00147,
+        "dividend_yield": 0.00139,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5139,23 +5139,23 @@
           "summary": "Debt grew 1518.1% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 489.75
+      "cached_price": 517.8
     },
     "ASHOKLEY": {
       "ml": {
-        "ml_score": 41.6,
+        "ml_score": 46.8,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.8,
-        "pos52_pct": 70.6,
-        "ret_1m_pct": -4.8,
-        "ret_3m_pct": -4.4,
+        "rsi": 49.6,
+        "pos52_pct": 65.5,
+        "ret_1m_pct": -11.1,
+        "ret_3m_pct": -7.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 31.6,
+        "pe_ratio": 30.6,
         "eps": 5.63,
-        "dividend_yield": 0.01865,
+        "dividend_yield": 0.019296,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5188,23 +5188,23 @@
           "summary": "Debt grew 9.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 178.02
+      "cached_price": 172.06
     },
     "BOSCHLTD": {
       "ml": {
-        "ml_score": 36.2,
+        "ml_score": 36.1,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 58.0,
-        "pos52_pct": 73.4,
-        "ret_1m_pct": 18.1,
-        "ret_3m_pct": -4.2,
+        "rsi": 60.0,
+        "pos52_pct": 68.8,
+        "ret_1m_pct": 14.1,
+        "ret_3m_pct": -6.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 39.9,
+        "pe_ratio": 39.2,
         "eps": 934.68,
-        "dividend_yield": 0.018779,
+        "dividend_yield": 0.019145,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5237,23 +5237,23 @@
           "summary": "Debt reduced 7.6% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 37330.0
+      "cached_price": 36615.0
     },
     "TIINDIA": {
       "ml": {
-        "ml_score": 52.0,
+        "ml_score": 50.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.1,
-        "pos52_pct": 45.9,
-        "ret_1m_pct": 5.2,
-        "ret_3m_pct": 7.8,
+        "rsi": 50.4,
+        "pos52_pct": 43.5,
+        "ret_1m_pct": 2.7,
+        "ret_3m_pct": 7.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 88.8,
+        "pe_ratio": 87.9,
         "eps": 30.9,
-        "dividend_yield": 0.001126,
+        "dividend_yield": 0.001138,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5286,23 +5286,23 @@
           "summary": "Debt grew 0.3% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 2744.8
+      "cached_price": 2715.5
     },
     "ENDURANCE": {
       "ml": {
-        "ml_score": 54.1,
+        "ml_score": 54.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.8,
-        "pos52_pct": 51.2,
-        "ret_1m_pct": 0.4,
-        "ret_3m_pct": -5.3,
+        "rsi": 48.5,
+        "pos52_pct": 47.9,
+        "ret_1m_pct": -3.3,
+        "ret_3m_pct": -8.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 37.2,
+        "pe_ratio": 36.5,
         "eps": 65.44,
-        "dividend_yield": 0.00457,
+        "dividend_yield": 0.004649,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5335,23 +5335,23 @@
           "summary": "Debt grew 30.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 2433.0
+      "cached_price": 2391.8
     },
     "SUNDRMFAST": {
       "ml": {
-        "ml_score": 48.6,
+        "ml_score": 49.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.4,
-        "pos52_pct": 16.9,
-        "ret_1m_pct": -3.8,
-        "ret_3m_pct": -14.5,
+        "rsi": 47.9,
+        "pos52_pct": 13.3,
+        "ret_1m_pct": -6.2,
+        "ret_3m_pct": -16.9,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 30.4,
+        "pe_ratio": 30.0,
         "eps": 26.37,
-        "dividend_yield": 0.009193,
+        "dividend_yield": 0.009328,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5384,23 +5384,23 @@
           "summary": "Debt reduced 10.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 802.75
+      "cached_price": 791.2
     },
     "SCHAEFFLER": {
       "ml": {
-        "ml_score": 41.8,
+        "ml_score": 42.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.4,
-        "pos52_pct": 67.7,
-        "ret_1m_pct": -6.4,
-        "ret_3m_pct": 3.2,
+        "rsi": 47.1,
+        "pos52_pct": 65.7,
+        "ret_1m_pct": -6.9,
+        "ret_3m_pct": 2.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 53.1,
+        "pe_ratio": 52.7,
         "eps": 73.6,
-        "dividend_yield": 0.009046,
+        "dividend_yield": 0.009112,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5433,16 +5433,16 @@
           "summary": "Debt reduced 1.8% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 3905.5
+      "cached_price": 3877.5
     },
     "ADANIGREEN": {
       "ml": {
-        "ml_score": 58.2,
+        "ml_score": 57.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.2,
+        "rsi": 47.6,
         "pos52_pct": 82.4,
-        "ret_1m_pct": 27.1,
+        "ret_1m_pct": 26.7,
         "ret_3m_pct": 6.5,
         "golden_cross": false
       },
@@ -5482,21 +5482,21 @@
           "summary": "Debt grew 10.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1085.35
+      "cached_price": 1085.45
     },
     "ADANIPOWER": {
       "ml": {
-        "ml_score": 63.1,
+        "ml_score": 67.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.7,
+        "rsi": 47.8,
         "pos52_pct": 100.0,
-        "ret_1m_pct": 26.4,
-        "ret_3m_pct": 19.2,
+        "ret_1m_pct": 30.5,
+        "ret_3m_pct": 23.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 29.5,
+        "pe_ratio": 30.5,
         "eps": 5.95,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -5531,23 +5531,23 @@
           "summary": "Debt grew 22.7% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 175.81
+      "cached_price": 181.35
     },
     "TORNTPOWER": {
       "ml": {
-        "ml_score": 48.5,
+        "ml_score": 49.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 43.4,
-        "pos52_pct": 68.7,
-        "ret_1m_pct": 3.0,
-        "ret_3m_pct": 5.5,
+        "rsi": 42.4,
+        "pos52_pct": 69.1,
+        "ret_1m_pct": 1.5,
+        "ret_3m_pct": 6.6,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 23.5,
         "eps": 62.67,
-        "dividend_yield": 0.013623,
+        "dividend_yield": 0.013606,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5580,23 +5580,23 @@
           "summary": "Debt grew 18.0% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1471.8
+      "cached_price": 1473.6
     },
     "CESC": {
       "ml": {
-        "ml_score": 53.8,
+        "ml_score": 55.8,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 43.5,
-        "pos52_pct": 41.1,
-        "ret_1m_pct": 4.9,
-        "ret_3m_pct": -7.8,
+        "rsi": 48.8,
+        "pos52_pct": 49.0,
+        "ret_1m_pct": 4.1,
+        "ret_3m_pct": -6.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 14.2,
+        "pe_ratio": 14.5,
         "eps": 11.11,
-        "dividend_yield": 0.031044,
+        "dividend_yield": 0.030405,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5629,23 +5629,23 @@
           "summary": "Debt grew 4.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 157.52
+      "cached_price": 160.83
     },
     "NHPC": {
       "ml": {
-        "ml_score": 50.3,
+        "ml_score": 50.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 47.4,
-        "pos52_pct": 29.4,
-        "ret_1m_pct": 5.5,
-        "ret_3m_pct": -6.0,
+        "rsi": 47.8,
+        "pos52_pct": 32.8,
+        "ret_1m_pct": 6.3,
+        "ret_3m_pct": -5.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 24.5,
+        "pe_ratio": 24.7,
         "eps": 3.15,
-        "dividend_yield": 0.026203,
+        "dividend_yield": 0.026011,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5678,23 +5678,23 @@
           "summary": "Debt grew 13.6% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 77.09
+      "cached_price": 77.66
     },
     "SJVN": {
       "ml": {
-        "ml_score": 44.6,
+        "ml_score": 43.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 39.6,
-        "pos52_pct": 22.1,
-        "ret_1m_pct": 4.6,
-        "ret_3m_pct": -13.1,
+        "rsi": 37.6,
+        "pos52_pct": 22.9,
+        "ret_1m_pct": 3.8,
+        "ret_3m_pct": -11.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 44.8,
+        "pe_ratio": 45.0,
         "eps": 1.61,
-        "dividend_yield": 0.015662,
+        "dividend_yield": 0.015588,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5727,23 +5727,23 @@
           "summary": "Debt grew 9.4% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 72.15
+      "cached_price": 72.49
     },
     "HINDPETRO": {
       "ml": {
-        "ml_score": 59.2,
+        "ml_score": 59.7,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.8,
-        "pos52_pct": 23.0,
-        "ret_1m_pct": -6.2,
-        "ret_3m_pct": -25.2,
+        "rsi": 46.7,
+        "pos52_pct": 16.8,
+        "ret_1m_pct": -9.8,
+        "ret_3m_pct": -26.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 5.0,
+        "pe_ratio": 4.8,
         "eps": 72.36,
-        "dividend_yield": 0.066223,
+        "dividend_yield": 0.068346,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5776,23 +5776,23 @@
           "summary": "Debt reduced 10.6% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 360.6
+      "cached_price": 349.4
     },
     "GAIL": {
       "ml": {
-        "ml_score": 42.5,
+        "ml_score": 38.1,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.2,
-        "pos52_pct": 32.5,
-        "ret_1m_pct": 3.4,
-        "ret_3m_pct": -6.2,
+        "rsi": 43.3,
+        "pos52_pct": 31.8,
+        "ret_1m_pct": 2.3,
+        "ret_3m_pct": -5.9,
         "golden_cross": false
       },
       "valuation": {
         "pe_ratio": 11.8,
         "eps": 13.06,
-        "dividend_yield": 0.033879,
+        "dividend_yield": 0.03396,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5825,23 +5825,23 @@
           "summary": "Debt grew 3.9% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 154.08
+      "cached_price": 153.71
     },
     "AMBUJACEM": {
       "ml": {
-        "ml_score": 54.4,
+        "ml_score": 56.3,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 49.5,
-        "pos52_pct": 22.1,
-        "ret_1m_pct": -1.5,
-        "ret_3m_pct": -21.0,
+        "rsi": 53.3,
+        "pos52_pct": 20.3,
+        "ret_1m_pct": -4.6,
+        "ret_3m_pct": -21.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 29.2,
+        "pe_ratio": 29.0,
         "eps": 15.23,
-        "dividend_yield": 0.004111,
+        "dividend_yield": 0.00415,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5874,23 +5874,23 @@
           "summary": "Debt grew 61.3% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 445.2
+      "cached_price": 441.0
     },
     "ACC": {
       "ml": {
-        "ml_score": 52.3,
+        "ml_score": 54.9,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.2,
-        "pos52_pct": 20.6,
-        "ret_1m_pct": -1.8,
-        "ret_3m_pct": -18.7,
+        "rsi": 53.8,
+        "pos52_pct": 18.9,
+        "ret_1m_pct": -4.3,
+        "ret_3m_pct": -19.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 10.1,
+        "pe_ratio": 10.0,
         "eps": 141.1,
-        "dividend_yield": 0.005946,
+        "dividend_yield": 0.006005,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5923,23 +5923,23 @@
           "summary": "Debt grew 12.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1424.6
+      "cached_price": 1410.5
     },
     "JKCEMENT": {
       "ml": {
-        "ml_score": 58.1,
+        "ml_score": 61.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 70.8,
-        "pos52_pct": 33.9,
-        "ret_1m_pct": 13.1,
-        "ret_3m_pct": -0.5,
+        "rsi": 62.1,
+        "pos52_pct": 24.1,
+        "ret_1m_pct": 7.5,
+        "ret_3m_pct": -8.8,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 43.3,
+        "pe_ratio": 41.3,
         "eps": 132.01,
-        "dividend_yield": 0.003,
+        "dividend_yield": 0.003147,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -5972,23 +5972,23 @@
           "summary": "Debt grew 8.0% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 5719.5
+      "cached_price": 5452.0
     },
     "IRB": {
       "ml": {
-        "ml_score": 60.9,
+        "ml_score": 59.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 60.4,
-        "pos52_pct": 31.4,
-        "ret_1m_pct": 7.1,
-        "ret_3m_pct": 3.6,
+        "rsi": 63.6,
+        "pos52_pct": 27.4,
+        "ret_1m_pct": 2.0,
+        "ret_3m_pct": 1.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 33.8,
+        "pe_ratio": 33.4,
         "eps": 0.64,
-        "dividend_yield": 0.000923,
+        "dividend_yield": 0.000935,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6021,23 +6021,23 @@
           "summary": "Debt grew 1.2% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 21.66
+      "cached_price": 21.38
     },
     "KNRCON": {
       "ml": {
-        "ml_score": 48.7,
+        "ml_score": 48.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 59.9,
-        "pos52_pct": 6.8,
-        "ret_1m_pct": -1.5,
-        "ret_3m_pct": -22.2,
+        "rsi": 62.2,
+        "pos52_pct": 6.6,
+        "ret_1m_pct": -4.1,
+        "ret_3m_pct": -22.7,
         "golden_cross": false
       },
       "valuation": {
         "pe_ratio": 7.1,
         "eps": 16.72,
-        "dividend_yield": 0.001433,
+        "dividend_yield": 0.001437,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6070,23 +6070,23 @@
           "summary": "Debt grew 25.5% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 118.66
+      "cached_price": 118.3
     },
     "NMDC": {
       "ml": {
-        "ml_score": 44.1,
+        "ml_score": 44.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.5,
+        "rsi": 47.4,
         "pos52_pct": 100.0,
-        "ret_1m_pct": 7.5,
-        "ret_3m_pct": 4.5,
+        "ret_1m_pct": 7.7,
+        "ret_3m_pct": 2.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 10.8,
+        "pe_ratio": 10.9,
         "eps": 7.85,
-        "dividend_yield": 0.040555,
+        "dividend_yield": 0.040205,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6119,23 +6119,23 @@
           "summary": "Debt reduced 14.9% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 85.07
+      "cached_price": 85.81
     },
     "SAIL": {
       "ml": {
-        "ml_score": 35.0,
+        "ml_score": 33.0,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.2,
+        "rsi": 44.9,
         "pos52_pct": 100.0,
-        "ret_1m_pct": 11.0,
-        "ret_3m_pct": 13.4,
+        "ret_1m_pct": 12.0,
+        "ret_3m_pct": 11.6,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 24.6,
+        "pe_ratio": 24.9,
         "eps": 6.75,
-        "dividend_yield": 0.011384,
+        "dividend_yield": 0.011258,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6168,23 +6168,23 @@
           "summary": "Debt reduced 8.9% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 166.02
+      "cached_price": 167.88
     },
     "NATIONALUM": {
       "ml": {
         "ml_score": 45.9,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 40.9,
-        "pos52_pct": 97.7,
-        "ret_1m_pct": 7.4,
-        "ret_3m_pct": 21.8,
+        "rsi": 37.0,
+        "pos52_pct": 98.1,
+        "ret_1m_pct": 7.5,
+        "ret_3m_pct": 20.0,
         "golden_cross": true
       },
       "valuation": {
         "pe_ratio": 12.5,
         "eps": 33.45,
-        "dividend_yield": 0.029688,
+        "dividend_yield": 0.029614,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6217,23 +6217,23 @@
           "summary": "Debt reduced 69.2% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 417.0
+      "cached_price": 418.05
     },
     "MOIL": {
       "ml": {
-        "ml_score": 59.6,
+        "ml_score": 55.6,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 65.6,
-        "pos52_pct": 41.3,
-        "ret_1m_pct": 8.9,
-        "ret_3m_pct": -18.8,
+        "rsi": 68.5,
+        "pos52_pct": 41.0,
+        "ret_1m_pct": 10.3,
+        "ret_3m_pct": -17.9,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 98.0,
+        "pe_ratio": 97.9,
         "eps": 3.12,
-        "dividend_yield": 0.005823,
+        "dividend_yield": 0.005829,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6266,23 +6266,23 @@
           "summary": "Debt grew nan% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 305.7
+      "cached_price": 305.35
     },
     "WELCORP": {
       "ml": {
-        "ml_score": 62.8,
+        "ml_score": 69.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.4,
-        "pos52_pct": 98.4,
-        "ret_1m_pct": 23.3,
-        "ret_3m_pct": 22.0,
+        "rsi": 54.1,
+        "pos52_pct": 100.0,
+        "ret_1m_pct": 23.9,
+        "ret_3m_pct": 27.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 13.0,
+        "pe_ratio": 13.6,
         "eps": 73.77,
-        "dividend_yield": 0.005365,
+        "dividend_yield": 0.005132,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6315,21 +6315,21 @@
           "summary": "Debt grew 37.7% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 961.8
+      "cached_price": 1005.5
     },
     "GODREJPROP": {
       "ml": {
-        "ml_score": 73.0,
+        "ml_score": 72.4,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 50.6,
-        "pos52_pct": 24.6,
-        "ret_1m_pct": 4.3,
-        "ret_3m_pct": -19.3,
+        "rsi": 52.2,
+        "pos52_pct": 23.6,
+        "ret_1m_pct": 1.9,
+        "ret_3m_pct": -20.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 32.7,
+        "pe_ratio": 32.5,
         "eps": 52.53,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -6364,23 +6364,23 @@
           "summary": "Debt grew 29.1% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1716.5
+      "cached_price": 1706.8
     },
     "BRIGADE": {
       "ml": {
-        "ml_score": 65.7,
+        "ml_score": 66.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.6,
-        "pos52_pct": 13.8,
-        "ret_1m_pct": 9.1,
-        "ret_3m_pct": -18.9,
+        "rsi": 43.6,
+        "pos52_pct": 17.3,
+        "ret_1m_pct": 11.0,
+        "ret_3m_pct": -16.0,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 23.7,
+        "pe_ratio": 24.4,
         "eps": 30.51,
-        "dividend_yield": 0.003803,
+        "dividend_yield": 0.00369,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6413,23 +6413,23 @@
           "summary": "Debt reduced 1.6% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 723.2
+      "cached_price": 745.3
     },
     "SOBHA": {
       "ml": {
-        "ml_score": 45.1,
+        "ml_score": 45.2,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 42.6,
-        "pos52_pct": 34.1,
-        "ret_1m_pct": 1.2,
-        "ret_3m_pct": -16.1,
+        "rsi": 47.1,
+        "pos52_pct": 33.6,
+        "ret_1m_pct": -2.2,
+        "ret_3m_pct": -15.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 97.7,
+        "pe_ratio": 97.4,
         "eps": 13.31,
-        "dividend_yield": 0.003485,
+        "dividend_yield": 0.003493,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6462,23 +6462,23 @@
           "summary": "Debt reduced 10.2% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 1299.9
+      "cached_price": 1297.0
     },
     "PRESTIGE": {
       "ml": {
-        "ml_score": 59.4,
+        "ml_score": 60.5,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 45.1,
-        "pos52_pct": 35.3,
-        "ret_1m_pct": 1.4,
-        "ret_3m_pct": -20.0,
+        "rsi": 45.0,
+        "pos52_pct": 32.9,
+        "ret_1m_pct": -0.2,
+        "ret_3m_pct": -19.5,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 58.7,
+        "pe_ratio": 57.9,
         "eps": 22.53,
-        "dividend_yield": 0.002896,
+        "dividend_yield": 0.002936,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6511,23 +6511,23 @@
           "summary": "Debt grew 10.1% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1322.4
+      "cached_price": 1304.5
     },
     "PHOENIXLTD": {
       "ml": {
-        "ml_score": 63.7,
+        "ml_score": 63.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.7,
-        "pos52_pct": 65.0,
-        "ret_1m_pct": 11.7,
-        "ret_3m_pct": -9.6,
+        "rsi": 50.3,
+        "pos52_pct": 62.5,
+        "ret_1m_pct": 9.0,
+        "ret_3m_pct": -9.9,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 57.9,
+        "pe_ratio": 57.4,
         "eps": 30.46,
-        "dividend_yield": 0.001554,
+        "dividend_yield": 0.001566,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6560,23 +6560,23 @@
           "summary": "Debt grew 4.8% YoY \u2014 debt levels stable."
         }
       },
-      "cached_price": 1763.5
+      "cached_price": 1749.9
     },
     "HAL": {
       "ml": {
-        "ml_score": 44.9,
+        "ml_score": 43.7,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 46.3,
-        "pos52_pct": 39.5,
-        "ret_1m_pct": 3.1,
-        "ret_3m_pct": -8.2,
+        "rsi": 45.8,
+        "pos52_pct": 38.7,
+        "ret_1m_pct": 1.5,
+        "ret_3m_pct": -8.6,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 30.9,
+        "pe_ratio": 30.8,
         "eps": 133.02,
-        "dividend_yield": 0.010352,
+        "dividend_yield": 0.010383,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6609,23 +6609,23 @@
           "summary": "Debt reduced 78.4% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 4112.2
+      "cached_price": 4099.9
     },
     "BEL": {
       "ml": {
-        "ml_score": 51.6,
+        "ml_score": 52.1,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 41.4,
-        "pos52_pct": 86.9,
-        "ret_1m_pct": -3.3,
-        "ret_3m_pct": 7.6,
+        "rsi": 46.2,
+        "pos52_pct": 86.4,
+        "ret_1m_pct": -4.7,
+        "ret_3m_pct": 6.7,
         "golden_cross": true
       },
       "valuation": {
-        "pe_ratio": 54.2,
+        "pe_ratio": 54.1,
         "eps": 8.16,
-        "dividend_yield": 0.00608,
+        "dividend_yield": 0.006092,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6658,23 +6658,23 @@
           "summary": "Debt reduced 3.3% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 442.45
+      "cached_price": 441.55
     },
     "BEML": {
       "ml": {
-        "ml_score": 54.3,
+        "ml_score": 53.0,
         "prediction": "OUTPERFORM",
         "accuracy": 58.1,
-        "rsi": 33.1,
-        "pos52_pct": 24.7,
-        "ret_1m_pct": 2.7,
-        "ret_3m_pct": -12.3,
+        "rsi": 30.5,
+        "pos52_pct": 24.9,
+        "ret_1m_pct": 0.8,
+        "ret_3m_pct": -12.7,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 54.2,
+        "pe_ratio": 54.3,
         "eps": 29.9,
-        "dividend_yield": 0.005348,
+        "dividend_yield": 0.005342,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6707,23 +6707,23 @@
           "summary": "Debt grew 190.8% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 1621.2
+      "cached_price": 1623.1
     },
     "MAZDOCK": {
       "ml": {
         "ml_score": 49.5,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 44.8,
-        "pos52_pct": 24.4,
-        "ret_1m_pct": 3.5,
-        "ret_3m_pct": -0.7,
+        "rsi": 41.8,
+        "pos52_pct": 25.8,
+        "ret_1m_pct": 0.5,
+        "ret_3m_pct": -0.3,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 41.4,
+        "pe_ratio": 41.8,
         "eps": 59.66,
-        "dividend_yield": 0.007003,
+        "dividend_yield": 0.006934,
         "pb_ratio": null,
         "profit_margin": null,
         "revenue_growth": null,
@@ -6756,7 +6756,7 @@
           "summary": "Debt reduced 90.0% YoY \u2014 balance sheet strengthening."
         }
       },
-      "cached_price": 2470.2
+      "cached_price": 2494.9
     }
   }
 }
