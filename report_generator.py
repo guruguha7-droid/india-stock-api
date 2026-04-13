@@ -418,6 +418,71 @@ def generate_report(data: dict) -> bytes:
         ]))
 
     # ══════════════════════════════════════════════════════════════════════════
+    # WHAT WOULD GRAHAM PAY?
+    # ══════════════════════════════════════════════════════════════════════════
+    story += section_header('WHAT WOULD GRAHAM PAY?')
+    try:
+        if vs:
+            fair_v   = vs.get('fair_value')
+            buy_lo   = vs.get('buy_zone_low')
+            buy_hi   = vs.get('buy_zone_high')
+            pct_f    = float(vs.get('pct_vs_fair') or 0)
+            conf     = vs.get('confidence')
+            cur_p    = float(vs.get('current_price') or price or 0)
+            fair_pe  = vs.get('fair_pe')
+            is_below = pct_f < 0
+            is_in    = buy_lo and buy_hi and cur_p >= float(buy_lo) and cur_p <= float(buy_hi)
+            is_belowz= buy_lo and cur_p < float(buy_lo)
+            sig_c    = C_GREEN if is_below else C_RED if pct_f > 15 else C_GOLD
+
+            def _p(v):
+                try: return f"Rs.{float(v):,.0f}"
+                except: return '\u2014'
+
+            if is_belowz:
+                headline = (f"Graham's updated model estimates the fair value of <b>{company}</b> at "
+                           f"<b>{_p(fair_v)}</b> (Fair P/E: {fair_pe}x). "
+                           f"At the current price of <b>{_p(cur_p)}</b>, the stock trades at a "
+                           f"<b>{abs(pct_f):.1f}% discount</b> to fair value \u2014 "
+                           f"already below the buy zone of {_p(buy_lo)}\u2013{_p(buy_hi)}. "
+                           f"This is a better entry than the target range itself.")
+            elif is_in:
+                headline = (f"Graham's updated model estimates the fair value of <b>{company}</b> at "
+                           f"<b>{_p(fair_v)}</b> (Fair P/E: {fair_pe}x). "
+                           f"The current price of <b>{_p(cur_p)}</b> sits right inside the buy zone "
+                           f"of {_p(buy_lo)}\u2013{_p(buy_hi)} \u2014 a fair entry point with "
+                           f"{conf}% model confidence.")
+            elif pct_f > 0:
+                headline = (f"Graham's updated model estimates the fair value of <b>{company}</b> at "
+                           f"<b>{_p(fair_v)}</b> (Fair P/E: {fair_pe}x). "
+                           f"At {_p(cur_p)}, the stock trades <b>{pct_f:.1f}% above</b> fair value. "
+                           f"Wait for a pullback to the buy zone of {_p(buy_lo)}\u2013{_p(buy_hi)} "
+                           f"before entering.")
+            else:
+                headline = (f"Graham's updated model estimates the fair value of <b>{company}</b> at "
+                           f"<b>{_p(fair_v)}</b> (Fair P/E: {fair_pe}x). "
+                           f"Current price is near fair value.")
+
+            story.append(Paragraph(headline, S('gh', fontSize=11, textColor=C_TEXT, leading=16)))
+            story.append(Spacer(1, 4*mm))
+
+            story.append(kv_table([
+                ('Graham Fair Value',  _p(fair_v),   C_GOLD),
+                ('Fair P/E Used',      f"{fair_pe}x" if fair_pe else '\u2014', C_TEXT),
+                ('Buy Zone',           f"{_p(buy_lo)} \u2013 {_p(buy_hi)}", C_GREEN),
+                ('Current Price',      _p(cur_p),    sig_c),
+                ('Discount / Premium', f"{'+' if pct_f >= 0 else ''}{pct_f:.1f}%", sig_c),
+                ('Model Confidence',   f"{conf}%" if conf else '\u2014', C_TEXT),
+                ('Valuation Signal',   vs.get('label','\u2014'), sig_c),
+            ]))
+        else:
+            story.append(Paragraph(
+                'Valuation data unavailable for this stock.',
+                S('gna', fontSize=10, textColor=C_MUTED)))
+    except Exception:
+        pass
+
+    # ══════════════════════════════════════════════════════════════════════════
     # FORWARD FORECAST
     # ══════════════════════════════════════════════════════════════════════════
     story += section_header('FORWARD FORECAST')
