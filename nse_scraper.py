@@ -209,7 +209,7 @@ def get_indices() -> dict:
         if 'SENSEX' not in indices:
             try:
                 import yfinance as _yf
-                bse = _yf.download("^BSESN", period="5d", interval="1d",
+                bse = _yf.download("^BSESN", period="1d", interval="5m",
                                    auto_adjust=True, progress=False)
                 if bse is not None and len(bse) >= 2:
                     if hasattr(bse.columns, 'levels'):
