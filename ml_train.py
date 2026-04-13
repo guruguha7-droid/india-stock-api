@@ -48,6 +48,47 @@ NSE_STOCKS = [
     "MOIL.NS", "WELCORP.NS", "GODREJPROP.NS", "BRIGADE.NS", "SOBHA.NS",
     "PRESTIGE.NS", "PHOENIXLTD.NS", "HAL.NS", "BEL.NS", "BEML.NS",
     "MAZDOCK.NS",
+    # Defence
+    "COCHINSHIP.NS", "MIDHANI.NS", "DATAPATTNS.NS", "PARAS.NS",
+    # Large Cap — Finance / Insurance / Aviation
+    "INDUSINDBK.NS", "SBILIFE.NS", "HDFCLIFE.NS", "LICI.NS", "BAJAJHLDNG.NS",
+    "RECLTD.NS", "PFC.NS", "IRFC.NS", "INDIGO.NS",
+    # Paints / Chemicals
+    "PIDILITIND.NS", "BERGEPAINT.NS", "KANSAINER.NS",
+    # Mid Cap — IT / Electronics
+    "HEXAWARE.NS", "CYIENT.NS", "MASTEK.NS",
+    "SONACOMS.NS", "SYRMA.NS", "KAYNES.NS", "DIXON.NS", "AMBER.NS", "APLAPOLLO.NS",
+    # Mid Cap — Pharma / Healthcare
+    "LAURUSLABS.NS", "SOLARA.NS", "SUVEN.NS", "GLAND.NS",
+    "MEDANTA.NS", "FORTIS.NS", "RAINBOW.NS", "KRSNAA.NS", "METROPOLIS.NS", "POLYMED.NS",
+    # Mid Cap — Consumer / FMCG
+    "TRENT.NS", "DMART.NS", "ABFRL.NS", "VSTIND.NS", "GODFRYPHLP.NS", "PGHH.NS",
+    "HONAUT.NS", "WHIRLPOOL.NS", "VOLTAS.NS", "BLUESTARCO.NS", "KAJARIACER.NS", "CERA.NS",
+    # Mid Cap — Finance / Internet
+    "ANGELONE.NS", "CDSL.NS", "BSE.NS", "MCX.NS",
+    "NAUKRI.NS", "POLICYBZR.NS", "PAYTM.NS", "NYKAA.NS", "CARTRADE.NS",
+    # Mid Cap — Chemicals / Agri
+    "NAVINFLUOR.NS", "FLUOROCHEM.NS", "DEEPAKNTR.NS", "TATACHEM.NS", "GNFC.NS",
+    "COROMANDEL.NS", "PIIND.NS", "RALLIS.NS", "DHANUKA.NS", "UPL.NS", "CHAMBLFERT.NS",
+    # Mid Cap — Infrastructure
+    "NCC.NS", "PNCINFRA.NS", "HGINFRA.NS", "ASHOKA.NS", "GPPL.NS",
+    # Mid Cap — Metals
+    "GRAVITA.NS", "DYNAMIC.NS",
+    # Small Cap — Emerging
+    "PGEL.NS", "IDEAFORGE.NS", "RATEGAIN.NS", "EASEMYTRIP.NS", "IXIGO.NS", "YATHARTH.NS",
+    "HAPPYFORGE.NS", "SANSERA.NS", "CRAFTSMAN.NS", "SUPRAJIT.NS",
+    "FINEORG.NS", "GALAXYSURF.NS", "CLEAN.NS", "ROSSARI.NS", "SUDARSCHEM.NS",
+    # Small Cap — Specialty Finance / Banking
+    "IIFL.NS", "CREDITACC.NS", "UJJIVANSFB.NS", "EQUITASBNK.NS", "ESAFSFB.NS", "UTKARSHBNK.NS",
+    "FUSION.NS", "SPANDANA.NS",
+    # Hospitality
+    "INDHOTEL.NS", "LEMONTREE.NS", "CHALET.NS", "TAJGVK.NS", "EIHOTEL.NS",
+    # Logistics
+    "DELHIVERY.NS", "BLUEDART.NS", "GICRE.NS", "NIACL.NS", "CONCOR.NS", "ALLCARGO.NS", "MAHLOG.NS",
+    # Media
+    "ZEEL.NS", "SUNTV.NS", "PVRINOX.NS", "SAREGAMA.NS",
+    # Textiles
+    "PAGEIND.NS", "RAYMOND.NS", "TRIDENT.NS", "WELSPUNLIV.NS", "KITEX.NS",
 ]
 
 NIFTY        = "^NSEI"

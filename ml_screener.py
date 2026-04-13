@@ -43,6 +43,47 @@ NSE_STOCKS = [
     "MOIL", "WELCORP", "GODREJPROP", "BRIGADE", "SOBHA",
     "PRESTIGE", "PHOENIXLTD", "HAL", "BEL", "BEML",
     "MAZDOCK",
+    # Defence
+    "COCHINSHIP", "MIDHANI", "DATAPATTNS", "PARAS",
+    # Large Cap — Finance / Insurance / Aviation
+    "INDUSINDBK", "SBILIFE", "HDFCLIFE", "LICI", "BAJAJHLDNG",
+    "RECLTD", "PFC", "IRFC", "INDIGO",
+    # Paints / Chemicals
+    "PIDILITIND", "BERGEPAINT", "KANSAINER",
+    # Mid Cap — IT / Electronics
+    "HEXAWARE", "CYIENT", "MASTEK",
+    "SONACOMS", "SYRMA", "KAYNES", "DIXON", "AMBER", "APLAPOLLO",
+    # Mid Cap — Pharma / Healthcare
+    "LAURUSLABS", "SOLARA", "SUVEN", "GLAND",
+    "MEDANTA", "FORTIS", "RAINBOW", "KRSNAA", "METROPOLIS", "POLYMED",
+    # Mid Cap — Consumer / FMCG
+    "TRENT", "DMART", "ABFRL", "VSTIND", "GODFRYPHLP", "PGHH",
+    "HONAUT", "WHIRLPOOL", "VOLTAS", "BLUESTARCO", "KAJARIACER", "CERA",
+    # Mid Cap — Finance / Internet
+    "ANGELONE", "CDSL", "BSE", "MCX",
+    "NAUKRI", "POLICYBZR", "PAYTM", "NYKAA", "CARTRADE",
+    # Mid Cap — Chemicals / Agri
+    "NAVINFLUOR", "FLUOROCHEM", "DEEPAKNTR", "TATACHEM", "GNFC",
+    "COROMANDEL", "PIIND", "RALLIS", "DHANUKA", "UPL", "CHAMBLFERT",
+    # Mid Cap — Infrastructure
+    "NCC", "PNCINFRA", "HGINFRA", "ASHOKA", "GPPL",
+    # Mid Cap — Metals
+    "GRAVITA", "DYNAMIC",
+    # Small Cap — Emerging
+    "PGEL", "IDEAFORGE", "RATEGAIN", "EASEMYTRIP", "IXIGO", "YATHARTH",
+    "HAPPYFORGE", "SANSERA", "CRAFTSMAN", "SUPRAJIT",
+    "FINEORG", "GALAXYSURF", "CLEAN", "ROSSARI", "SUDARSCHEM",
+    # Small Cap — Specialty Finance / Banking
+    "IIFL", "CREDITACC", "UJJIVANSFB", "EQUITASBNK", "ESAFSFB", "UTKARSHBNK",
+    "FUSION", "SPANDANA",
+    # Hospitality
+    "INDHOTEL", "LEMONTREE", "CHALET", "TAJGVK", "EIHOTEL",
+    # Logistics
+    "DELHIVERY", "BLUEDART", "GICRE", "NIACL", "CONCOR", "ALLCARGO", "MAHLOG",
+    # Media
+    "ZEEL", "SUNTV", "PVRINOX", "SAREGAMA",
+    # Textiles
+    "PAGEIND", "RAYMOND", "TRIDENT", "WELSPUNLIV", "KITEX",
 ]
 
 # Separate caches for different data types
@@ -78,7 +119,7 @@ def get_features(sym, nifty_close):
     try:
         df = yf.download(f"{sym}.NS", period="2y", interval="1d",
                          auto_adjust=True, progress=False)
-        if len(df) < 200:
+        if len(df) < 100:
             return None
         if hasattr(df.columns, 'levels'):
             df.columns = df.columns.get_level_values(0)
