@@ -2032,7 +2032,7 @@ def generate_report_endpoint():
                     if bool(r.get('debt_reducing')):   quality_mult+=0.07
                     if float(r.get('promoter_pct') or 0)>55: quality_mult+=0.05
                     quality_mult = min(quality_mult, 1.35)
-                    reliable_growth = min(eps_cagr_v, 25)
+                    reliable_growth = min(float(eps_cagr_v or 8.0), 25)
                     if float(r.get('opm_trend_5y') or 0) < -3: reliable_growth = min(reliable_growth, 15)
                     fair_pe = round(min((base_pe+1.5*reliable_growth)*rate_adj*quality_mult, 55), 1)
                     fair_value=round(eps_latest*fair_pe,1)
