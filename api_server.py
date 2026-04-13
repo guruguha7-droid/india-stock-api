@@ -1691,6 +1691,86 @@ def compare():
     return jsonify({"status":"ok","count":len(ordered),"data":ordered})
 
 
+# ── Portfolio X-Ray ───────────────────────────────────────────────────────────
+@app.route("/portfolio-xray")
+def portfolio_xray():
+    raw = request.args.get("symbols", "")
+    if not raw:
+        return jsonify({"error": "symbols required"}), 400
+    symbols = [s.strip().upper() for s in raw.split(",") if s.strip()][:20]
+
+    import math, pandas as pd, threading
+    result = {"stocks": {}}
+
+    def _fetch(sym):
+        try:
+            stock = {}
+            # Price from NSE
+            q = nse_quote(sym)
+            stock['price']  = q.get('price')
+            stock['sector'] = q.get('industry', '—')
+
+            # From nightly cache if available
+            nc = get_nightly_cache()
+            if nc and sym in nc.get('stocks', {}):
+                cached = nc['stocks'][sym]
+                ml     = cached.get('ml', {})
+                val    = cached.get('valuation', {})
+                stock['ml_score']       = ml.get('ml_score')
+                stock['verdict']        = ml.get('prediction','—').replace('OUTPERFORM','BUY').replace('UNDERPERFORM','HOLD')
+                stock['combined_score'] = ml.get('ml_score')  # use ml as proxy if no combined
+                # Valuation signal from screener CSV
+                try:
+                    sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
+                    csv_sym = {'LTM':'LTIM'}.get(sym, sym)
+                    row     = sdf[sdf['symbol']==csv_sym]
+                    if not row.empty:
+                        r          = row.iloc[0].to_dict()
+                        scr_score  = float(r.get('investment_score') or 50)
+                        stock['combined_score'] = round(ml.get('ml_score',50)*0.5 + scr_score*0.5, 1)
+                        stock['verdict']        = 'BUY' if stock['combined_score']>=65 else 'HOLD' if stock['combined_score']>=50 else 'SELL'
+                        eps_l = float(r.get('eps_latest') or 0) or None
+                        if eps_l and stock['price'] and float(stock['price']) > 0:
+                            eps_cagr = float(r.get('eps_cagr_5y') or 8)
+                            rbi_rate = 6.5; rate_adj = 4.4/rbi_rate
+                            base_pe  = 22
+                            SECTOR_PE= {'IT':28,'Technology':28,'FMCG':35,'Pharma':30,'Banking':15,'Finance':18,'Metals':10,'Energy':12,'Defence':30}
+                            for k,v in SECTOR_PE.items():
+                                if k.lower() in str(stock.get('sector','')).lower():
+                                    base_pe=v; break
+                            qm = 1.0
+                            if float(r.get('roce_latest_pct') or 10)>float(r.get('roce_avg_5y') or 10)+3: qm+=0.10
+                            if bool(r.get('fcf_positive_3y')): qm+=0.08
+                            if bool(r.get('debt_reducing')):   qm+=0.07
+                            qm = min(qm, 1.35)
+                            fair_pe  = round(min((base_pe+1.5*min(eps_cagr,25))*rate_adj*qm, 55),1)
+                            fair_val = round(eps_l * fair_pe, 0)
+                            cur_p    = float(stock['price'])
+                            pct_fair = round((cur_p - fair_val)/fair_val*100,1) if fair_val>0 else 0
+                            mos      = 0.10 if scr_score>=75 else 0.15 if scr_score>=60 else 0.25
+                            stock['fair_value']   = fair_val
+                            stock['val_signal']   = ('Undervalued Quality' if scr_score>=60 and cur_p<fair_val*0.90
+                                                     else 'Overvalued Quality' if scr_score>=60 and cur_p>fair_val*1.15
+                                                     else 'Fairly Valued' if scr_score>=60
+                                                     else 'Value Trap Risk' if cur_p<fair_val*0.90
+                                                     else 'Overpriced')
+                            stock['val_signal_color'] = ('green' if 'Undervalued' in stock['val_signal']
+                                                         else 'red' if 'Trap' in stock['val_signal'] or 'Overpriced' in stock['val_signal']
+                                                         else 'gold')
+                except Exception:
+                    pass
+            result['stocks'][sym] = {k:v for k,v in stock.items()
+                                      if v is not None and not (isinstance(v,float) and math.isnan(v))}
+        except Exception as e:
+            result['stocks'][sym] = {'error': str(e)}
+
+    threads = [threading.Thread(target=_fetch, args=(sym,)) for sym in symbols]
+    for t in threads: t.start()
+    for t in threads: t.join(timeout=15)
+
+    return jsonify({"status":"ok","stocks":result["stocks"]})
+
+
 # ── PDF Report Generator ──────────────────────────────────────────────────────
 @app.route("/generate-report")
 def generate_report_endpoint():

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>India Equity Screener</title>
+<title>Graham</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -24,7 +24,7 @@
 }
 
 html{
-  background:linear-gradient(135deg,#0a1628 0%,#0d1f3c 30%,#0f2744 60%,#0a1e38 100%);
+  background:linear-gradient(135deg,#050d1a 0%,#08152b 30%,#0a1c36 60%,#060f1e 100%);
   min-height:100%;
 }
 
@@ -37,6 +37,37 @@ body{
   max-width:1100px;
   margin:0 auto;
 }
+
+/* ── Portfolio X-Ray ── */
+.pf-tabs{display:flex;gap:8px;margin-bottom:20px}
+.pf-tab{background:var(--bg3);border:1px solid var(--border);color:var(--text3);padding:7px 18px;border-radius:20px;font-size:11px;font-family:var(--font-mono);cursor:pointer;letter-spacing:.5px;transition:all .2s}
+.pf-tab.active{background:var(--orange);border-color:var(--orange);color:#fff}
+.pf-section{display:none}.pf-section.visible{display:block}
+.pf-input-row{display:flex;gap:8px;margin-bottom:10px;align-items:center}
+.pf-sym-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none}
+.pf-sym-input:focus{border-color:var(--orange)}
+.pf-add-btn{background:var(--orange);border:none;border-radius:8px;padding:8px 16px;color:#fff;font-family:var(--font-mono);font-size:12px;cursor:pointer}
+.pf-holding-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;font-family:var(--font-mono);font-size:12px}
+.pf-holding-sym{color:var(--orange);font-weight:600;min-width:100px}
+.pf-holding-qty{color:var(--text2);min-width:60px}
+.pf-holding-del{margin-left:auto;cursor:pointer;color:var(--text3);font-size:14px;background:none;border:none}
+.pf-holding-del:hover{color:var(--red)}
+.pf-analyse-btn{width:100%;padding:12px;background:var(--orange);border:none;border-radius:10px;color:#fff;font-family:var(--font-mono);font-size:13px;cursor:pointer;margin-top:12px;font-weight:600}
+.pf-analyse-btn:disabled{opacity:.5;cursor:not-allowed}
+.pf-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px}
+.pf-card-title{font-size:10px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;margin-bottom:10px}
+.pf-score-big{font-size:36px;font-weight:800;font-family:var(--font-head)}
+.pf-holding-table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--font-mono)}
+.pf-holding-table th{text-align:left;padding:6px 8px;color:var(--text3);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.5px}
+.pf-holding-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.pf-holding-table tr:hover td{background:rgba(255,255,255,0.02)}
+.pf-bar{height:6px;border-radius:3px;background:var(--bg3);margin-top:4px}
+.pf-bar-fill{height:100%;border-radius:3px;transition:width .6s}
+.pf-sector-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-family:var(--font-mono);margin:2px;background:var(--bg3);color:var(--text2)}
+.pf-locked{display:flex;flex-direction:column;align-items:center;gap:10px;padding:32px;text-align:center;color:var(--text3);font-family:var(--font-mono);font-size:12px}
+.pf-locked-icon{font-size:32px}
+.pf-upload-area{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--text3);font-family:var(--font-mono);font-size:12px;transition:all .2s;margin-bottom:12px}
+.pf-upload-area:hover{border-color:var(--orange);color:var(--orange)}
 
 /* ── Header ── */
 .hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:16px}
@@ -202,6 +233,7 @@ body{
 /* ── Visuals ── */
 .visuals-grid{display:flex;flex-direction:column;gap:20px;padding:4px 0}
 .chart-block{background:var(--bg3);border-radius:12px;padding:16px}
+.chart-insight{padding:6px 8px 4px;font-size:11px;font-family:var(--font-mono);line-height:1.5;min-height:18px;}
 .chart-title{font-size:11px;font-family:var(--font-mono);color:var(--text3);letter-spacing:.6px;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
 .chart-period-btns{display:flex;gap:4px}
 .chart-period-btn{background:none;border:1px solid var(--border);color:var(--text3);font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:6px;cursor:pointer}
@@ -283,7 +315,7 @@ body{
   <div class="brand">
     <div class="logo">NSE<br>BSE</div>
     <div>
-      <div class="brand-title">India Equity Screener</div>
+      <div class="brand-title">Graham</div>
       <div class="brand-sub"><span class="live-dot"></span> Live · NSE · BSE</div>
     </div>
   </div>
@@ -296,7 +328,14 @@ body{
   </div>
 </div>
 
-<!-- Search -->
+<!-- Page tabs -->
+<div class="pf-tabs" id="page-tabs">
+  <button class="pf-tab active" id="tab-search" onclick="showTab('search')">🔍 Stock Analysis</button>
+  <button class="pf-tab" id="tab-portfolio" onclick="showTab('portfolio')">📊 Portfolio X-Ray</button>
+</div>
+
+<!-- Search tab -->
+<div id="pane-search" class="pf-section visible">
 <div class="search-section">
   <div class="search-wrap">
     <div class="search-input-wrap">
@@ -330,10 +369,304 @@ body{
   </div>
 </div>
 
+</div><!-- /pane-search -->
+
+<!-- Portfolio X-Ray tab -->
+<div id="pane-portfolio" class="pf-section">
+  <div style="max-width:700px;margin:0 auto">
+
+    <!-- Input area -->
+    <div class="pf-card" id="pf-input-card">
+      <div class="pf-card-title">YOUR HOLDINGS</div>
+
+      <!-- Manual entry -->
+      <div class="pf-input-row">
+        <input class="pf-sym-input" id="pf-sym" placeholder="Symbol (e.g. RELIANCE)" style="flex:2" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
+        <input class="pf-sym-input" id="pf-qty" placeholder="Qty" type="number" min="1" style="flex:1;max-width:80px" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
+        <input class="pf-sym-input" id="pf-avg" placeholder="Avg price (optional)" type="number" min="0" style="flex:2" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
+        <button class="pf-add-btn" onclick="pfAddHolding()">+ Add</button>
+      </div>
+
+      <!-- CSV upload -->
+      <div class="pf-upload-area" onclick="document.getElementById('pf-csv-input').click()" id="pf-drop-zone">
+        ⬆ Upload CSV (Zerodha/Groww/Kite) — columns: symbol, quantity, avg_price
+        <input type="file" id="pf-csv-input" accept=".csv" style="display:none" onchange="pfLoadCSV(this)"/>
+      </div>
+
+      <!-- Holdings list -->
+      <div id="pf-holdings-list"></div>
+
+      <div id="pf-error" style="color:var(--red);font-size:11px;font-family:var(--font-mono);margin-top:6px;display:none"></div>
+      <button class="pf-analyse-btn" id="pf-analyse-btn" onclick="pfAnalyse()" disabled>Analyse Portfolio</button>
+    </div>
+
+    <!-- Results -->
+    <div id="pf-results" style="display:none"></div>
+  </div>
+</div>
+
 <div class="disc">⚠ Prices are real-time from NSE India. Educational use only — not financial advice. Consult a SEBI-registered advisor before investing.</div>
 
 <script>
 const API = 'https://india-stock-api.onrender.com';
+// ── Portfolio X-Ray ──────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.getElementById('pane-search').classList.toggle('visible', tab === 'search');
+  document.getElementById('pane-portfolio').classList.toggle('visible', tab === 'portfolio');
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-portfolio').classList.toggle('active', tab === 'portfolio');
+}
+
+window._pfHoldings = [];
+
+function pfAddHolding() {
+  const sym = document.getElementById('pf-sym').value.trim().toUpperCase();
+  const qty = parseInt(document.getElementById('pf-qty').value) || 0;
+  const avg = parseFloat(document.getElementById('pf-avg').value) || null;
+  const err = document.getElementById('pf-error');
+  err.style.display = 'none';
+  if (!sym) { err.textContent = 'Enter a symbol'; err.style.display = 'block'; return; }
+  if (qty <= 0) { err.textContent = 'Enter a valid quantity'; err.style.display = 'block'; return; }
+  if (window._pfHoldings.find(h => h.sym === sym)) {
+    err.textContent = sym + ' already added'; err.style.display = 'block'; return;
+  }
+  window._pfHoldings.push({ sym, qty, avg });
+  document.getElementById('pf-sym').value = '';
+  document.getElementById('pf-qty').value = '';
+  document.getElementById('pf-avg').value = '';
+  pfRenderHoldings();
+}
+
+function pfRenderHoldings() {
+  const list = document.getElementById('pf-holdings-list');
+  if (!window._pfHoldings.length) { list.innerHTML = ''; document.getElementById('pf-analyse-btn').disabled = true; return; }
+  list.innerHTML = window._pfHoldings.map((h, i) => `
+    <div class="pf-holding-row">
+      <span class="pf-holding-sym">${h.sym}</span>
+      <span class="pf-holding-qty">${h.qty} shares</span>
+      ${h.avg ? `<span style="color:var(--text3)">@ ₹${h.avg}</span>` : ''}
+      <button class="pf-holding-del" onclick="pfRemove(${i})">✕</button>
+    </div>`).join('');
+  document.getElementById('pf-analyse-btn').disabled = false;
+}
+
+function pfRemove(i) {
+  window._pfHoldings.splice(i, 1);
+  pfRenderHoldings();
+}
+
+function pfLoadCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+    const symIdx = headers.findIndex(h => h.includes('symbol') || h.includes('stock') || h === 'tradingsymbol');
+    const qtyIdx = headers.findIndex(h => h.includes('qty') || h.includes('quantity'));
+    const avgIdx = headers.findIndex(h => h.includes('avg') || h.includes('price') || h.includes('ltp'));
+    if (symIdx === -1) { alert('CSV must have a symbol/stock column'); return; }
+    window._pfHoldings = [];
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/"/g,''));
+      const sym  = cols[symIdx]?.toUpperCase();
+      const qty  = parseInt(cols[qtyIdx]) || 1;
+      const avg  = avgIdx >= 0 ? parseFloat(cols[avgIdx]) || null : null;
+      if (sym && sym.length > 0) window._pfHoldings.push({ sym, qty, avg });
+    });
+    pfRenderHoldings();
+  };
+  reader.readAsText(file);
+}
+
+async function pfAnalyse() {
+  const btn  = document.getElementById('pf-analyse-btn');
+  const res  = document.getElementById('pf-results');
+  btn.disabled = true;
+  btn.textContent = 'Analysing...';
+  res.style.display = 'none';
+
+  try {
+    const syms = window._pfHoldings.map(h => h.sym).join(',');
+    const resp = await fetch(`${API}/portfolio-xray?symbols=${encodeURIComponent(syms)}`).then(r => r.json());
+    if (!resp.stocks) throw new Error(resp.error || 'No data');
+    pfRenderResults(resp, window._pfHoldings);
+  } catch(e) {
+    res.style.display = 'block';
+    res.innerHTML = `<div class="pf-card" style="color:var(--red)">Error: ${e.message}</div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Analyse Portfolio';
+}
+
+function pfRenderResults(resp, holdings) {
+  const res    = document.getElementById('pf-results');
+  const stocks = resp.stocks;
+  const isPro  = window._currentMode === 'expert';
+
+  // Compute portfolio value and weights
+  let totalValue = 0;
+  holdings.forEach(h => {
+    const s = stocks[h.sym];
+    if (s?.price) totalValue += s.price * h.qty;
+  });
+
+  // Portfolio score = weighted average of combined scores
+  let weightedScore = 0, totalW = 0;
+  holdings.forEach(h => {
+    const s = stocks[h.sym];
+    if (!s) return;
+    const val = s.price * h.qty;
+    const w   = totalValue > 0 ? val / totalValue : 1 / holdings.length;
+    weightedScore += (s.combined_score || 50) * w;
+    totalW += w;
+  });
+  const pfScore = totalW > 0 ? Math.round(weightedScore / totalW * 10) / 10 : 50;
+  const pfGrade = pfScore >= 70 ? 'A' : pfScore >= 60 ? 'B' : pfScore >= 50 ? 'C' : 'D';
+  const pfColor = pfScore >= 65 ? 'var(--green)' : pfScore >= 50 ? 'var(--gold)' : 'var(--red)';
+
+  // Sector breakdown
+  const sectors = {};
+  holdings.forEach(h => {
+    const s   = stocks[h.sym];
+    const sec = s?.sector || 'Other';
+    const val = (s?.price || 0) * h.qty;
+    sectors[sec] = (sectors[sec] || 0) + val;
+  });
+
+  // Weakest link
+  let weakest = null, lowestScore = 999;
+  holdings.forEach(h => {
+    const s = stocks[h.sym];
+    if (s && (s.combined_score || 0) < lowestScore) {
+      lowestScore = s.combined_score || 0;
+      weakest = h.sym;
+    }
+  });
+
+  // Best performer
+  let strongest = null, highestScore = 0;
+  holdings.forEach(h => {
+    const s = stocks[h.sym];
+    if (s && (s.combined_score || 0) > highestScore) {
+      highestScore = s.combined_score || 0;
+      strongest = h.sym;
+    }
+  });
+
+  // P&L if avg price provided
+  const hasPnl = holdings.some(h => h.avg);
+
+  let html = `
+    <!-- Summary card -->
+    <div class="pf-card">
+      <div class="pf-card-title">PORTFOLIO OVERVIEW</div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">PORTFOLIO SCORE</div>
+          <div class="pf-score-big" style="color:${pfColor}">${pfScore.toFixed(1)}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono)">Grade ${pfGrade} · ${holdings.length} stocks</div>
+        </div>
+        ${totalValue > 0 ? `
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">EST. VALUE</div>
+          <div style="font-size:22px;font-weight:700;color:var(--text)">₹${Number(totalValue).toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+        </div>` : ''}
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">SECTOR EXPOSURE</div>
+          <div>${Object.entries(sectors).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([sec,val]) => {
+            const pct = totalValue > 0 ? (val/totalValue*100).toFixed(0) : '—';
+            return `<span class="pf-sector-pill">${sec} ${pct}%</span>`;
+          }).join('')}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alerts — weakest link etc -->
+    <div class="pf-card">
+      <div class="pf-card-title">PORTFOLIO SIGNALS</div>
+      ${weakest ? `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">⚠ <span style="color:var(--red)">Weakest link:</span> <b>${weakest}</b> — score ${lowestScore.toFixed(1)} · consider reviewing this position</div>` : ''}
+      ${strongest ? `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">✓ <span style="color:var(--green)">Strongest holding:</span> <b>${strongest}</b> — score ${highestScore.toFixed(1)}</div>` : ''}
+      ${Object.keys(sectors).length === 1 ? `<div style="font-size:12px;font-family:var(--font-mono);color:var(--gold)">⚠ All holdings in one sector — consider diversifying</div>` : ''}
+      ${holdings.length < 4 ? `<div style="font-size:12px;font-family:var(--font-mono);color:var(--gold)">⚠ Only ${holdings.length} stocks — consider adding more for diversification</div>` : ''}
+    </div>
+
+    <!-- Holdings table — basic for FREE -->
+    <div class="pf-card">
+      <div class="pf-card-title">HOLDINGS BREAKDOWN</div>
+      <table class="pf-holding-table">
+        <thead><tr>
+          <th>STOCK</th><th>QTY</th><th>PRICE</th>
+          ${hasPnl ? '<th>AVG</th><th>P&L</th>' : ''}
+          <th>SCORE</th><th>VERDICT</th>
+          ${isPro ? '<th>ML</th><th>GRAHAM FAIR</th><th>SIGNAL</th>' : ''}
+        </tr></thead>
+        <tbody>
+          ${holdings.map(h => {
+            const s      = stocks[h.sym] || {};
+            const price  = s.price || '—';
+            const score  = s.combined_score != null ? s.combined_score.toFixed(1) : '—';
+            const verdict= s.verdict || '—';
+            const vcolor = verdict==='BUY'||verdict==='STRONG BUY' ? 'var(--green)' : verdict==='SELL' ? 'var(--red)' : 'var(--gold)';
+            const scolor = score !== '—' ? (parseFloat(score)>=65?'var(--green)':parseFloat(score)>=50?'var(--gold)':'var(--red)') : 'var(--text3)';
+            let pnlHtml  = '';
+            if (hasPnl && h.avg && price !== '—') {
+              const pnl    = (price - h.avg) * h.qty;
+              const pnlPct = ((price - h.avg) / h.avg * 100).toFixed(1);
+              pnlHtml = `<td style="color:${pnl>=0?'var(--green)':'var(--red)'}">${pnl>=0?'+':''}₹${Math.abs(pnl).toLocaleString('en-IN',{maximumFractionDigits:0})} (${pnlPct}%)</td>`;
+            } else if (hasPnl) {
+              pnlHtml = '<td>—</td><td>—</td>';
+            }
+            return `<tr>
+              <td style="color:var(--orange);font-weight:600">${h.sym}</td>
+              <td>${h.qty}</td>
+              <td>${price !== '—' ? '₹'+Number(price).toLocaleString('en-IN',{maximumFractionDigits:2}) : '—'}</td>
+              ${hasPnl ? `<td>${h.avg ? '₹'+h.avg : '—'}</td>${pnlHtml}` : ''}
+              <td style="color:${scolor};font-weight:600">${score}</td>
+              <td style="color:${vcolor};font-weight:600">${verdict}</td>
+              ${isPro ? `
+                <td style="color:var(--text2)">${s.ml_score != null ? s.ml_score.toFixed(1)+'%' : '—'}</td>
+                <td style="color:var(--gold)">${s.fair_value ? '₹'+Number(s.fair_value).toLocaleString('en-IN',{maximumFractionDigits:0}) : '—'}</td>
+                <td style="color:${s.val_signal_color==='green'?'var(--green)':s.val_signal_color==='red'?'var(--red)':'var(--gold)'};font-size:10px">${s.val_signal || '—'}</td>
+              ` : ''}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    ${!isPro ? `
+    <!-- Locked Pro features teaser -->
+    <div class="pf-card" style="border-color:rgba(255,92,26,0.3)">
+      <div class="pf-locked">
+        <div class="pf-locked-icon">🔒</div>
+        <div style="color:var(--text);font-size:13px;font-weight:600">Unlock Full Portfolio X-Ray with PRO</div>
+        <div style="color:var(--text3);line-height:1.6">
+          ML score per holding · Graham fair value per stock · Valuation signal (undervalued/overvalued) ·
+          Sector rotation alerts · Rebalancing suggestions · Portfolio vs Nifty comparison
+        </div>
+        <button onclick="setMode('expert')" style="background:var(--orange);border:none;border-radius:8px;padding:10px 24px;color:#fff;font-family:var(--font-mono);font-size:12px;cursor:pointer;margin-top:8px">Switch to PRO</button>
+      </div>
+    </div>` : `
+    <!-- Pro: Rebalancing suggestions -->
+    <div class="pf-card">
+      <div class="pf-card-title">REBALANCING SUGGESTIONS</div>
+      ${holdings.map(h => {
+        const s = stocks[h.sym] || {};
+        const verdict = s.verdict || '';
+        const val_sig = s.val_signal || '';
+        if (verdict === 'SELL') return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🔴 <b>${h.sym}</b> — Rated SELL. Consider reducing or exiting this position.</div>`;
+        if (val_sig.includes('Overvalued')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟡 <b>${h.sym}</b> — Overvalued Quality. Good business but priced high — hold, don't add.</div>`;
+        if (val_sig.includes('Undervalued')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟢 <b>${h.sym}</b> — Undervalued Quality. Consider adding to this position.</div>`;
+        if (val_sig.includes('Value Trap')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🔴 <b>${h.sym}</b> — Value Trap Risk. Cheap but weak fundamentals — review carefully.</div>`;
+        return '';
+      }).filter(Boolean).join('') || '<div style="color:var(--text3);font-size:12px;font-family:var(--font-mono)">No urgent rebalancing needed.</div>'}
+    </div>`}
+  `;
+
+  res.innerHTML = html;
+  res.style.display = 'block';
+}
 
 // ── Stock database for autocomplete ──────────────────────────────────────────
 const STOCKS = [
@@ -534,7 +867,6 @@ async function doSearch() {
 
       const res = await fetch(`${API}/stock-analysis?symbol=${encodeURIComponent(sym)}`)
         .then(r => r.json()).catch(() => null);
-      console.log('poll res.fundamentals:', JSON.stringify(res?.fundamentals));
       if (!res || window._currentSym !== sym) return;
 
       const prev = window._lastAnalysis;
@@ -546,14 +878,15 @@ async function doSearch() {
       };
 
       window._lastAnalysis = {
-        quote:        pick(res.quote,        prev.quote,        v => v?.price),
-        ml:           pick(res.ml,           prev.ml,           v => v?.ml_score != null),
-        fundamentals: pick(res.fundamentals, prev.fundamentals, v => v?.investment_score != null),
-        valuation:    pick(res.valuation,    prev.valuation,    v => v?.pe_ratio != null),
-        sentiment:    pick(res.sentiment,    prev.sentiment,    v => v?.sentiment_label),
-        macro:        pick(res.macro,        prev.macro,        v => v?.macro_score !== 0),
-        combined:     pick(res.combined,     prev.combined,     v => v?.score != null),
-        forecast:     pick(res.forecast,     prev.forecast,     v => v?.['1y']?.price_target),
+        quote:         pick(res.quote,         prev.quote,         v => v?.price),
+        ml:            pick(res.ml,            prev.ml,            v => v?.ml_score != null),
+        fundamentals:  pick(res.fundamentals,  prev.fundamentals,  v => v?.investment_score != null),
+        valuation:     pick(res.valuation,     prev.valuation,     v => v?.pe_ratio != null),
+        sentiment:     pick(res.sentiment,     prev.sentiment,     v => v?.sentiment_label),
+        macro:         pick(res.macro,         prev.macro,         v => v?.macro_score !== 0),
+        combined:      pick(res.combined,      prev.combined,      v => v?.score != null),
+        forecast:      pick(res.forecast,      prev.forecast,      v => v?.['1y']?.price_target),
+        chart_insights:pick(res.chart_insights,prev.chart_insights,v => v && Object.keys(v).length > 0),
       };
 
       const d = window._lastAnalysis;
@@ -712,19 +1045,42 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   }
 
   // Sentiment pill
+window.showGoldenCrossInfo = function(isGolden) {
+    const existing = document.getElementById('golden-cross-popup');
+    if (existing) { existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = 'golden-cross-popup';
+    popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1e2433;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:24px;max-width:340px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.5)';
+    popup.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:14px;font-weight:600;color:#fff">${isGolden ? '✨ Golden Cross' : '✗ No Golden Cross'}</span>
+        <span onclick="document.getElementById('golden-cross-popup').remove()" style="cursor:pointer;color:rgba(255,255,255,0.5);font-size:18px">×</span>
+      </div>
+      <p style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.6;margin:0">
+        A <b style="color:#fff">Golden Cross</b> occurs when the 50-day moving average crosses <i>above</i> the 200-day moving average. It signals that short-term momentum is stronger than the long-term trend — historically a <span style="color:#4ade80">bullish</span> sign.<br><br>
+        ${isGolden
+          ? '<span style="color:#4ade80">✓ This stock currently has a Golden Cross — short-term trend is bullish.</span>'
+          : '<span style="color:#f87171">✗ No Golden Cross yet — the 50-day MA is still below the 200-day MA, suggesting caution.</span>'}
+      </p>`;
+    document.body.appendChild(popup);
+    document.addEventListener('click', function handler(e) {
+      if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', handler); }
+    }, { capture: true, once: false });
+  }
+
   function sentPill(score, label, prefix) {
     const cls = label === 'positive' ? 'sent-pos' : label === 'negative' ? 'sent-neg' : 'sent-neu';
     const icon = label === 'positive' ? '📈' : label === 'negative' ? '📉' : '➖';
     const s = parseFloat(score);
-    return `<span class="sent-pill ${cls}">${icon} ${prefix}: ${s > 0 ? '+' : ''}${s}</span>`;
+    return `<span class="sent-pill ${cls}" style="cursor:pointer" onclick="document.getElementById('sec-${prefix.includes('News')?'news':'macro'}').scrollIntoView({behavior:'smooth',block:'start'})">${prefix}: ${s > 0 ? '+' : ''}${s}</span>`;
   }
 
   document.getElementById('result-area').innerHTML = `
     <div class="result-wrap">
 
       <div class="mode-toggle">
-        <button class="mode-btn active" id="btn-beginner" onclick="setMode('beginner')">SIMPLE</button>
-        <button class="mode-btn" id="btn-expert" onclick="setMode('expert')">ADVANCED ▾</button>
+        <button class="mode-btn active" id="btn-beginner" onclick="setMode('beginner')">FREE</button>
+        <button class="mode-btn" id="btn-expert" onclick="setMode('expert')">PRO ▾</button>
       </div>
 
       <!-- Summary card -->
@@ -742,6 +1098,9 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
             <div class="grade-badge">
+              <button id="download-report-btn" onclick="downloadReport('${_rawSym}')" style="display:none;background:transparent;border:1px solid rgba(255,107,53,0.5);color:var(--orange);padding:6px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:var(--font-mono);white-space:nowrap;margin-bottom:8px">
+                &#8595; Download Report
+              </button>
               <div class="grade-circle grade-${grade}" title="Investment Grade">${grade}</div>
               <span class="grade-label">GRADE</span>
             </div>
@@ -770,6 +1129,75 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
             </span>` : ''}
             ${combined?.risk ? `<span class="verdict-pill risk-${combined.risk}">Risk: ${combined.risk}</span>` : ''}
           </div>
+
+          ${combined?.valuation_signal?.fair_value && window._currentMode === 'expert' ? (() => {
+            const vs       = combined.valuation_signal;
+            const curP     = vs.current_price;
+            const fairV    = vs.fair_value;
+            const pct      = vs.pct_vs_fair;
+            const isBelow  = pct != null && pct < 0;
+            const isInZone = curP && vs.buy_zone_low && vs.buy_zone_high && curP >= vs.buy_zone_low && curP <= vs.buy_zone_high;
+            const isBelowZ = curP && vs.buy_zone_low && curP < vs.buy_zone_low;
+            const pctAbs   = pct != null ? Math.abs(pct).toFixed(1) : '—';
+            const sigColor = isBelow ? 'var(--green)' : pct > 15 ? 'var(--red)' : 'var(--gold)';
+            const headline = isBelowZ
+              ? `Graham would pay <b>₹${Number(fairV).toLocaleString('en-IN',{maximumFractionDigits:0})}</b> — you can buy today for <b>₹${Number(curP).toLocaleString('en-IN',{maximumFractionDigits:0})}</b>, a <b style="color:var(--green)">${pctAbs}% discount</b> to fair value.`
+              : isInZone
+              ? `Graham would pay <b>₹${Number(fairV).toLocaleString('en-IN',{maximumFractionDigits:0})}</b> — current price is right in the buy zone. <b style="color:var(--green)">Fair entry point.</b>`
+              : pct > 0
+              ? `Graham would pay <b>₹${Number(fairV).toLocaleString('en-IN',{maximumFractionDigits:0})}</b> — current price is <b style="color:var(--red)">${pctAbs}% above</b> fair value. Wait for a dip.`
+              : `Graham's fair value is <b>₹${Number(fairV).toLocaleString('en-IN',{maximumFractionDigits:0})}</b>.`;
+
+            // Price bar
+            const lo   = vs.buy_zone_low  || fairV * 0.85;
+            const hi   = vs.buy_zone_high || fairV * 0.95;
+            const rangeMin = fairV * 0.55;
+            const rangeMax = fairV * 1.45;
+            const toPos = v => Math.max(2, Math.min(98, (v - rangeMin) / (rangeMax - rangeMin) * 100));
+            const zoneL = toPos(lo);
+            const zoneW = toPos(hi) - zoneL;
+            const fairP = toPos(fairV);
+            const curPP = toPos(curP);
+
+            return `
+            <div style="margin-top:16px;background:rgba(0,0,0,0.25);border-radius:12px;padding:16px 20px;border:1px solid rgba(255,255,255,0.08);text-align:left;width:100%">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;margin-bottom:8px">💡 WHAT WOULD GRAHAM PAY?</div>
+              <div style="font-size:13px;color:var(--text1);line-height:1.6;margin-bottom:14px">${headline}</div>
+
+              <!-- Price bar -->
+              <div style="position:relative;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin-bottom:24px">
+                <!-- Buy zone -->
+                <div style="position:absolute;left:${zoneL}%;width:${zoneW}%;height:100%;background:rgba(0,200,100,0.25);border-radius:4px;border:1px solid rgba(0,200,100,0.4)"></div>
+                <!-- Fair value line -->
+                <div style="position:absolute;left:${fairP}%;top:-3px;width:2px;height:14px;background:var(--gold);border-radius:1px"></div>
+                <!-- Current price dot -->
+                <div style="position:absolute;left:${curPP}%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:${sigColor};border:2px solid #fff;box-shadow:0 0 6px ${sigColor}"></div>
+                <!-- Labels -->
+                <div style="position:absolute;left:${zoneL}%;top:14px;font-size:9px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap">₹${Number(lo).toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+                <div style="position:absolute;left:${Math.min(zoneL+zoneW,88)}%;top:14px;font-size:9px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap">₹${Number(hi).toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+              </div>
+
+              <!-- Stats row -->
+              <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <div style="flex:1;min-width:80px">
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">FAIR VALUE</div>
+                  <div style="font-size:15px;font-weight:700;color:var(--gold)">₹${Number(fairV).toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+                </div>
+                <div style="flex:1;min-width:80px">
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">BUY ZONE</div>
+                  <div style="font-size:13px;font-weight:600;color:var(--green)">₹${Number(lo).toLocaleString('en-IN',{maximumFractionDigits:0})}–₹${Number(hi).toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+                </div>
+                <div style="flex:1;min-width:80px">
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">VS FAIR VALUE</div>
+                  <div style="font-size:15px;font-weight:700;color:${sigColor}">${pct >= 0 ? '+' : ''}${pct != null ? pct.toFixed(1) : '—'}%</div>
+                </div>
+                <div style="flex:1;min-width:80px">
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">CONFIDENCE</div>
+                  <div style="font-size:15px;font-weight:700;color:var(--text1)">${vs.confidence ?? '—'}%</div>
+                </div>
+              </div>
+            </div>`;
+          })() : ''}
         </div>
 
         <!-- Expert metrics (hidden in beginner mode) -->
@@ -809,9 +1237,9 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
 
         <div class="sentiment-row">
           <span class="sent-label">Sentiment:</span>
-          ${sentPill(sentScore, sentLabel, 'News')}
-          ${sentPill(macroScore, macroLabel, 'Macro')}
-          ${goldenCross === true ? '<span class="sent-pill sent-pos">✨ Golden Cross</span>' : goldenCross === false ? '<span class="sent-pill sent-neg">✗ No Golden Cross</span>' : ''}
+          ${sentPill(sentScore, sentLabel, '📰 News')}
+          ${sentPill(macroScore, macroLabel, '🌍 Macro')}
+          ${goldenCross === true ? '<span class="sent-pill sent-pos" style="cursor:pointer" onclick="showGoldenCrossInfo(true)">✨ Golden Cross</span>' : goldenCross === false ? '<span class="sent-pill sent-neg" style="cursor:pointer" onclick="showGoldenCrossInfo(false)">✗ No Golden Cross</span>' : ''}
         </div>
 
         </div><!-- /expert-scores -->
@@ -953,6 +1381,105 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
           </div>
         </div>
 
+        <!-- Valuation Insights -->
+        ${combined?.valuation_signal ? (() => {
+          const vs = combined.valuation_signal;
+          const colorMap = { green:'var(--green)', orange:'var(--gold)', red:'var(--red)', gray:'var(--text3)' };
+          const sigColor = colorMap[vs.color] || 'var(--text3)';
+          const pctSign  = vs.pct_vs_fair != null ? (vs.pct_vs_fair >= 0 ? '+' : '') + vs.pct_vs_fair.toFixed(1) + '%' : '—';
+          const confColor= vs.confidence >= 60 ? 'var(--green)' : vs.confidence >= 40 ? 'var(--gold)' : 'var(--red)';
+          const fmtPrice = v => v != null ? '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) : '—';
+          // Buy zone bar: map current price relative to buy zone
+          const inZone   = vs.current_price && vs.buy_zone_low && vs.buy_zone_high
+                           && vs.current_price >= vs.buy_zone_low && vs.current_price <= vs.buy_zone_high;
+          const belowZone= vs.current_price && vs.buy_zone_low && vs.current_price < vs.buy_zone_low;
+          return `
+        <div class="section" id="sec-valuation">
+          <div class="section-header" onclick="toggleSection('sec-valuation')">
+            <span class="section-title"><span class="section-icon">💰</span> Valuation Insights</span>
+            <span class="section-arrow">▼</span>
+          </div>
+          <div class="section-body">
+            <div style="margin-top:14px">
+
+              <!-- Signal banner -->
+              <div style="background:var(--bg3);border:1px solid ${sigColor}33;border-left:3px solid ${sigColor};border-radius:9px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:180px">
+                  <div style="font-size:12px;font-family:var(--font-mono);color:${sigColor};font-weight:600;letter-spacing:.3px;margin-bottom:3px">${vs.label}</div>
+                  <div style="font-size:11px;color:var(--text2);line-height:1.5">${vs.description}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                  <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)">vs Graham Fair Value</span>
+                  <span style="font-size:16px;font-family:var(--font-mono);font-weight:600;color:${sigColor}">${pctSign}</span>
+                </div>
+              </div>
+
+              <!-- Metrics row -->
+              <div class="fund-grid" style="margin-bottom:14px">
+                <div class="fund-item">
+                  <div class="fund-label">Current Price</div>
+                  <div class="fund-val">${fmtPrice(vs.current_price)}</div>
+                  <div class="fund-trend trend-neu">live market price</div>
+                </div>
+                <div class="fund-item">
+                  <div class="fund-label">Graham Fair Value</div>
+                  <div class="fund-val" style="color:var(--gold)">${fmtPrice(vs.fair_value)}</div>
+                  <div class="fund-trend trend-neu">EPS × Fair P/E (${vs.fair_pe})</div>
+                </div>
+                <div class="fund-item">
+                  <div class="fund-label">Current P/E</div>
+                  <div class="fund-val">${vs.current_pe != null ? vs.current_pe.toFixed(1) : '—'}</div>
+                  <div class="fund-trend trend-neu">fair P/E: ${vs.fair_pe}</div>
+                </div>
+                <div class="fund-item">
+                  <div class="fund-label">Confidence</div>
+                  <div class="fund-val" style="color:${confColor}">${vs.confidence}%</div>
+                  <div class="fund-trend trend-neu">data quality score</div>
+                </div>
+              </div>
+
+              <!-- Buy zone bar -->
+              ${vs.buy_zone_low && vs.buy_zone_high ? (() => {
+                const lo   = vs.buy_zone_low;
+                const hi   = vs.buy_zone_high;
+                const cur  = vs.current_price;
+                const fair = vs.fair_value;
+                // range: 60%–140% of fair_value for display
+                const rangeMin = fair * 0.55;
+                const rangeMax = fair * 1.45;
+                const pct = v => Math.max(0, Math.min(100, ((v - rangeMin) / (rangeMax - rangeMin)) * 100));
+                const loP  = pct(lo).toFixed(1);
+                const hiP  = pct(hi).toFixed(1);
+                const curP = cur ? pct(cur).toFixed(1) : null;
+                return `
+              <div style="background:var(--bg3);border-radius:9px;padding:12px 16px">
+                <div style="font-size:9.5px;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Buy Zone</div>
+                <div style="position:relative;height:8px;background:rgba(255,255,255,0.07);border-radius:4px;margin-bottom:24px">
+                  <!-- buy zone fill -->
+                  <div style="position:absolute;top:0;left:${loP}%;width:${(hiP-loP).toFixed(1)}%;height:100%;background:rgba(34,197,94,0.35);border-radius:4px"></div>
+                  <!-- fair value marker -->
+                  <div style="position:absolute;top:-3px;left:${pct(fair).toFixed(1)}%;transform:translateX(-50%);width:2px;height:14px;background:var(--gold);border-radius:1px"></div>
+                  ${curP != null ? `<!-- current price marker -->
+                  <div style="position:absolute;top:-4px;left:${curP}%;transform:translateX(-50%);width:10px;height:16px;display:flex;flex-direction:column;align-items:center;gap:0">
+                    <div style="width:10px;height:10px;border-radius:50%;background:${inZone?'var(--green)':belowZone?'var(--gold)':'var(--red)'};border:2px solid rgba(0,0,0,0.4)"></div>
+                  </div>` : ''}
+                  <!-- labels -->
+                  <div style="position:absolute;top:14px;left:${loP}%;transform:translateX(-50%);font-size:9px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap">${fmtPrice(lo)}</div>
+                  <div style="position:absolute;top:14px;left:${hiP}%;transform:translateX(-50%);font-size:9px;color:var(--text3);font-family:var(--font-mono);white-space:nowrap">${fmtPrice(hi)}</div>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+                  <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:rgba(34,197,94,0.35);margin-right:4px;vertical-align:middle"></span>Buy zone</span>
+                  <span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)"><span style="display:inline-block;width:8px;height:2px;background:var(--gold);margin-right:4px;vertical-align:middle"></span>Graham fair value</span>
+                  ${curP != null ? `<span style="font-size:10px;color:var(--text3);font-family:var(--font-mono)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${inZone?'var(--green)':belowZone?'var(--gold)':'var(--red)'};margin-right:4px;vertical-align:middle"></span>Current price ${inZone?'(in zone)':belowZone?`— already in deep value territory ✓ trading ${Math.round((vs.buy_zone_low - vs.current_price) / vs.current_price * -100)}% below buy zone`:'(above zone)'}</span>` : ''}
+                </div>
+              </div>`;
+              })() : ''}
+
+            </div>
+          </div>
+        </div>`;
+        })() : ''}
+
         <!-- ML Analysis -->
         <div class="section" id="sec-ml">
           <div class="section-header" onclick="toggleSection('sec-ml')">
@@ -973,7 +1500,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
               </div>
               <div class="fund-item">
                 <div class="fund-label">Model Accuracy</div>
-                <div class="fund-val">53.8%</div>
+                <div class="fund-val">57.1%</div>
                 <div class="fund-trend trend-neu">vs 50% random</div>
               </div>
               <div class="fund-item">
@@ -1030,7 +1557,32 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
       chgEl.textContent   = (isUp ? '▲ ' : '▼ ') + Math.abs(q.change).toFixed(2) + ' (' + Math.abs(q.change_pct).toFixed(2) + '%)';
       chgEl.className     = 'price-chg ' + (isUp ? 'up' : 'dn');
     } catch(e) {}
-  }, 1000);
+  }, 60000);
+}
+
+function downloadReport(sym) {
+  const btn = event.target;
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  const d = window._lastAnalysis || {};
+  const params = new URLSearchParams({
+    symbol: sym,
+    score:    d.combined?.score     ?? '',
+    score_10: d.combined?.score_10  ?? '',
+    verdict:  d.combined?.verdict   ?? '',
+    grade:    d.combined?.grade     ?? '',
+  });
+  fetch(`${API}/generate-report?${params}`)
+    .then(r => r.blob())
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `${sym}_Investment_Report.pdf`;
+      a.click(); URL.revokeObjectURL(url);
+      btn.textContent = '\u2193 Download Investment Report';
+      btn.disabled = false;
+    })
+    .catch(() => { btn.textContent = '\u2193 Download Investment Report'; btn.disabled = false; });
 }
 
 function toggleSection(id) {
@@ -1093,145 +1645,240 @@ function setMode(mode) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('visible', isExpert);
   });
+  const dlBtn = document.getElementById('download-report-btn');
+  if (dlBtn) dlBtn.style.display = isExpert ? 'inline-block' : 'none';
 }
 
 // ── Visuals / Charts ──────────────────────────────────────────────────────────
 window._visualsLoaded = false;
 
-function drawLineChart(canvasId, labels, data, color, label) {
+function drawLineChart(canvasId, labels, data, color, label, fmt='currency') {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width = canvas.offsetWidth;
-  const H = canvas.height = canvas.offsetHeight;
-  ctx.clearRect(0,0,W,H);
+  const draw = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,W,H);
 
-  const valid = data.filter(v=>v!=null);
-  if (!valid.length) return;
-  const min = Math.min(...valid);
-  const max = Math.max(...valid);
-  const range = max - min || 1;
+    const valid = data.filter(v=>v!=null);
+    if (!valid.length) return;
+    const min = Math.min(...valid);
+    const max = Math.max(...valid);
+    const range = max - min || 1;
+    const pad = {t:10,r:10,b:24,l:50};
+    const cw = W-pad.l-pad.r;
+    const ch = H-pad.t-pad.b;
 
-  const pad = {t:10,r:10,b:24,l:50};
-  const cw = W - pad.l - pad.r;
-  const ch = H - pad.t - pad.b;
-
-  // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-  ctx.lineWidth = 1;
-  for (let i=0;i<=4;i++) {
-    const y = pad.t + ch - (ch/4)*i;
-    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.3)';
-    ctx.font='9px monospace';
-    ctx.fillText(Math.round(min+(range/4)*i), 2, y+3);
-  }
-
-  // X labels — show first, middle, last
-  ctx.fillStyle='rgba(255,255,255,0.3)';
-  ctx.font='9px monospace';
-  const showIdx = [0, Math.floor(labels.length/2), labels.length-1];
-  showIdx.forEach(i=>{
-    if(labels[i]) {
-      const x = pad.l + (i/(labels.length-1||1))*cw;
-      const lbl = labels[i].length > 7 ? labels[i].slice(5) : labels[i];
-      ctx.fillText(lbl, x-12, H-6);
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.5;
+    for(let i=0;i<=4;i++){
+      const y=pad.t+ch-(ch/4)*i;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px -apple-system,monospace';
+      const v=min+(range/4)*i;
+      const vStr = fmt==='pct' ? `${Number(v).toFixed(1)}%` : `₹${Number(v).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+      ctx.fillText(vStr,2,y+3);
     }
-  });
 
-  // Line
-  ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  let first = true;
-  data.forEach((v,i) => {
-    if (v == null) return;
-    const x = pad.l + (i/(data.length-1||1))*cw;
-    const y = pad.t + ch - ((v-min)/range)*ch;
-    if (first) { ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
-  });
-  ctx.stroke();
+    // X labels
+    ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='9px monospace';
+    [0,Math.floor(labels.length/2),labels.length-1].forEach(i=>{
+      if(!labels[i])return;
+      const x=pad.l+(i/(labels.length-1||1))*cw;
+      ctx.fillText(labels[i].slice(-5),x-12,H-6);
+    });
 
-  // Fill under line
-  ctx.lineTo(pad.l+cw, pad.t+ch);
-  ctx.lineTo(pad.l, pad.t+ch);
-  ctx.closePath();
-  ctx.fillStyle = color.replace(')',',0.08)').replace('rgb','rgba');
-  ctx.fill();
+    // Line + fill
+    ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    ctx.shadowColor=color;ctx.shadowBlur=4;
+    let first=true;
+    const pts=[];
+    data.forEach((v,i)=>{
+      if(v==null)return;
+      const x=pad.l+(i/(data.length-1||1))*cw;
+      const y=pad.t+ch-((v-min)/range)*ch;
+      pts.push({x,y,v,i});
+      if(first){ctx.moveTo(x,y);first=false;}else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur=0;
+    if(pts.length){
+      ctx.lineTo(pts[pts.length-1].x,pad.t+ch);
+      ctx.lineTo(pts[0].x,pad.t+ch);
+      ctx.closePath();
+      ctx.fillStyle=color.replace('rgb(','rgba(').replace(')',',0.08)');
+      ctx.fill();
+    }
 
-  // Last value dot
-  const lastIdx = data.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
-  if (lastIdx != null) {
-    const x = pad.l + (lastIdx/(data.length-1||1))*cw;
-    const y = pad.t + ch - ((data[lastIdx]-min)/range)*ch;
-    ctx.beginPath();
-    ctx.arc(x,y,4,0,Math.PI*2);
-    ctx.fillStyle=color; ctx.fill();
+    // Last dot
+    if(pts.length){
+      const {x,y}=pts[pts.length-1];
+      ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fillStyle=color;ctx.fill();
+    }
+
+    // Store for hover
+    canvas._pts=pts;canvas._pad=pad;canvas._ch=ch;canvas._cw=cw;
+    canvas._min=min;canvas._range=range;canvas._color=color;
+    canvas._labels=labels;canvas._data=data;canvas._W=W;canvas._H=H;
+  };
+  draw();
+
+  if(!canvas._hoverAttached){
+    canvas._hoverAttached=true;
+    canvas.addEventListener('mousemove',e=>{
+      const rect=canvas.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+      const pts=canvas._pts||[];
+      if(!pts.length)return;
+      let nearest=pts[0],minDist=Infinity;
+      pts.forEach(p=>{const d=Math.abs(p.x-mx);if(d<minDist){minDist=d;nearest=p;}});
+      if(minDist>30){hideTooltip();return;}
+      const lbl=canvas._labels?.[nearest.i]||'';
+      const val= fmt==='pct' ? `${Number(nearest.v).toFixed(1)}%` : `₹${Number(nearest.v).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+      showTooltip(e.clientX,e.clientY,`<b>${lbl}</b><br>${val}`);
+      draw();
+      const ctx=canvas.getContext('2d');
+      const pad=canvas._pad,ch=canvas._ch;
+      ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(nearest.x,pad.t);ctx.lineTo(nearest.x,pad.t+ch);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();ctx.arc(nearest.x,nearest.y,6,0,Math.PI*2);
+      ctx.fillStyle=canvas._color;ctx.fill();
+      ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    });
+    canvas.addEventListener('mouseleave',()=>hideTooltip());
   }
 }
 
 function drawBarChart(canvasId, labels, data1, data2, color1, color2, label1, label2) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width = canvas.offsetWidth;
-  const H = canvas.height = canvas.offsetHeight;
-  ctx.clearRect(0,0,W,H);
+  const draw = () => {
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth;
+    const H = canvas.offsetHeight;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0,0,W,H);
 
-  const allVals = [...(data1||[]),...(data2||[])].filter(v=>v!=null);
-  if (!allVals.length) return;
-  const min = Math.min(0, ...allVals);
-  const max = Math.max(...allVals);
-  const range = max - min || 1;
+    const vals1=(data1||[]).filter(v=>v!=null);
+    const vals2=(data2||[]).filter(v=>v!=null);
+    if(!vals1.length&&!vals2.length)return;
 
-  const pad = {t:20,r:10,b:28,l:50};
-  const cw = W - pad.l - pad.r;
-  const ch = H - pad.t - pad.b;
-  const n  = labels.length;
-  const bw = (cw/n)*0.35;
+    // Use separate scales if data2 is <15% of data1 max (e.g. profit vs revenue)
+    const max1=vals1.length?Math.max(...vals1):0;
+    const max2=vals2.length?Math.max(...vals2):0;
+    const useDualAxis = max1>0 && max2>0 && (max2/max1 < 0.15 || max1/max2 < 0.15);
 
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
-  for (let i=0;i<=4;i++) {
-    const y = pad.t + ch - (ch/4)*i;
-    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='9px monospace';
-    const val = Math.round(min+(range/4)*i);
-    ctx.fillText(val>=1000?`${(val/1000).toFixed(0)}k`:val, 2, y+3);
+    const min1=Math.min(0,...vals1); const range1=max1-min1||1;
+    const min2=Math.min(0,...vals2); const range2=max2-min2||1;
+
+    const allVals=[...vals1,...vals2];
+    const min=useDualAxis?Math.min(min1,min2):Math.min(0,...allVals);
+    const max=useDualAxis?Math.max(max1,max2):Math.max(...allVals);
+    const range=max-min||1;
+    const pad={t:20,r:10,b:28,l:50};
+    const cw=W-pad.l-pad.r;
+    const ch=H-pad.t-pad.b;
+    const n=labels.length;
+    const bw=(cw/n)*0.35;
+    const bars=[];
+
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;
+    for(let i=0;i<=4;i++){
+      const y=pad.t+ch-(ch/4)*i;
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='10px -apple-system,monospace';
+      const v=min+(range/4)*i;
+      ctx.fillText(`₹${Number(v).toLocaleString('en-IN',{maximumFractionDigits:2})}`,2,y+3);
+    }
+
+    // Zero line
+    const zeroY=pad.t+ch-((0-min)/range)*ch;
+    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,zeroY);ctx.lineTo(W-pad.r,zeroY);ctx.stroke();
+
+    labels.forEach((lbl,i)=>{
+      const cx=pad.l+(i/n)*cw+(cw/n)*0.1;
+      if(data1&&data1[i]!=null){
+        const _min1=useDualAxis?min1:min, _range1=useDualAxis?range1:range;
+        const bh=((data1[i]-_min1)/_range1)*ch;
+        const by=pad.t+ch-((data1[i]-_min1)/_range1)*ch;
+        ctx.fillStyle=color1;
+        ctx.beginPath();ctx.roundRect(cx,by,bw,bh>0?bh:2,2);ctx.fill();
+        bars.push({x:cx,w:bw,y:by,h:bh,v:data1[i],lbl,set:label1});
+      }
+      if(data2&&data2[i]!=null){
+        const _min2=useDualAxis?min2:min, _range2=useDualAxis?range2:range;
+        const bh=((data2[i]-_min2)/_range2)*ch;
+        const by=pad.t+ch-((data2[i]-_min2)/_range2)*ch;
+        ctx.fillStyle=color2;
+        ctx.beginPath();ctx.roundRect(cx+bw+2,by,bw,bh>0?bh:2,2);ctx.fill();
+        bars.push({x:cx+bw+2,w:bw,y:by,h:bh,v:data2[i],lbl,set:label2});
+      }
+      ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='10px -apple-system,monospace';
+      ctx.fillText(lbl?lbl.replace('Mar ','').replace('Sep ',''):'',cx,H-8);
+    });
+
+    // Legend
+    ctx.fillStyle=color1;ctx.fillRect(pad.l,4,10,8);
+    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font='9px monospace';
+    ctx.fillText(label1,pad.l+13,12);
+    ctx.fillStyle=color2;ctx.fillRect(pad.l+80,4,10,8);
+    ctx.fillStyle='rgba(255,255,255,0.5)';
+    ctx.fillText(label2,pad.l+93,12);
+
+    canvas._bars=bars;canvas._W=W;canvas._H=H;
+  };
+  draw();
+
+  if(!canvas._hoverAttached){
+    canvas._hoverAttached=true;
+    canvas.addEventListener('mousemove',e=>{
+      const rect=canvas.getBoundingClientRect();
+      const mx=(e.clientX-rect.left)*(canvas.width/rect.width);
+      const my=(e.clientY-rect.top)*(canvas.height/rect.height);
+      const bars=canvas._bars||[];
+      const hit=bars.find(b=>mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h);
+      if(!hit){hideTooltip();return;}
+      const val=`₹${Number(hit.v).toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+      showTooltip(e.clientX,e.clientY,`<b>${hit.lbl}</b><br>${hit.set}: ${val}`);
+    });
+    canvas.addEventListener('mouseleave',()=>hideTooltip());
   }
+}
 
-  // Zero line
-  const zeroY = pad.t + ch - ((0-min)/range)*ch;
-  ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(pad.l,zeroY); ctx.lineTo(W-pad.r,zeroY); ctx.stroke();
+// Tooltip helpers
+function showTooltip(x, y, html) {
+  let tip = document.getElementById('chart-tooltip');
+  if(!tip){
+    tip = document.createElement('div');
+    tip.id = 'chart-tooltip';
+    tip.style.cssText = 'position:fixed;background:#0d1f3c;border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;font-family:monospace;font-size:12px;color:#fff;pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.6';
+    document.body.appendChild(tip);
+  }
+  tip.innerHTML = html;
+  tip.style.display = 'block';
+  tip.style.left = (x+14)+'px';
+  tip.style.top  = (y-10)+'px';
+}
 
-  labels.forEach((lbl,i) => {
-    const cx = pad.l + (i/n)*cw + (cw/n)*0.15;
-    // Bar 1
-    if (data1 && data1[i]!=null) {
-      const bh = ((data1[i]-min)/range)*ch;
-      const by = pad.t + ch - ((data1[i]-min)/range)*ch;
-      ctx.fillStyle=color1; ctx.fillRect(cx, by, bw, bh>0?bh:1);
-    }
-    // Bar 2
-    if (data2 && data2[i]!=null) {
-      const bh = ((data2[i]-min)/range)*ch;
-      const by = pad.t + ch - ((data2[i]-min)/range)*ch;
-      ctx.fillStyle=color2; ctx.fillRect(cx+bw+2, by, bw, bh>0?bh:1);
-    }
-    // X label
-    ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.font='9px monospace';
-    const shortLbl = lbl ? lbl.replace('Mar ','').replace('Sep ','') : '';
-    ctx.fillText(shortLbl, cx, H-8);
-  });
-
-  // Legend
-  ctx.fillStyle=color1; ctx.fillRect(pad.l,4,10,8);
-  ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px monospace';
-  ctx.fillText(label1, pad.l+13, 12);
-  ctx.fillStyle=color2; ctx.fillRect(pad.l+80,4,10,8);
-  ctx.fillStyle='rgba(255,255,255,0.5)';
-  ctx.fillText(label2, pad.l+93, 12);
+function hideTooltip() {
+  const tip = document.getElementById('chart-tooltip');
+  if(tip) tip.style.display = 'none';
 }
 
 async function loadVisuals(sym) {
@@ -1253,20 +1900,24 @@ async function loadVisuals(sym) {
       <div class="chart-block">
         <div class="chart-title">REVENUE & PROFIT (₹ Cr)</div>
         <div class="chart-canvas-wrap"><canvas id="revprofit-canvas" style="width:100%;height:100%"></canvas></div>
+        <div id="insight-revenue" class="chart-insight"></div>
       </div>
       <div class="chart-block">
         <div class="chart-title">ROCE TREND (%)</div>
         <div class="chart-canvas-wrap"><canvas id="roce-canvas" style="width:100%;height:100%"></canvas></div>
+        <div id="insight-roce" class="chart-insight"></div>
       </div>
     </div>
     <div class="charts-2col">
       <div class="chart-block">
         <div class="chart-title">DEBT vs EQUITY (₹ Cr)</div>
         <div class="chart-canvas-wrap"><canvas id="debtequity-canvas" style="width:100%;height:100%"></canvas></div>
+        <div id="insight-debt" class="chart-insight"></div>
       </div>
       <div class="chart-block">
         <div class="chart-title">PROMOTER HOLDING (%)</div>
         <div class="chart-canvas-wrap"><canvas id="promoter-canvas" style="width:100%;height:100%"></canvas></div>
+        <div id="insight-promoter" class="chart-insight"></div>
       </div>
     </div>`;
 
@@ -1282,11 +1933,11 @@ async function loadVisuals(sym) {
       setTimeout(() => {
         drawBarChart('revprofit-canvas', r.years, r.sales, r.profit,
           'rgba(255,107,53,0.7)', 'rgba(0,200,100,0.7)', 'Revenue', 'Profit');
-        drawLineChart('roce-canvas', r.years, r.roce, 'rgb(255,180,0)', 'ROCE %');
+        drawLineChart('roce-canvas', r.years, r.roce, 'rgb(255,180,0)', 'ROCE %', 'pct');
         drawBarChart('debtequity-canvas', r.years, r.debt, r.equity,
           'rgba(255,80,80,0.7)', 'rgba(100,160,255,0.7)', 'Debt', 'Equity');
         drawLineChart('promoter-canvas', r.promoter_years||r.years, r.promoter,
-          'rgb(160,100,255)', 'Promoter %');
+          'rgb(160,100,255)', 'Promoter %', 'pct');
       }, 100);
     } else {
       ['revprofit-canvas','roce-canvas','debtequity-canvas','promoter-canvas'].forEach(id => {
@@ -1295,6 +1946,42 @@ async function loadVisuals(sym) {
       });
     }
   } catch(e) {}
+
+  // Render chart insights — wait for stock-analysis to complete first
+  const renderInsights = () => {
+    try {
+      const ci = window._lastAnalysis?.chart_insights || {};
+    const iconFor = q => q === 'good' ? '\u25b2' : q === 'bad' ? '\u25bc' : '-';
+    const colorFor = q => q === 'good' ? 'var(--green)' : q === 'bad' ? '#f87171' : 'rgba(255,255,255,0.4)';
+    const render = (id, ins) => {
+      const el = document.getElementById(id);
+      if (!el || !ins) return;
+      el.innerHTML = `
+        <span style="color:${colorFor(ins.quality)};font-size:11px;font-weight:600">
+          ${iconFor(ins.quality)} ${ins.trend.charAt(0).toUpperCase()+ins.trend.slice(1)}
+          (${ins.change_pct > 0 ? '+' : ''}${ins.change_pct}%)
+        </span>
+        <span style="color:rgba(255,255,255,0.5);font-size:11px;margin-left:6px">${ins.summary}</span>`;
+    };
+    render('insight-revenue', ci.revenue || ci.profit);
+    render('insight-roce',    ci.roce);
+    render('insight-debt',    ci.debt);
+      render('insight-promoter', null);
+    } catch(e) {}
+  };
+
+  // Try immediately, then retry until data arrives
+  let _retries = 0;
+  const _iv = setInterval(() => {
+    _retries++;
+    const ci = window._lastAnalysis?.chart_insights;
+    if (ci && Object.keys(ci).length > 0) {
+      renderInsights();
+      clearInterval(_iv);
+    } else if (_retries > 15) {
+      clearInterval(_iv);
+    }
+  }, 1000);
 }
 
 async function loadPriceChart(sym, period, btn) {
@@ -1302,9 +1989,12 @@ async function loadPriceChart(sym, period, btn) {
   document.querySelectorAll('.chart-period-btn').forEach(b=>b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
-  const wrap = document.querySelector('#sec-visuals .chart-canvas-wrap');
+  const canvas = document.getElementById('price-canvas');
+  const wrap = canvas ? canvas.parentNode : document.querySelector('#sec-visuals .chart-canvas-wrap');
   if (!wrap) return;
   wrap.innerHTML = '<div class="chart-loading">Loading…</div>';
+  await new Promise(r=>setTimeout(r,50));
+  wrap.innerHTML = '<canvas id="price-canvas" style="width:100%;height:100%"></canvas>';
 
   try {
     const r = await fetch(`${API}/price-history?symbol=${encodeURIComponent(sym)}&period=${period}`)
@@ -1313,7 +2003,6 @@ async function loadPriceChart(sym, period, btn) {
       wrap.innerHTML = '<div class="chart-error">Price data unavailable</div>';
       return;
     }
-    wrap.innerHTML = '<canvas id="price-canvas" style="width:100%;height:100%"></canvas>';
     const color = r.pct_change >= 0 ? 'rgb(0,200,100)' : 'rgb(255,80,80)';
     setTimeout(() => drawLineChart('price-canvas', r.dates, r.prices, color, 'Price'), 50);
   } catch(e) {
