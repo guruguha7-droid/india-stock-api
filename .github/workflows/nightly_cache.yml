@@ -1,0 +1,17 @@
+name: Rebuild Nightly Cache
+
+on:
+  schedule:
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cache rebuild
+        run: |
+          curl -f "https://india-stock-api.onrender.com/rebuild-cache?secret=${{ secrets.CACHE_SECRET }}" \
+            --max-time 30 \
+            --retry 3 \
+            --retry-delay 10
