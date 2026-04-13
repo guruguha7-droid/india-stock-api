@@ -1192,10 +1192,56 @@ def stock_analysis():
                                 .replace(',', '')) or None
 
             if eps_latest > 0 and cur_price:
-                # Graham fair PE — capped at 45 for safety
-                # Cap EPS CAGR at 25% for Graham — prevents distortion from cyclical recovery
-                graham_cagr = min(eps_cagr, 25)
-                fair_pe     = min(8.5 + 2 * graham_cagr, 40)
+                # ── Modern Graham formula ─────────────────────────────
+                # 1. RBI rate adjustment (Graham calibrated at 4.4% US rates)
+                try:
+                    rbi_rate = 6.5  # Current RBI repo rate — update manually or fetch live
+                    rate_adj = 4.4 / rbi_rate  # ~0.677 at 6.5%
+                except Exception:
+                    rate_adj = 0.677
+
+                # 2. Sector PE anchor — different sectors deserve different base multiples
+                SECTOR_PE = {
+                    'IT': 28, 'Technology': 28, 'Software': 28,
+                    'FMCG': 35, 'Consumer': 32,
+                    'Pharma': 30, 'Healthcare': 30,
+                    'Banking': 15, 'Finance': 18, 'NBFC': 18,
+                    'Auto': 20, 'Automobile': 20,
+                    'Metals': 10, 'Steel': 10, 'Mining': 10,
+                    'Energy': 12, 'Oil': 12, 'Power': 14,
+                    'Infrastructure': 18, 'Construction': 16,
+                    'Cement': 20, 'Real Estate': 20,
+                    'Defence': 30, 'Chemicals': 22,
+                }
+                sector_str = str(result.get('quote', {}).get('industry', '') or '')
+                base_pe = 22  # Nifty 50 long-term average
+                for k, v in SECTOR_PE.items():
+                    if k.lower() in sector_str.lower():
+                        base_pe = v
+                        break
+
+                # 3. Quality premium — ROCE trend, FCF, debt
+                quality_mult = 1.0
+                roce_l2  = float(_r.get('roce_latest_pct') or 10)
+                roce_a2  = float(_r.get('roce_avg_5y') or roce_l2)
+                if roce_l2 > roce_a2 + 3:   quality_mult += 0.10  # ROCE improving
+                if bool(_r.get('fcf_positive_3y')): quality_mult += 0.08  # FCF positive
+                if bool(_r.get('debt_reducing')):    quality_mult += 0.07  # Debt reducing
+                if float(_r.get('promoter_pct') or 0) > 55: quality_mult += 0.05
+                quality_mult = min(quality_mult, 1.35)  # Cap at 35% premium
+
+                # 4. Growth reliability — cap cyclical inflation
+                opm_trend = float(_r.get('opm_trend_5y') or 0)
+                reliable_growth = min(eps_cagr, 25)
+                if opm_trend < -3:  # Margins declining — growth less reliable
+                    reliable_growth = min(reliable_growth, 15)
+
+                # 5. Final fair PE
+                fair_pe = min(
+                    (base_pe + 1.5 * reliable_growth) * rate_adj * quality_mult,
+                    55  # Hard cap — no stock deserves more than 55x on this model
+                )
+                fair_pe = round(fair_pe, 1)
                 fair_value = round(eps_latest * fair_pe, 1)
 
                 # Margin of safety — higher quality = less discount needed
@@ -1886,7 +1932,29 @@ def generate_report_endpoint():
                 cur_price=float(str(data.get('quote',{}).get('price') or 0).replace(',','')) or None
                 cur_pe=float(data.get('valuation',{}).get('pe_ratio') or 0)
                 if eps_latest>0 and cur_price:
-                    fair_pe=min(8.5+2*min(eps_cagr_v,25),40)
+                    rbi_rate   = 6.5
+                    rate_adj   = 4.4 / rbi_rate
+                    SECTOR_PE  = {
+                        'IT':28,'Technology':28,'Software':28,'FMCG':35,'Consumer':32,
+                        'Pharma':30,'Healthcare':30,'Banking':15,'Finance':18,'NBFC':18,
+                        'Auto':20,'Automobile':20,'Metals':10,'Steel':10,'Mining':10,
+                        'Energy':12,'Oil':12,'Power':14,'Infrastructure':18,
+                        'Construction':16,'Cement':20,'Real Estate':20,'Defence':30,
+                    }
+                    sector_str = str(data.get('quote',{}).get('industry','') or '')
+                    base_pe    = 22
+                    for k,v in SECTOR_PE.items():
+                        if k.lower() in sector_str.lower():
+                            base_pe = v; break
+                    quality_mult = 1.0
+                    if float(r.get('roce_latest_pct') or 10) > float(r.get('roce_avg_5y') or 10)+3: quality_mult+=0.10
+                    if bool(r.get('fcf_positive_3y')): quality_mult+=0.08
+                    if bool(r.get('debt_reducing')):   quality_mult+=0.07
+                    if float(r.get('promoter_pct') or 0)>55: quality_mult+=0.05
+                    quality_mult = min(quality_mult, 1.35)
+                    reliable_growth = min(eps_cagr_v, 25)
+                    if float(r.get('opm_trend_5y') or 0) < -3: reliable_growth = min(reliable_growth, 15)
+                    fair_pe = round(min((base_pe+1.5*reliable_growth)*rate_adj*quality_mult, 55), 1)
                     fair_value=round(eps_latest*fair_pe,1)
                     mos=0.10 if scr_raw>=75 else 0.15 if scr_raw>=60 else 0.25
                     buy_zone_high=round(fair_value*(1-mos*0.5),1)
