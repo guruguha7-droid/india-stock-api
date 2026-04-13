@@ -1648,9 +1648,14 @@ def compare():
 # ── PDF Report Generator ──────────────────────────────────────────────────────
 @app.route("/generate-report")
 def generate_report_endpoint():
-    symbol = request.args.get("symbol", "").upper().strip()
+    symbol    = request.args.get("symbol", "").upper().strip()
     if not symbol:
         return jsonify({"error": "symbol required"}), 400
+    # Accept pre-computed values from frontend to ensure score consistency
+    _score    = request.args.get("score")
+    _score_10 = request.args.get("score_10")
+    _verdict  = request.args.get("verdict")
+    _grade    = request.args.get("grade")
     try:
         from report_generator import generate_report
         from flask import Response
@@ -1917,7 +1922,11 @@ def generate_report_endpoint():
             except Exception: val_signal=None
 
             data["combined"]={
-                "score":combined,"grade":grade,"yfin_score":round(yfin_score,1),
+                "score":    float(_score)    if _score    else combined,
+                "score_10": float(_score_10) if _score_10 else round(combined/10,1),
+                "verdict":  _verdict         if _verdict  else verdict,
+                "grade":    _grade           if _grade    else grade,
+                "yfin_score":round(yfin_score,1),
                 "sent_score":round(sent_score,1),"macro_score":round(macro_score,1),
                 "screener_score":round(scr_raw,1),"verdict":verdict,"verdict_color":verdict_color,
                 "risk":risk,"risk_color":'green' if risk=='Low' else 'gold' if risk=='Medium' else 'red',
@@ -1987,6 +1996,24 @@ def generate_report_endpoint():
         import traceback
         print(f"[report ERROR] {traceback.format_exc()}", flush=True)
         return jsonify({"error": str(e)}), 500
+
+
+# ── Nightly cache rebuild trigger ─────────────────────────────────────────────
+@app.route("/rebuild-cache")
+def rebuild_cache():
+    secret = request.args.get("secret", "")
+    if secret != os.environ.get("CACHE_SECRET", "graham2024"):
+        return jsonify({"error": "unauthorized"}), 401
+    def _rebuild():
+        try:
+            import nightly_cache
+            print("  [rebuild] Starting nightly cache rebuild...", flush=True)
+            nightly_cache.build_cache()
+            print("  [rebuild] Cache rebuild complete.", flush=True)
+        except Exception as e:
+            print(f"  [rebuild] Error: {e}", flush=True)
+    threading.Thread(target=_rebuild, daemon=True).start()
+    return jsonify({"status": "ok", "message": "Cache rebuild started in background"})
 
 
 # ── Price history ─────────────────────────────────────────────────────────────
