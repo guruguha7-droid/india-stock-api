@@ -1106,6 +1106,28 @@ def stock_analysis():
         elif combined >= 50: verdict, verdict_color = 'HOLD', 'gold'
         else:                verdict, verdict_color = 'SELL', 'red'
 
+        # ── Short-term verdict (ML + technicals) ─────────────────────
+        ml_s         = float(ml_raw or 50)
+        short_verdict = 'BUY' if ml_s >= 62 else 'SELL' if ml_s < 40 else 'HOLD'
+
+        # ── Long-term verdict (fundamentals + valuation) ──────────────
+        fund_score_v = float(scr_raw or 50)
+        val_discount = 0.0
+        try:
+            _vs_tmp = result.get('valuation', {})
+            _qr_tmp = result.get('quote', {})
+            _ep_tmp = float(_vs_tmp.get('eps') or 0)
+            _pr_tmp = float(str(_qr_tmp.get('price') or 0).replace(',', '')) or 0
+            if _ep_tmp > 0 and _pr_tmp > 0:
+                # Use valuation signal pct_vs_fair if available later; approximate here
+                pass
+        except Exception:
+            pass
+        lt_score    = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
+        long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
+                       'BUY'  if lt_score >= 55 else \
+                       'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
+
         # ── Contrarian override ───────────────────────────────────────
         rsi_val  = float(result.get('ml', {}).get('rsi') or 50)
         pos52    = float(result.get('ml', {}).get('pos52_pct') or 50)
@@ -1312,20 +1334,30 @@ def stock_analysis():
         except Exception:
             val_signal = None
 
+        # Refine long_verdict now that val_signal is computed
+        if val_signal:
+            val_discount = float(val_signal.get('pct_vs_fair') or 0)
+            lt_score     = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
+            long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
+                           'BUY'  if lt_score >= 55 else \
+                           'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
+
         result["combined"] = {
-            "score":          combined,
-            "grade":          grade,
-            "yfin_score":     round(yfin_score, 1),
-            "sent_score":     round(sent_score, 1),
-            "macro_score":    round(macro_score, 1),
-            "screener_score": round(scr_raw, 1),
-            "verdict":        verdict,
-            "verdict_color":  verdict_color,
-            "risk":           risk,
-            "risk_color":     risk_color,
-            "reason":         reason,
-            "score_10":       score_10,
-            "valuation_signal": val_signal,
+            "score":               combined,
+            "grade":               grade,
+            "yfin_score":          round(yfin_score, 1),
+            "sent_score":          round(sent_score, 1),
+            "macro_score":         round(macro_score, 1),
+            "screener_score":      round(scr_raw, 1),
+            "verdict":             verdict,
+            "verdict_color":       verdict_color,
+            "risk":                risk,
+            "risk_color":          risk_color,
+            "reason":              reason,
+            "score_10":            score_10,
+            "valuation_signal":    val_signal,
+            "short_term_verdict":  short_verdict,
+            "long_term_verdict":   long_verdict,
         }
     except Exception:
         result["combined"] = {"score": 50, "grade": "C"}
