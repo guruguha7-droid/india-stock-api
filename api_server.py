@@ -1232,7 +1232,7 @@ def stock_analysis():
 
                 # 4. Growth reliability — cap cyclical inflation
                 opm_trend = float(_r.get('opm_trend_5y') or 0)
-                reliable_growth = min(eps_cagr, 25)
+                reliable_growth = min(float(eps_cagr or 8.0), 25)
                 if opm_trend < -3:  # Margins declining — growth less reliable
                     reliable_growth = min(reliable_growth, 15)
 
