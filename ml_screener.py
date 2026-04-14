@@ -68,7 +68,7 @@ NSE_STOCKS = [
     # Mid Cap — Infrastructure
     "NCC", "PNCINFRA", "HGINFRA", "ASHOKA", "GPPL",
     # Mid Cap — Metals
-    "GRAVITA", "DYNAMIC",
+    "GRAVITA", "DYCL",
     # Small Cap — Emerging
     "PGEL", "IDEAFORGE", "RATEGAIN", "EASEMYTRIP", "IXIGO", "YATHARTH",
     "HAPPYFORGE", "SANSERA", "CRAFTSMAN", "SUPRAJIT",

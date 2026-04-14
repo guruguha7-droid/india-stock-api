@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-04-13T20:55:29.870948",
+  "built_at": "2026-04-14T08:28:44.213725",
   "accuracy": 58.1,
   "stocks": {
     "HDFCBANK": {
@@ -10268,19 +10268,19 @@
       },
       "cached_price": 1555.9
     },
-    "DYNAMIC": {
+    "DYCL": {
       "ml": {
-        "ml_score": 45.5,
+        "ml_score": 48.8,
         "prediction": "UNDERPERFORM",
         "accuracy": 58.1,
-        "rsi": 51.9,
-        "pos52_pct": 52.4,
-        "ret_1m_pct": 26.0,
-        "ret_3m_pct": 2.7,
+        "rsi": 56.4,
+        "pos52_pct": 23.2,
+        "ret_1m_pct": 7.5,
+        "ret_3m_pct": -9.2,
         "golden_cross": false
       },
       "valuation": {
-        "pe_ratio": 8.2,
+        "pe_ratio": 18.1,
         "eps": 16.64,
         "dividend_yield": null,
         "pb_ratio": null,
@@ -10315,7 +10315,7 @@
           "summary": "Debt grew 25.2% YoY \u2014 rising debt increases financial risk."
         }
       },
-      "cached_price": 136.7
+      "cached_price": 301.58
     },
     "PGEL": {
       "ml": {

@@ -419,8 +419,54 @@ function showTab(tab) {
 
 window._pfHoldings = [];
 
+// Portfolio autocomplete
+(function() {
+  const input = document.getElementById('pf-sym');
+  if (!input) return;
+  const box = document.createElement('div');
+  box.className = 'autocomplete';
+  box.id = 'pf-autocomplete';
+  input.parentNode.style.position = 'relative';
+  input.parentNode.appendChild(box);
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toUpperCase();
+    box.innerHTML = '';
+    if (q.length < 1) return;
+    const matches = STOCKS.filter(([sym, name]) =>
+      sym.startsWith(q) || name.toUpperCase().includes(q)
+    ).slice(0, 6);
+    if (!matches.length) return;
+    matches.forEach(([sym, name, sector]) => {
+      const div = document.createElement('div');
+      div.className = 'ac-item';
+      div.innerHTML = `<span class="ac-sym">${sym}</span><span class="ac-name">${name}</span>`;
+      div.onclick = () => {
+        input.value = sym;
+        box.innerHTML = '';
+        document.getElementById('pf-qty').focus();
+      };
+      box.appendChild(div);
+    });
+  });
+
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target)) box.innerHTML = '';
+  });
+})();
+
 function pfAddHolding() {
-  const sym = document.getElementById('pf-sym').value.trim().toUpperCase();
+  const raw = document.getElementById('pf-sym').value.trim().toUpperCase();
+  // Common name-to-symbol corrections
+  const SYM_MAP = {
+    'TATA STEEL':'TATASTEEL','BAJAJ AUTO':'BAJAJ-AUTO','BAJAJ-AUTO':'BAJAJ-AUTO',
+    'M AND M':'M&M','MAHINDRA':'M&M','POLY MEDICURE':'POLYMED','POLYMEDICURE':'POLYMED',
+    'GRAVITA INDIA':'GRAVITA','GRAVITAINDIA':'GRAVITA','PARAS DEFENCE':'PARAS',
+    'PARASDEFENCE':'PARAS','DYNAMIC CABLES':'DYCL','DYNAMICCABLES':'DYCL','DYNAMIC':'DYCL',
+    'TECHNO ELECTRIC':'TECHNOELEC','HDFC BANK':'HDFCBANK','ICICI BANK':'ICICIBANK',
+    'STATE BANK':'SBIN','KOTAK BANK':'KOTAKBANK','AXIS BANK':'AXISBANK',
+  };
+  const sym = SYM_MAP[raw] || raw.replace(/\s+/g, '');
   const qty = parseInt(document.getElementById('pf-qty').value) || 0;
   const avg = parseFloat(document.getElementById('pf-avg').value) || null;
   const err = document.getElementById('pf-error');
@@ -469,7 +515,7 @@ function pfLoadCSV(input) {
     window._pfHoldings = [];
     lines.slice(1).forEach(line => {
       const cols = line.split(',').map(c => c.trim().replace(/"/g,''));
-      const sym  = cols[symIdx]?.toUpperCase();
+      const sym  = cols[symIdx]?.toUpperCase().replace(/\s+/g, '');
       const qty  = parseInt(cols[qtyIdx]) || 1;
       const avg  = avgIdx >= 0 ? parseFloat(cols[avgIdx]) || null : null;
       if (sym && sym.length > 0) window._pfHoldings.push({ sym, qty, avg });
@@ -490,6 +536,7 @@ async function pfAnalyse() {
     const syms = window._pfHoldings.map(h => h.sym).join(',');
     const resp = await fetch(`${API}/portfolio-xray?symbols=${encodeURIComponent(syms)}`).then(r => r.json());
     if (!resp.stocks) throw new Error(resp.error || 'No data');
+    window._lastPfData = { resp, holdings: [...window._pfHoldings] };
     pfRenderResults(resp, window._pfHoldings);
   } catch(e) {
     res.style.display = 'block';
@@ -606,8 +653,15 @@ function pfRenderResults(resp, holdings) {
             const s      = stocks[h.sym] || {};
             const price  = s.price || '—';
             const score  = s.combined_score != null ? s.combined_score.toFixed(1) : '—';
-            const verdict= s.verdict || '—';
-            const vcolor = verdict==='BUY'||verdict==='STRONG BUY' ? 'var(--green)' : verdict==='SELL' ? 'var(--red)' : 'var(--gold)';
+            let verdict = s.verdict || '—';
+            const valSig = s.val_signal || '';
+            // Override verdict display when valuation conflicts
+            if ((verdict==='BUY'||verdict==='STRONG BUY') && valSig.includes('Overvalued')) {
+              verdict = 'HOLD';
+            } else if (verdict==='BUY' && valSig.includes('Value Trap')) {
+              verdict = 'AVOID';
+            }
+            const vcolor = verdict==='BUY'||verdict==='STRONG BUY' ? 'var(--green)' : verdict==='SELL'||verdict==='AVOID' ? 'var(--red)' : 'var(--gold)';
             const scolor = score !== '—' ? (parseFloat(score)>=65?'var(--green)':parseFloat(score)>=50?'var(--gold)':'var(--red)') : 'var(--text3)';
             let pnlHtml  = '';
             if (hasPnl && h.avg && price !== '—') {
@@ -652,13 +706,15 @@ function pfRenderResults(resp, holdings) {
     <div class="pf-card">
       <div class="pf-card-title">REBALANCING SUGGESTIONS</div>
       ${holdings.map(h => {
-        const s = stocks[h.sym] || {};
+        const s       = stocks[h.sym] || {};
         const verdict = s.verdict || '';
         const val_sig = s.val_signal || '';
+        const score   = s.combined_score || 0;
         if (verdict === 'SELL') return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🔴 <b>${h.sym}</b> — Rated SELL. Consider reducing or exiting this position.</div>`;
         if (val_sig.includes('Overvalued')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟡 <b>${h.sym}</b> — Overvalued Quality. Good business but priced high — hold, don't add.</div>`;
-        if (val_sig.includes('Undervalued')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟢 <b>${h.sym}</b> — Undervalued Quality. Consider adding to this position.</div>`;
-        if (val_sig.includes('Value Trap')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🔴 <b>${h.sym}</b> — Value Trap Risk. Cheap but weak fundamentals — review carefully.</div>`;
+        if (val_sig.includes('Undervalued') && score >= 65) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟢 <b>${h.sym}</b> — Undervalued Quality with strong fundamentals. Consider adding to this position.</div>`;
+        if (val_sig.includes('Undervalued') && score < 65) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🟡 <b>${h.sym}</b> — Trading below fair value but fundamentals are moderate (score ${score.toFixed(1)}). Hold current position — don't add until score improves.</div>`;
+        if (val_sig.includes('Value Trap')) return `<div style="margin-bottom:8px;font-size:12px;font-family:var(--font-mono)">🔴 <b>${h.sym}</b> — Value Trap Risk. Cheap valuation but weak fundamentals — review carefully.</div>`;
         return '';
       }).filter(Boolean).join('') || '<div style="color:var(--text3);font-size:12px;font-family:var(--font-mono)">No urgent rebalancing needed.</div>'}
     </div>`}
@@ -706,7 +762,7 @@ const STOCKS = [
   ['COFORGE','Coforge Ltd','IT'],['KPITTECH','KPIT Technologies','IT'],
   ['TVSMOTOR','TVS Motor Company','Auto'],['MOTHERSON','Samvardhana Motherson','Auto'],
   ['BALKRISIND','Balkrishna Industries','Auto'],['APOLLOTYRE','Apollo Tyres','Auto'],
-  ['SIEMENS','Siemens India','Industrials'],['HAVELLS','Havells India','Electricals'],
+  ['SIEMENS','Siemens India','Industrials'],['HAVELLS','Havells India','Electricals'],['DYCL','Dynamic Cables Ltd','Electricals'],
   ['ABB','ABB India Ltd','Industrials'],['CUMMINSIND','Cummins India','Industrials'],
   ['DLF','DLF Ltd','Real Estate'],['OBEROIRLTY','Oberoi Realty','Real Estate'],
   ['RAMCOCEM','Ramco Cements','Cement'],
@@ -753,6 +809,83 @@ const STOCKS = [
   // Defence
   ['HAL','Hindustan Aeronautics Ltd','Defence'],['BEL','Bharat Electronics Ltd','Defence'],
   ['BEML','BEML Ltd','Defence'],['MAZDOCK','Mazagon Dock Shipbuilders','Defence'],
+  ['COCHINSHIP','Cochin Shipyard Ltd','Defence'],['MIDHANI','Mishra Dhatu Nigam','Defence'],
+  ['DATAPATTNS','Data Patterns India','Defence'],['PARAS','Paras Defence & Space','Defence'],
+  // Large Cap — Missing
+  ['INDUSINDBK','IndusInd Bank Ltd','Banking'],['SBILIFE','SBI Life Insurance','Insurance'],
+  ['HDFCLIFE','HDFC Life Insurance','Insurance'],['LICI','Life Insurance Corp of India','Insurance'],
+  ['BAJAJHLDNG','Bajaj Holdings','Finance'],['RECLTD','REC Ltd','Finance'],
+  ['PFC','Power Finance Corp','Finance'],['IRFC','Indian Railway Finance Corp','Finance'],
+  ['PIDILITIND','Pidilite Industries','Chemicals'],['BERGEPAINT','Berger Paints India','Paints'],
+  ['KANSAINER','Kansai Nerolac Paints','Paints'],['INDIGO','InterGlobe Aviation','Aviation'],
+  // Mid Cap — IT
+  ['HEXAWARE','Hexaware Technologies','IT'],['CYIENT','Cyient Ltd','IT'],
+  ['MASTEK','Mastek Ltd','IT'],
+  ['SONACOMS','Sona BLW Precision','Auto'],['SYRMA','Syrma SGS Technology','Electronics'],
+  ['KAYNES','Kaynes Technology India','Electronics'],['DIXON','Dixon Technologies','Electronics'],
+  ['AMBER','Amber Enterprises India','Electronics'],['APLAPOLLO','APL Apollo Tubes','Metals'],['GRAVITA','Gravita India Ltd','Metals'],
+  // Mid Cap — Pharma & Healthcare
+  ['LAURUSLABS','Laurus Labs','Pharma'],['SOLARA','Solara Active Pharma','Pharma'],
+  ['SUVEN','Suven Pharmaceuticals','Pharma'],['GLAND','Gland Pharma Ltd','Pharma'],
+  ['MEDANTA','Global Health Ltd','Healthcare'],['FORTIS','Fortis Healthcare','Healthcare'],
+  ['RAINBOW','Rainbow Childrens Medicare','Healthcare'],
+  ['KRSNAA','Krsnaa Diagnostics','Healthcare'],['METROPOLIS','Metropolis Healthcare','Healthcare'],
+  ['POLYMED','Poly Medicure Ltd','Healthcare'],
+  // Mid Cap — Consumer & Retail
+  ['TRENT','Trent Ltd','Retail'],['DMART','Avenue Supermarts','Retail'],
+  ['ABFRL','Aditya Birla Fashion','Retail'],['VSTIND','VST Industries','FMCG'],
+  ['GODFRYPHLP','Godfrey Phillips India','FMCG'],['PGHH','Procter & Gamble Hygiene','FMCG'],
+  ['HONAUT','Honeywell Automation','Industrials'],['WHIRLPOOL','Whirlpool of India','Consumer'],
+  ['VOLTAS','Voltas Ltd','Consumer'],['BLUESTARCO','Blue Star Ltd','Consumer'],
+  ['KAJARIACER','Kajaria Ceramics','Consumer'],['CERA','Cera Sanitaryware','Consumer'],
+  // Mid Cap — Finance & Insurance
+  ['ANGELONE','Angel One Ltd','Finance'],['CDSL','Central Depository Services','Finance'],
+  ['BSE','BSE Ltd','Finance'],['MCX','Multi Commodity Exchange','Finance'],
+  ['NAUKRI','Info Edge India','Internet'],['POLICYBZR','PB Fintech','Insurance'],
+  ['PAYTM','One 97 Communications','Fintech'],
+  ['NYKAA','FSN E-Commerce Ventures','Internet'],['CARTRADE','CarTrade Tech','Internet'],
+  // Mid Cap — Chemicals
+  ['NAVINFLUOR','Navin Fluorine Intl','Chemicals'],['FLUOROCHEM','Gujarat Fluorochemicals','Chemicals'],
+  ['DEEPAKNTR','Deepak Nitrite','Chemicals'],
+  ['TATACHEM','Tata Chemicals','Chemicals'],['GNFC','Gujarat Narmada Valley Chemicals','Chemicals'],
+  ['COROMANDEL','Coromandel International','Agri'],['PIIND','PI Industries','Agri'],
+  ['RALLIS','Rallis India','Agri'],['DHANUKA','Dhanuka Agritech','Agri'],
+  ['UPL','UPL Ltd','Agri'],['CHAMBLFERT','Chambal Fertilisers','Agri'],
+  // Mid Cap — Infrastructure & Construction
+  ['LTIM','LTIMindtree Ltd','IT'],['NCC','NCC Ltd','Infrastructure'],
+  ['PNCINFRA','PNC Infratech','Infrastructure'],['HGINFRA','H.G. Infra Engineering','Infrastructure'],
+  ['ASHOKA','Ashoka Buildcon','Infrastructure'],['GPPL','Gujarat Pipavav Port','Infrastructure'],
+  ['ADANIPORTS','Adani Ports & SEZ','Infrastructure'],
+  // Small Cap — Emerging
+  ['PGEL','PG Electroplast','Electronics'],['IDEAFORGE','ideaForge Technology','Defence'],
+  ['RATEGAIN','RateGain Travel Tech','IT'],['EASEMYTRIP','Easy Trip Planners','Travel'],
+  ['IXIGO','Le Travenues Technology','Travel'],['YATHARTH','Yatharth Hospital','Healthcare'],
+  ['HAPPYFORGE','Happy Forgings','Auto'],['SANSERA','Sansera Engineering','Auto'],
+  ['CRAFTSMAN','Craftsman Automation','Auto'],['SUPRAJIT','Suprajit Engineering','Auto'],
+  ['FINEORG','Fine Organic Industries','Chemicals'],
+  ['GALAXYSURF','Galaxy Surfactants','Chemicals'],['CLEAN','Clean Science & Technology','Chemicals'],
+  ['ROSSARI','Rossari Biotech','Chemicals'],['SUDARSCHEM','Sudarshan Chemical','Chemicals'],
+  // Small Cap — Specialty Finance
+  ['IIFL','IIFL Finance Ltd','NBFC'],['CREDITACC','CreditAccess Grameen','NBFC'],
+  ['UJJIVANSFB','Ujjivan Small Finance Bank','Banking'],['EQUITASBNK','Equitas Small Finance Bank','Banking'],
+  ['ESAFSFB','ESAF Small Finance Bank','Banking'],['UTKARSHBNK','Utkarsh Small Finance Bank','Banking'],
+  ['FUSION','Fusion Micro Finance','NBFC'],['SPANDANA','Spandana Sphoorty','NBFC'],
+  // Hospitality & Travel
+  ['INDHOTEL','Indian Hotels Co','Hospitality'],['LEMONTREE','Lemon Tree Hotels','Hospitality'],
+  ['CHALET','Chalet Hotels','Hospitality'],
+  ['TAJGVK','Taj GVK Hotels','Hospitality'],['EIHOTEL','EIH Ltd','Hospitality'],
+  // Logistics
+  ['DELHIVERY','Delhivery Ltd','Logistics'],['BLUEDART','Blue Dart Express','Logistics'],
+  ['GICRE','General Insurance Corp','Insurance'],['NIACL','New India Assurance','Insurance'],
+  ['CONCOR','Container Corp of India','Logistics'],['ALLCARGO','Allcargo Logistics','Logistics'],
+  ['MAHLOG','Mahindra Logistics','Logistics'],
+  // Media & Entertainment
+  ['ZEEL','Zee Entertainment','Media'],['SUNTV','Sun TV Network','Media'],
+  ['PVRINOX','PVR Inox Ltd','Media'],['SAREGAMA','Saregama India','Media'],
+  // Textiles
+  ['PAGEIND','Page Industries','Textiles'],['RAYMOND','Raymond Ltd','Textiles'],
+  ['TRIDENT','Trident Ltd','Textiles'],
+  ['WELSPUNLIV','Welspun Living','Textiles'],['KITEX','Kitex Garments','Textiles'],
 ];
 
 // ── Recent searches ───────────────────────────────────────────────────────────
@@ -1647,6 +1780,11 @@ function setMode(mode) {
   });
   const dlBtn = document.getElementById('download-report-btn');
   if (dlBtn) dlBtn.style.display = isExpert ? 'inline-block' : 'none';
+
+  // Re-render portfolio results if visible
+  if (window._lastPfData) {
+    pfRenderResults(window._lastPfData.resp, window._lastPfData.holdings);
+  }
 }
 
 // ── Visuals / Charts ──────────────────────────────────────────────────────────
