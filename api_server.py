@@ -1723,6 +1723,76 @@ def compare():
     return jsonify({"status":"ok","count":len(ordered),"data":ordered})
 
 
+# ── Portfolio vs Nifty + Sector Alerts ───────────────────────────────────────
+@app.route("/portfolio-vs-nifty")
+def portfolio_vs_nifty():
+    raw       = request.args.get("symbols", "")
+    from_date = request.args.get("from", "")
+    if not raw:
+        return jsonify({"error": "symbols required"}), 400
+
+    symbols = [s.strip().upper() for s in raw.split(",") if s.strip()][:20]
+
+    import yfinance as yf
+    from datetime import datetime, timedelta
+
+    # Parse start date
+    try:
+        start = datetime.strptime(from_date, "%Y-%m-%d")
+    except Exception:
+        start = datetime.now() - timedelta(days=30)
+
+    start_str = start.strftime("%Y-%m-%d")
+    end_str   = datetime.now().strftime("%Y-%m-%d")
+
+    result = {"portfolio_return": None, "nifty_return": None,
+              "beats_nifty": None, "diff": None,
+              "stocks": {}, "from_date": start_str}
+
+    try:
+        # Nifty return
+        nifty = yf.download("^NSEI", start=start_str, end=end_str,
+                             auto_adjust=True, progress=False)
+        if nifty is not None and len(nifty) >= 2:
+            if hasattr(nifty.columns, 'levels'):
+                nifty.columns = nifty.columns.get_level_values(0)
+            nc = nifty['Close'].squeeze()
+            nifty_ret = round((float(nc.iloc[-1]) - float(nc.iloc[0])) / float(nc.iloc[0]) * 100, 2)
+            result["nifty_return"] = nifty_ret
+    except Exception as e:
+        print(f"  [portfolio-vs-nifty] Nifty error: {e}")
+
+    # Each stock's return
+    total_w   = 0
+    weighted  = 0
+    for sym in symbols:
+        try:
+            t    = yf.download(f"{sym}.NS", start=start_str, end=end_str,
+                                auto_adjust=True, progress=False)
+            if t is None or len(t) < 2:
+                result["stocks"][sym] = {"return": None}
+                continue
+            if hasattr(t.columns, 'levels'):
+                t.columns = t.columns.get_level_values(0)
+            c    = t['Close'].squeeze()
+            ret  = round((float(c.iloc[-1]) - float(c.iloc[0])) / float(c.iloc[0]) * 100, 2)
+            result["stocks"][sym] = {"return": ret}
+            weighted += ret
+            total_w  += 1
+        except Exception:
+            result["stocks"][sym] = {"return": None}
+
+    if total_w > 0:
+        port_ret = round(weighted / total_w, 2)
+        result["portfolio_return"] = port_ret
+        if result["nifty_return"] is not None:
+            diff = round(port_ret - result["nifty_return"], 2)
+            result["diff"]        = diff
+            result["beats_nifty"] = diff > 0
+
+    return jsonify(result)
+
+
 # ── Portfolio X-Ray ───────────────────────────────────────────────────────────
 @app.route("/portfolio-xray")
 def portfolio_xray():
