@@ -1684,6 +1684,15 @@ def compare():
             eps_nc = nc_val.get('eps')
             dy_nc  = nc_val.get('dividend_yield')
             r1y_nc = cached.get('ml', {}).get('ret_1y_pct')
+            if r1y_nc is None:
+                try:
+                    import yfinance as yf
+                    info = yf.Ticker(f"{sym}.NS").info
+                    raw = info.get('52WeekChange')
+                    if raw is not None:
+                        r1y_nc = round(float(raw) * 100, 1)
+                except Exception:
+                    pass
 
             if pe_nc or eps_nc:
                 val = {
