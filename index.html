@@ -397,6 +397,14 @@ body{
       <div id="pf-holdings-list"></div>
 
       <div id="pf-error" style="color:var(--red);font-size:11px;font-family:var(--font-mono);margin-top:6px;display:none"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+        <div style="flex:1">
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">TRACK FROM DATE</div>
+          <input type="date" id="pf-from-date" class="pf-sym-input"
+            style="width:100%;padding:7px 12px"
+            value="${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}"/>
+        </div>
+      </div>
       <button class="pf-analyse-btn" id="pf-analyse-btn" onclick="pfAnalyse()" disabled>Analyse Portfolio</button>
     </div>
 
@@ -462,7 +470,7 @@ function pfAddHolding() {
     'TATA STEEL':'TATASTEEL','BAJAJ AUTO':'BAJAJ-AUTO','BAJAJ-AUTO':'BAJAJ-AUTO',
     'M AND M':'M&M','MAHINDRA':'M&M','POLY MEDICURE':'POLYMED','POLYMEDICURE':'POLYMED',
     'GRAVITA INDIA':'GRAVITA','GRAVITAINDIA':'GRAVITA','PARAS DEFENCE':'PARAS',
-    'PARASDEFENCE':'PARAS','DYNAMIC CABLES':'DYCL','DYNAMICCABLES':'DYCL','DYNAMIC':'DYCL',
+    'PARASDEFENCE':'PARAS',
     'TECHNO ELECTRIC':'TECHNOELEC','HDFC BANK':'HDFCBANK','ICICI BANK':'ICICIBANK',
     'STATE BANK':'SBIN','KOTAK BANK':'KOTAKBANK','AXIS BANK':'AXISBANK',
   };
@@ -538,12 +546,143 @@ async function pfAnalyse() {
     if (!resp.stocks) throw new Error(resp.error || 'No data');
     window._lastPfData = { resp, holdings: [...window._pfHoldings] };
     pfRenderResults(resp, window._pfHoldings);
+
+    // Fetch Beat Nifty + Sector Alerts in parallel
+    const fromDate = document.getElementById('pf-from-date')?.value || '';
+    fetch(`${API}/portfolio-vs-nifty?symbols=${encodeURIComponent(syms)}&from=${fromDate}`)
+      .then(r => r.json()).then(d => pfRenderBeatsNifty(d, window._pfHoldings))
+      .catch(() => {});
+    fetch(`${API}/macro-sentiment`)
+      .then(r => r.json()).then(d => pfRenderSectorAlerts(d, window._pfHoldings, resp.stocks))
+      .catch(() => {});
   } catch(e) {
     res.style.display = 'block';
     res.innerHTML = `<div class="pf-card" style="color:var(--red)">Error: ${e.message}</div>`;
   }
   btn.disabled = false;
   btn.textContent = 'Analyse Portfolio';
+}
+
+function pfRenderBeatsNifty(data, holdings) {
+  const div = document.getElementById('pf-beat-nifty');
+  if (!div) return;
+  const pr = data.portfolio_return;
+  const nr = data.nifty_return;
+  const diff = data.diff;
+  const beats = data.beats_nifty;
+  const fromDate = data.from_date || '';
+
+  const prColor = pr >= 0 ? 'var(--green)' : 'var(--red)';
+  const nrColor = nr >= 0 ? 'var(--green)' : 'var(--red)';
+  const diffColor = beats ? 'var(--green)' : 'var(--red)';
+  const verdict = beats
+    ? `Your portfolio is <b style="color:var(--green)">beating Nifty by ${Math.abs(diff).toFixed(1)}%</b> 🎯`
+    : diff !== null
+    ? `Your portfolio is <b style="color:var(--red)">trailing Nifty by ${Math.abs(diff).toFixed(1)}%</b>`
+    : 'Insufficient data to compare';
+
+  const stockRows = holdings.map(h => {
+    const s = data.stocks?.[h.sym];
+    const ret = s?.return;
+    const retColor = ret == null ? 'var(--text3)' : ret >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<tr>
+      <td style="color:var(--orange);font-weight:600">${h.sym}</td>
+      <td style="color:${retColor};font-weight:600">${ret != null ? (ret >= 0 ? '+' : '') + ret.toFixed(1) + '%' : '—'}</td>
+      <td style="color:${ret != null && nr != null ? (ret - nr >= 0 ? 'var(--green)' : 'var(--red)') : 'var(--text3)'}">
+        ${ret != null && nr != null ? (ret - nr >= 0 ? '+' : '') + (ret - nr).toFixed(1) + '% vs Nifty' : '—'}
+      </td>
+    </tr>`;
+  }).join('');
+
+  div.innerHTML = `<div class="pf-card">
+    <div class="pf-card-title">📈 BEAT NIFTY TRACKER <span style="font-weight:400;color:var(--text3)">since ${fromDate}</span></div>
+    <div style="font-size:13px;color:var(--text1);margin-bottom:14px;line-height:1.6">${verdict}</div>
+    <div style="display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">YOUR PORTFOLIO</div>
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-head);color:${prColor}">${pr != null ? (pr >= 0 ? '+' : '') + pr.toFixed(1) + '%' : '—'}</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">NIFTY 50</div>
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-head);color:${nrColor}">${nr != null ? (nr >= 0 ? '+' : '') + nr.toFixed(1) + '%' : '—'}</div>
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ALPHA</div>
+        <div style="font-size:22px;font-weight:800;font-family:var(--font-head);color:${diffColor}">${diff != null ? (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%' : '—'}</div>
+      </div>
+    </div>
+    <table class="pf-holding-table">
+      <thead><tr><th>STOCK</th><th>RETURN</th><th>VS NIFTY</th></tr></thead>
+      <tbody>${stockRows}</tbody>
+    </table>
+  </div>`;
+}
+
+function pfRenderSectorAlerts(macroData, holdings, stocks) {
+  const div = document.getElementById('pf-sector-alerts');
+  if (!div) return;
+
+  // Sector → macro topic mapping
+  const SECTOR_MAP = {
+    'Banking': 'banking_stress', 'NBFC': 'banking_stress', 'Finance': 'banking_stress',
+    'IT': 'it_sector', 'Technology': 'it_sector', 'Software': 'it_sector',
+    'Pharma': 'pharma_us', 'Healthcare': 'pharma_us',
+    'Energy': 'crude_oil', 'Oil': 'crude_oil',
+    'Auto': 'auto_sector', 'Automobile': 'auto_sector',
+    'FMCG': 'fmcg_rural', 'Consumer': 'fmcg_rural',
+    'Infrastructure': 'infra_govt', 'Construction': 'infra_govt',
+    'Defence': 'defence_budget', 'Metals': 'global_risk',
+    'Real Estate': 'income_tax', 'Chemicals': 'global_risk',
+  };
+
+  const topics = {};
+  (macroData.topics || macroData.macro_topics || []).forEach(t => {
+    topics[t.topic] = t;
+  });
+
+  // Build alerts per holding
+  const alerts = [];
+  const seen = new Set();
+
+  holdings.forEach(h => {
+    const s = stocks?.[h.sym] || {};
+    const sector = s.sector || '';
+    let macroKey = null;
+    for (const [k, v] of Object.entries(SECTOR_MAP)) {
+      if (sector.toLowerCase().includes(k.toLowerCase())) { macroKey = v; break; }
+    }
+    if (!macroKey || seen.has(macroKey)) return;
+    seen.add(macroKey);
+
+    const topic = topics[macroKey];
+    if (!topic) return;
+
+    const label = topic.label || topic.sentiment || 'neutral';
+    const score = topic.score || 0;
+    const affected = holdings.filter(hh => {
+      const ss = stocks?.[hh.sym] || {};
+      for (const [k, v] of Object.entries(SECTOR_MAP)) {
+        if ((ss.sector||'').toLowerCase().includes(k.toLowerCase()) && v === macroKey) return true;
+      }
+      return false;
+    }).map(hh => hh.sym);
+
+    const icon  = label === 'positive' ? '✅' : label === 'negative' ? '⚠️' : '➡️';
+    const color = label === 'positive' ? 'var(--green)' : label === 'negative' ? 'var(--red)' : 'var(--text3)';
+    const topicLabel = macroKey.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    alerts.push(`<div style="margin-bottom:10px;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid ${color}">
+      <div style="font-size:12px;font-family:var(--font-mono);color:${color};font-weight:600">${icon} ${topicLabel} — ${label.toUpperCase()} (${score > 0 ? '+' : ''}${score})</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-top:4px">Affects: <b style="color:var(--text2)">${affected.join(', ')}</b> in your portfolio</div>
+    </div>`);
+  });
+
+  div.innerHTML = `<div class="pf-card">
+    <div class="pf-card-title">🔄 SECTOR ROTATION ALERTS</div>
+    ${alerts.length
+      ? alerts.join('')
+      : '<div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">No significant sector alerts for your current holdings.</div>'}
+  </div>`;
 }
 
 function pfRenderResults(resp, holdings) {
@@ -722,6 +861,17 @@ function pfRenderResults(resp, holdings) {
 
   res.innerHTML = html;
   res.style.display = 'block';
+
+  // Placeholder divs for async data
+  const beatDiv = document.createElement('div');
+  beatDiv.id = 'pf-beat-nifty';
+  beatDiv.innerHTML = `<div class="pf-card" style="opacity:0.5"><div class="pf-card-title">📈 BEAT NIFTY TRACKER</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Calculating performance...</div></div>`;
+  res.appendChild(beatDiv);
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = 'pf-sector-alerts';
+  alertDiv.innerHTML = `<div class="pf-card" style="opacity:0.5"><div class="pf-card-title">🔄 SECTOR ROTATION ALERTS</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Checking macro signals...</div></div>`;
+  res.appendChild(alertDiv);
 }
 
 // ── Stock database for autocomplete ──────────────────────────────────────────
@@ -762,7 +912,7 @@ const STOCKS = [
   ['COFORGE','Coforge Ltd','IT'],['KPITTECH','KPIT Technologies','IT'],
   ['TVSMOTOR','TVS Motor Company','Auto'],['MOTHERSON','Samvardhana Motherson','Auto'],
   ['BALKRISIND','Balkrishna Industries','Auto'],['APOLLOTYRE','Apollo Tyres','Auto'],
-  ['SIEMENS','Siemens India','Industrials'],['HAVELLS','Havells India','Electricals'],['DYCL','Dynamic Cables Ltd','Electricals'],
+  ['SIEMENS','Siemens India','Industrials'],['HAVELLS','Havells India','Electricals'],
   ['ABB','ABB India Ltd','Industrials'],['CUMMINSIND','Cummins India','Industrials'],
   ['DLF','DLF Ltd','Real Estate'],['OBEROIRLTY','Oberoi Realty','Real Estate'],
   ['RAMCOCEM','Ramco Cements','Cement'],
@@ -1248,12 +1398,23 @@ window.showGoldenCrossInfo = function(isGolden) {
 
         <!-- Beginner verdict card -->
         <div class="verdict-card" id="verdict-card" style="${!combined?.verdict ? 'display:none' : ''}">
-          <div class="verdict-light ${combined?.verdict_color || 'gold'}">
-            ${combined?.verdict === 'BUY' ? '↑' : combined?.verdict === 'SELL' ? '↓' : '~'}
-          </div>
           <div class="verdict-word ${combined?.verdict_color || 'gold'}">${combined?.verdict || '—'}</div>
           <div class="verdict-reason">${combined?.reason || 'Analysing...'}</div>
           <div class="verdict-score">Score <span>${combined?.score_10 ?? '—'}</span>/10</div>
+          ${combined?.short_term_verdict && combined?.long_term_verdict ? `
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
+            <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">3M OUTLOOK</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${combined.short_term_verdict==='BUY'?'var(--green)':combined.short_term_verdict==='SELL'?'var(--red)':'var(--gold)'}">${combined.short_term_verdict}</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ML signal</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">1-2Y OUTLOOK</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${combined.long_term_verdict==='BUY'?'var(--green)':combined.long_term_verdict==='SELL'?'var(--red)':'var(--gold)'}">${combined.long_term_verdict}</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">Graham valuation</div>
+            </div>
+          </div>` : ''}
+
           <div class="verdict-pills">
             ${forecast?.['1y']?.price_target ? `
             <span class="verdict-pill target">
@@ -1354,26 +1515,14 @@ window.showGoldenCrossInfo = function(isGolden) {
         <div class="scores-row">
           <div class="score-item">
             <div class="score-top">
-              <span class="score-name">ML Score</span>
-              <span class="score-num" style="color:${mlScore != null ? barColor(mlScore) : 'var(--text3)'}">${mlDisplay}</span>
-            </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${mlScore != null ? mlScore : 0}%;background:${mlScore != null ? barColor(mlScore) : 'var(--text3)'}"></div></div>
-          </div>
-          <div class="score-item">
-            <div class="score-top">
-              <span class="score-name">Combined Score</span>
+              <span class="score-name">Score %</span>
               <span class="score-num" style="color:${barColor(combinedScore)}">${combinedDisplay}</span>
             </div>
             <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combinedScore != null ? combinedScore : 0}%;background:${barColor(combinedScore)}"></div></div>
           </div>
         </div>
 
-        <div class="sentiment-row">
-          <span class="sent-label">Sentiment:</span>
-          ${sentPill(sentScore, sentLabel, '📰 News')}
-          ${sentPill(macroScore, macroLabel, '🌍 Macro')}
-          ${goldenCross === true ? '<span class="sent-pill sent-pos" style="cursor:pointer" onclick="showGoldenCrossInfo(true)">✨ Golden Cross</span>' : goldenCross === false ? '<span class="sent-pill sent-neg" style="cursor:pointer" onclick="showGoldenCrossInfo(false)">✗ No Golden Cross</span>' : ''}
-        </div>
+
 
         </div><!-- /expert-scores -->
 
@@ -1630,15 +1779,6 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div class="fund-label">Screener Score</div>
                 <div class="fund-val">${scrScore}/100</div>
                 <div class="fund-trend trend-neu">10yr fundamental quality</div>
-              </div>
-              <div class="fund-item">
-                <div class="fund-label">Model Accuracy</div>
-                <div class="fund-val">57.1%</div>
-                <div class="fund-trend trend-neu">vs 50% random</div>
-              </div>
-              <div class="fund-item">
-                <div class="fund-label">Scoring Weights</div>
-                <div class="fund-val" style="font-size:11px;line-height:1.6">35% ML · 20% Fundamentals<br>15% Valuation · 15% News<br>15% Macro</div>
               </div>
             </div>
           </div>

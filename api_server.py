@@ -1621,68 +1621,118 @@ def compare():
 
     def fetch_one(sym):
         try:
+            # ── 1. Pull from nightly cache first (fastest, most reliable) ────
+            nc   = get_nightly_cache() or {}
+            cached = (nc.get('stocks') or {}).get(sym, {})
+
+            # ── 2. Live NSE price ─────────────────────────────────────────────
             q = nse_quote(sym)
+
+            # ── 3. Screener fundamentals CSV ──────────────────────────────────
             fund = {}
             try:
                 import pandas as pd
-                path = os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv')
-                sdf  = pd.read_csv(path)
-                SYMBOL_CSV_MAP = {'LTM':'LTIM'}
+                path    = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
+                sdf     = pd.read_csv(path)
+                SYMBOL_CSV_MAP = {'LTM': 'LTIM'}
                 csv_sym = SYMBOL_CSV_MAP.get(sym, sym)
-                row = sdf[sdf['symbol']==csv_sym]
+                row     = sdf[sdf['symbol'] == csv_sym]
                 if not row.empty:
                     r = row.iloc[0].to_dict()
                     fund = {
-                        'roce':            r.get('roce_latest_pct'),
-                        'sales_cagr_5y':   r.get('sales_cagr_5y'),
-                        'profit_cagr_5y':  r.get('profit_cagr_5y'),
-                        'investment_score':r.get('investment_score'),
-                        'investment_grade':r.get('investment_grade'),
+                        'roce':             r.get('roce_latest_pct'),
+                        'sales_cagr_5y':    r.get('sales_cagr_5y'),
+                        'profit_cagr_5y':   r.get('profit_cagr_5y'),
+                        'investment_score': r.get('investment_score'),
+                        'investment_grade': r.get('investment_grade'),
                     }
             except Exception:
                 pass
 
-            val = {}
-            try:
-                import yfinance as yf
-                info = yf.Ticker(f"{sym}.NS").info
-                val = {
-                    'pe_ratio':  info.get('trailingPE'),
-                    'eps':       info.get('trailingEps'),
-                    'div_yield': _safe_div_yield(info.get('dividendYield'),info.get('dividendRate'),info.get('currentPrice')),
-                    'ret_1y':    info.get('52WeekChange'),
-                }
-            except Exception:
-                pass
-
+            # ── 4. ML / returns — from nightly cache, then live fallback ──────
             ml = {}
-            try:
-                import joblib
-                import pandas as _pd
-                saved = joblib.load(os.path.join(os.path.dirname(__file__),'ml_model.pkl'))
-                nifty = get_nifty_close()
-                if nifty is not None:
-                    f = get_stock_features_cached(sym, nifty)
-                    if f:
-                        X    = _pd.DataFrame([{k:f[k] for k in saved['features']}])
-                        prob = float(saved['model'].predict_proba(X)[0][1])
-                        ml   = {
-                            'ml_score':   round(prob*100,1),
-                            'ret_1m_pct': round(f['ret_1m']*100,1),
-                            'ret_3m_pct': round(f['ret_3m']*100,1),
-                        }
-            except Exception:
-                pass
+            nc_ml = cached.get('ml') or {}
+            if nc_ml.get('ml_score') is not None:
+                ml = {
+                    'ml_score':   nc_ml.get('ml_score'),
+                    'ret_1m_pct': nc_ml.get('ret_1m_pct') or round((cached.get('ret_1m') or 0) * 100, 1),
+                    'ret_3m_pct': nc_ml.get('ret_3m_pct') or round((cached.get('ret_3m') or 0) * 100, 1),
+                }
+            else:
+                try:
+                    import joblib, pandas as _pd
+                    saved = joblib.load(os.path.join(os.path.dirname(__file__), 'ml_model.pkl'))
+                    nifty = get_nifty_close()
+                    if nifty is not None:
+                        f = get_stock_features_cached(sym, nifty)
+                        if f:
+                            X    = _pd.DataFrame([{k: f[k] for k in saved['features']}])
+                            prob = float(saved['model'].predict_proba(X)[0][1])
+                            ml   = {
+                                'ml_score':   round(prob * 100, 1),
+                                'ret_1m_pct': round(f['ret_1m'] * 100, 1),
+                                'ret_3m_pct': round(f['ret_3m'] * 100, 1),
+                            }
+                except Exception:
+                    pass
 
+            # ── 5. Valuation — from nightly cache, then yfinance fallback ─────
+            val = {}
+            nc_val = cached.get('valuation') or cached.get('val') or {}
+
+            pe_nc  = nc_val.get('pe') or cached.get('pe_ratio')
+            eps_nc = nc_val.get('eps') or cached.get('eps')
+            dy_nc  = nc_val.get('div_yield') or cached.get('div_yield')
+            r1y_nc = cached.get('ret_1y')
+
+            if pe_nc or eps_nc:
+                val = {
+                    'pe_ratio':  pe_nc,
+                    'eps':       eps_nc,
+                    'div_yield': dy_nc,
+                    'ret_1y':    r1y_nc,
+                }
+            else:
+                try:
+                    import yfinance as yf
+                    info = yf.Ticker(f"{sym}.NS").info
+                    val  = {
+                        'pe_ratio':  info.get('trailingPE'),
+                        'eps':       info.get('trailingEps'),
+                        'div_yield': _safe_div_yield(
+                            info.get('dividendYield'),
+                            info.get('dividendRate'),
+                            info.get('currentPrice')
+                        ),
+                        'ret_1y':    info.get('52WeekChange'),
+                    }
+                except Exception:
+                    pass
+
+            # ── 6. 1Y price target ────────────────────────────────────────────
             pt_1y = None
             try:
                 eps     = val.get('eps')
                 pe      = float(val.get('pe_ratio') or 20)
                 ep_cagr = float(fund.get('profit_cagr_5y') or 8)
                 if eps:
-                    pt_1y = round(float(eps)*((1+ep_cagr/100)**1)*pe,0)
+                    pt_1y = round(float(eps) * ((1 + ep_cagr / 100) ** 1) * pe, 0)
             except Exception:
                 pass
+
+            # ── 7. 1Y return: prefer nightly cache fractional, fallback yfinance
+            ret_1y_pct = None
+            if r1y_nc is not None:
+                try:
+                    v = float(r1y_nc)
+                    ret_1y_pct = round(v * 100, 1) if abs(v) <= 10 else round(v, 1)
+                except Exception:
+                    pass
+            elif val.get('ret_1y'):
+                try:
+                    ret_1y_pct = round(float(val['ret_1y']) * 100, 1)
+                except Exception:
+                    pass
 
             with lock:
                 results[sym] = {
@@ -1692,22 +1742,22 @@ def compare():
                     'market_cap':      q.get('market_cap'),
                     'ret_1m':          ml.get('ret_1m_pct'),
                     'ret_3m':          ml.get('ret_3m_pct'),
-                    'ret_1y':          round(float(val.get('ret_1y') or 0)*100,1) if val.get('ret_1y') else None,
+                    'ret_1y':          ret_1y_pct,
                     'pe_ratio':        val.get('pe_ratio'),
                     'eps':             val.get('eps'),
-                    'div_yield':       round(float(val.get('div_yield') or 0),2) if val.get('div_yield') else None,
+                    'div_yield':       round(float(val.get('div_yield') or 0), 2) if val.get('div_yield') else None,
                     'roce':            fund.get('roce'),
                     'sales_cagr_5y':   fund.get('sales_cagr_5y'),
                     'profit_cagr_5y':  fund.get('profit_cagr_5y'),
                     'ml_score':        ml.get('ml_score'),
                     'screener_score':  fund.get('investment_score'),
                     'screener_grade':  fund.get('investment_grade'),
-                    'combined_grade':  None,  # TODO: compute full combined
+                    'combined_grade':  None,
                     'price_target_1y': pt_1y,
                 }
         except Exception as e:
             with lock:
-                results[sym] = {'symbol':sym,'error':str(e)}
+                results[sym] = {'symbol': sym, 'error': str(e)}
 
     threads = [threading.Thread(target=fetch_one,args=(s,)) for s in symbols]
     for t in threads: t.start()
