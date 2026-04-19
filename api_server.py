@@ -1680,10 +1680,10 @@ def compare():
             val = {}
             nc_val = cached.get('valuation') or cached.get('val') or {}
 
-            pe_nc  = nc_val.get('pe') or cached.get('pe_ratio')
-            eps_nc = nc_val.get('eps') or cached.get('eps')
-            dy_nc  = nc_val.get('div_yield') or cached.get('div_yield')
-            r1y_nc = cached.get('ret_1y')
+            pe_nc  = nc_val.get('pe_ratio')
+            eps_nc = nc_val.get('eps')
+            dy_nc  = nc_val.get('dividend_yield')
+            r1y_nc = cached.get('ml', {}).get('ret_1y_pct')
 
             if pe_nc or eps_nc:
                 val = {

@@ -383,6 +383,7 @@ def build_cache():
                     'pos52_pct':    f['_pos52_pct'],
                     'ret_1m_pct':   f['_ret_1m_pct'],
                     'ret_3m_pct':   f['_ret_3m_pct'],
+                    'ret_1y_pct':   round(f['ret_1y'] * 100, 1),
                     'golden_cross': f['_golden_cross'],
                 },
                 'valuation':      val,
