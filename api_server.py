@@ -1690,7 +1690,10 @@ def compare():
                     info = yf.Ticker(f"{sym}.NS").info
                     raw = info.get('52WeekChange')
                     if raw is not None:
-                        r1y_nc = round(float(raw) * 100, 1)
+                        val_pct = round(float(raw) * 100, 1)
+                        # yfinance sometimes returns already-pct values — sanity cap
+                        if -90 <= val_pct <= 300:
+                            r1y_nc = val_pct
                 except Exception:
                     pass
 
