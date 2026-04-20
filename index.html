@@ -1635,9 +1635,6 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div class="headline">
                   <span class="hl-icon">${h.sentiment==='positive'?'📈':h.sentiment==='negative'?'📉':'➖'}</span>
                   <span class="hl-text">${h.title}</span>
-                  <span style="font-family:var(--font-mono);font-size:10px;color:${h.score>0?'var(--green)':h.score<0?'var(--red)':'var(--text3)'}">
-                    ${h.score > 0 ? '+' : ''}${h.score}
-                  </span>
                 </div>
               `).join('')}
             </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">No headlines found for this stock.</div>'}
@@ -2500,7 +2497,7 @@ function renderCompareTable(data, anchor) {
     { title: '💰 Valuation', rows: [
       { label:'P/E Ratio',  vals:data.map(d=>f(d.pe_ratio,'','x')),         cls:hl(data.map(d=>d.pe_ratio),true) },
       { label:'EPS',        vals:data.map(d=>f(d.eps,'₹','')),              cls:hl(data.map(d=>d.eps)) },
-      { label:'Div Yield',  vals:data.map(d=>f(d.div_yield,'','%')),        cls:hl(data.map(d=>d.div_yield)) },
+      { label:'Div Yield',  vals:data.map(d=>d.div_yield != null && parseFloat(d.div_yield) < 0.5 ? 'Negligible' : f(d.div_yield,'','%')), cls:hl(data.map(d=>d.div_yield)) },
     ]},
     { title: '📊 Fundamentals', rows: [
       { label:'ROCE',          vals:data.map(d=>f(d.roce,'','%')),          cls:hl(data.map(d=>d.roce)) },
