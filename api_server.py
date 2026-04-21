@@ -2320,6 +2320,34 @@ def generate_report_endpoint():
         return jsonify({"error": str(e)}), 500
 
 
+# ── Macro sentiment ───────────────────────────────────────────────────────────
+@app.route("/macro-sentiment")
+def macro_sentiment():
+    """Return cached macro sentiment topics for Sector Rotation Alerts."""
+    try:
+        from macro_sentiment import get_macro_sentiment
+        from ml_screener import _cache
+        mc = _cache.get('macro_news', {})
+        if mc.get('data') and (time.time() - mc.get('ts', 0)) < 3600:
+            macro_data = mc['data']
+        else:
+            macro_data = get_macro_sentiment()
+            _cache['macro_news'] = {'data': macro_data, 'ts': time.time()}
+
+        topics = []
+        for item in macro_data:
+            topics.append({
+                'topic':     item.get('topic', ''),
+                'label':     item.get('sentiment', 'neutral'),
+                'sentiment': item.get('sentiment', 'neutral'),
+                'score':     item.get('score', 0),
+            })
+
+        return jsonify({"status": "ok", "topics": topics})
+    except Exception as e:
+        return jsonify({"status": "error", "topics": [], "message": str(e)})
+
+
 # ── Nightly cache rebuild trigger ─────────────────────────────────────────────
 @app.route("/rebuild-cache")
 def rebuild_cache():
