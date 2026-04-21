@@ -1105,6 +1105,9 @@ def stock_analysis():
         if combined >= 65:   verdict, verdict_color = 'BUY',  'green'
         elif combined >= 50: verdict, verdict_color = 'HOLD', 'gold'
         else:                verdict, verdict_color = 'SELL', 'red'
+        # Override: if both sub-verdicts agree on BUY, promote HOLD → BUY
+        if verdict == 'HOLD' and short_verdict == 'BUY' and long_verdict == 'BUY':
+            verdict, verdict_color = 'BUY', 'green'
 
         # ── Short-term verdict (ML + technicals) ─────────────────────
         ml_s         = float(ml_raw or 50)
