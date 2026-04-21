@@ -1831,17 +1831,23 @@ def portfolio_vs_nifty():
     # Each stock's return
     total_w   = 0
     weighted  = 0
+    nc = get_nightly_cache() or {}
     for sym in symbols:
         try:
-            t    = yf.download(f"{sym}.NS", start=start_str, end=end_str,
+            # Try nightly cache first — much faster
+            cached_ret = nc.get('stocks', {}).get(sym, {}).get('ml', {}).get('ret_1y_pct')
+            if cached_ret is not None:
+                ret = round(float(cached_ret), 2)
+            else:
+                t = yf.download(f"{sym}.NS", start=start_str, end=end_str,
                                 auto_adjust=True, progress=False)
-            if t is None or len(t) < 2:
-                result["stocks"][sym] = {"return": None}
-                continue
-            if hasattr(t.columns, 'levels'):
-                t.columns = t.columns.get_level_values(0)
-            c    = t['Close'].squeeze()
-            ret  = round((float(c.iloc[-1]) - float(c.iloc[0])) / float(c.iloc[0]) * 100, 2)
+                if t is None or len(t) < 2:
+                    result["stocks"][sym] = {"return": None}
+                    continue
+                if hasattr(t.columns, 'levels'):
+                    t.columns = t.columns.get_level_values(0)
+                c   = t['Close'].squeeze()
+                ret = round((float(c.iloc[-1]) - float(c.iloc[0])) / float(c.iloc[0]) * 100, 2)
             result["stocks"][sym] = {"return": ret}
             weighted += ret
             total_w  += 1

@@ -381,7 +381,10 @@ body{
 
       <!-- Manual entry -->
       <div class="pf-input-row">
-        <input class="pf-sym-input" id="pf-sym" placeholder="Symbol (e.g. RELIANCE)" style="flex:2" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
+        <div style="position:relative;flex:2">
+          <input class="pf-sym-input" id="pf-sym" placeholder="Symbol (e.g. RELIANCE)" style="width:100%" oninput="pfSymAC(this.value)" onkeydown="if(event.key==='Enter'){closePfSymAC();pfAddHolding();}if(event.key==='Escape')closePfSymAC()"/>
+          <div id="pf-sym-ac" style="display:none;position:absolute;top:100%;left:0;width:100%;background:#0d1f3c;border:1px solid var(--border);border-radius:8px;z-index:2000;max-height:180px;overflow-y:auto;margin-top:4px"></div>
+        </div>
         <input class="pf-sym-input" id="pf-qty" placeholder="Qty" type="number" min="1" style="flex:1;max-width:80px" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
         <input class="pf-sym-input" id="pf-avg" placeholder="Avg price (optional)" type="number" min="0" style="flex:2" onkeydown="if(event.key==='Enter')pfAddHolding()"/>
         <button class="pf-add-btn" onclick="pfAddHolding()">+ Add</button>
@@ -462,6 +465,36 @@ window._pfHoldings = [];
     if (!input.contains(e.target)) box.innerHTML = '';
   });
 })();
+
+function pfSymAC(val) {
+  const ac = document.getElementById('pf-sym-ac');
+  if (!val || val.length < 1) { ac.style.display='none'; return; }
+  const q = val.toUpperCase();
+  const matches = STOCKS.filter(([sym, name]) =>
+    sym.startsWith(q) || name.toUpperCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { ac.style.display='none'; return; }
+  ac.innerHTML = matches.map(([sym, name]) => `
+    <div onclick="selectPfSymAC('${sym}')"
+      style="padding:8px 12px;cursor:pointer;font-family:var(--font-mono);font-size:12px;display:flex;gap:8px;align-items:center"
+      onmouseover="this.style.background='var(--bg3)'"
+      onmouseout="this.style.background=''">
+      <span style="color:var(--orange);min-width:80px">${sym}</span>
+      <span style="color:var(--text3);font-size:11px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${name}</span>
+    </div>`).join('');
+  ac.style.display = 'block';
+}
+
+function selectPfSymAC(sym) {
+  document.getElementById('pf-sym').value = sym;
+  closePfSymAC();
+  document.getElementById('pf-qty').focus();
+}
+
+function closePfSymAC() {
+  const ac = document.getElementById('pf-sym-ac');
+  if (ac) ac.style.display = 'none';
+}
 
 function pfAddHolding() {
   const raw = document.getElementById('pf-sym').value.trim().toUpperCase();
@@ -551,10 +584,16 @@ async function pfAnalyse() {
     const fromDate = document.getElementById('pf-from-date')?.value || '';
     fetch(`${API}/portfolio-vs-nifty?symbols=${encodeURIComponent(syms)}&from=${fromDate}`)
       .then(r => r.json()).then(d => pfRenderBeatsNifty(d, window._pfHoldings))
-      .catch(() => {});
+      .catch(() => {
+        const d = document.getElementById('pf-beat-nifty');
+        if (d) d.innerHTML = `<div class="pf-card"><div class="pf-card-title">📈 BEAT NIFTY TRACKER</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Could not load — try analysing again.</div></div>`;
+      });
     fetch(`${API}/macro-sentiment`)
       .then(r => r.json()).then(d => pfRenderSectorAlerts(d, window._pfHoldings, resp.stocks))
-      .catch(() => {});
+      .catch(() => {
+        const d = document.getElementById('pf-sector-alerts');
+        if (d) d.innerHTML = `<div class="pf-card"><div class="pf-card-title">🔄 SECTOR ROTATION ALERTS</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Could not load — try analysing again.</div></div>`;
+      });
   } catch(e) {
     res.style.display = 'block';
     res.innerHTML = `<div class="pf-card" style="color:var(--red)">Error: ${e.message}</div>`;
@@ -1400,7 +1439,7 @@ window.showGoldenCrossInfo = function(isGolden) {
         <div class="verdict-card" id="verdict-card" style="${!combined?.verdict ? 'display:none' : ''}">
           <div class="verdict-word ${combined?.verdict_color || 'gold'}">${combined?.verdict || '—'}</div>
           <div class="verdict-reason">${combined?.reason || 'Analysing...'}</div>
-          <div class="verdict-score">Score <span>${combined?.score_10 ?? '—'}</span>/10</div>
+          <div class="verdict-score">Score <span>${combined?.score ?? (combined?.score_10 != null ? combined.score_10 * 10 : '—')}</span>/100</div>
           ${combined?.short_term_verdict && combined?.long_term_verdict ? `
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
@@ -1512,15 +1551,6 @@ window.showGoldenCrossInfo = function(isGolden) {
 
         <div class="expert-section" id="expert-scores">
 
-        <div class="scores-row">
-          <div class="score-item">
-            <div class="score-top">
-              <span class="score-name">Score %</span>
-              <span class="score-num" style="color:${barColor(combinedScore)}">${combinedDisplay}</span>
-            </div>
-            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${combinedScore != null ? combinedScore : 0}%;background:${barColor(combinedScore)}"></div></div>
-          </div>
-        </div>
 
 
 
@@ -1641,24 +1671,6 @@ window.showGoldenCrossInfo = function(isGolden) {
           </div>
         </div>
 
-        <!-- Macro Impact -->
-        <div class="section" id="sec-macro">
-          <div class="section-header" onclick="toggleSection('sec-macro')">
-            <span class="section-title"><span class="section-icon">🌐</span> Macro & Economic Factors</span>
-            <span class="section-arrow">▼</span>
-          </div>
-          <div class="section-body">
-            ${macroTopics.length ? `
-            <div class="macro-grid">
-              ${macroTopics.map(t => `
-                <div class="macro-item">
-                  <span class="macro-name">${t.topic.replace(/_/g,' ')}</span>
-                  <span class="macro-score" style="color:${t.score>10?'var(--green)':t.score<-10?'var(--red)':'var(--text2)'}">${t.score>0?'+':''}${t.score}</span>
-                </div>
-              `).join('')}
-            </div>` : '<div style="padding:12px 0;color:var(--text3);font-size:12px">No macro topics applicable for this stock.</div>'}
-          </div>
-        </div>
 
         <!-- Valuation Insights -->
         ${combined?.valuation_signal ? (() => {
@@ -1773,9 +1785,9 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div class="fund-trend trend-neu">vs Nifty next 3 months</div>
               </div>
               <div class="fund-item">
-                <div class="fund-label">Screener Score</div>
+                <div class="fund-label">Fundamental Score</div>
                 <div class="fund-val">${scrScore}/100</div>
-                <div class="fund-trend trend-neu">10yr fundamental quality</div>
+                <div class="fund-trend trend-neu">Based on 10-yr fundamentals</div>
               </div>
             </div>
           </div>
