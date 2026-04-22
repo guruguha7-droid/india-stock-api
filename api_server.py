@@ -1613,15 +1613,61 @@ def stock_analysis():
         # ══════════════════════════════════════════════════════════════
         base_mult = macro_mult * sector_mult * roce_mult * capex_mult * debt_mult * promo_mult
 
-        adj_eps_cagr_1y    = eps_cagr    * base_mult * news_mult_1y
-        adj_eps_cagr_3y    = eps_cagr    * base_mult * news_mult_3y * 0.92
-        adj_eps_cagr_5y    = eps_cagr    * base_mult * news_mult_5y * 0.85
-        adj_sales_cagr_1y  = sales_cagr  * base_mult * news_mult_1y
-        adj_sales_cagr_3y  = sales_cagr  * base_mult * news_mult_3y * 0.92
-        adj_sales_cagr_5y  = sales_cagr  * base_mult * news_mult_5y * 0.85
-        adj_profit_cagr_1y = profit_cagr * base_mult * news_mult_1y
-        adj_profit_cagr_3y = profit_cagr * base_mult * news_mult_3y * 0.92
-        adj_profit_cagr_5y = profit_cagr * base_mult * news_mult_5y * 0.85
+        # ── Quality-adjusted growth fade ──────────────────────────────
+        # Fade rate determined by business quality — strong compounders
+        # fade slowly, cyclicals and weak businesses fade aggressively.
+        TERMINAL_GROWTH = 10.0
+
+        # ── Step 1: Determine fade rate from quality signals ──────────
+        quality_signals = 0
+
+        # Positive signals — slow the fade
+        if roce_s > roce_avg_s + 2:   quality_signals += 1  # ROCE improving
+        if fcf_ok:                    quality_signals += 1  # FCF consistently positive
+        if debt_red is True:          quality_signals += 1  # reducing debt
+        if opm_trend > 2:             quality_signals += 1  # margins expanding
+        if promoter > 55:             quality_signals += 1  # high promoter conviction
+        if scr_raw >= 75:             quality_signals += 1  # strong overall fundamentals
+
+        # Negative signals — accelerate the fade
+        if is_metal or is_infra:      quality_signals -= 2  # cyclical — peak earnings likely
+        if opm_trend < -3:            quality_signals -= 1  # margins declining
+        if not fcf_ok:                quality_signals -= 1  # burning cash
+        if debt_growth > 20 and sales_1y < 10: quality_signals -= 1  # debt rising, growth not
+
+        # ── Step 2: Map quality signals to fade rate ──────────────────
+        if quality_signals >= 4:
+            fade_rate = 0.08    # very slow — strong compounder
+            label = "compounder"
+        elif quality_signals >= 2:
+            fade_rate = 0.13    # moderate — good business
+            label = "quality"
+        elif quality_signals >= 0:
+            fade_rate = 0.20    # average — standard fade
+            label = "average"
+        elif quality_signals >= -2:
+            fade_rate = 0.28    # aggressive — weak or cyclical
+            label = "cyclical"
+        else:
+            fade_rate = 0.38    # very aggressive — distressed/peak cycle
+            label = "distressed"
+
+        def fade(cagr, years):
+            """Fade growth rate toward terminal rate at quality-adjusted speed."""
+            faded = cagr
+            for _ in range(years):
+                faded = faded - fade_rate * (faded - TERMINAL_GROWTH)
+            return max(faded, TERMINAL_GROWTH * 0.4)  # floor at 40% of terminal
+
+        eps_1y      = fade(eps_cagr,    1)
+        eps_3y      = fade(eps_cagr,    3)
+        eps_5y      = fade(eps_cagr,    5)
+        sales_1y_f  = fade(sales_cagr,  1)
+        sales_3y_f  = fade(sales_cagr,  3)
+        sales_5y_f  = fade(sales_cagr,  5)
+        profit_1y_f = fade(profit_cagr, 1)
+        profit_3y_f = fade(profit_cagr, 3)
+        profit_5y_f = fade(profit_cagr, 5)
 
         # ══════════════════════════════════════════════════════════════
         # PRICE TARGET
@@ -1636,9 +1682,9 @@ def stock_analysis():
             raw      = fwd_eps * exit_pe * news_m * mom_m
             return round(raw, 0)
 
-        pt_1y = price_target(1, adj_eps_cagr_1y, news_mult_1y, momentum_mult)
-        pt_3y = price_target(3, adj_eps_cagr_3y, news_mult_3y)
-        pt_5y = price_target(5, adj_eps_cagr_5y, news_mult_5y)
+        pt_1y = price_target(1, eps_1y, news_mult_1y, momentum_mult)
+        pt_3y = price_target(3, eps_3y, news_mult_3y)
+        pt_5y = price_target(5, eps_5y, news_mult_5y)
 
         # ══════════════════════════════════════════════════════════════
         # OUTPERFORM CONFIDENCE
@@ -1676,20 +1722,20 @@ def stock_analysis():
         result["forecast"] = {
             "1y": {
                 "price_target":       pt_1y,
-                "revenue_growth_pct": round(adj_sales_cagr_1y, 1),
-                "profit_growth_pct":  round(adj_profit_cagr_1y, 1),
+                "revenue_growth_pct": round(sales_1y_f, 1),
+                "profit_growth_pct":  round(profit_1y_f, 1),
                 "outperform_prob":    outperform_prob(1),
             },
             "3y": {
                 "price_target":       pt_3y,
-                "revenue_growth_pct": round(adj_sales_cagr_3y, 1),
-                "profit_growth_pct":  round(adj_profit_cagr_3y, 1),
+                "revenue_growth_pct": round(sales_3y_f, 1),
+                "profit_growth_pct":  round(profit_3y_f, 1),
                 "outperform_prob":    outperform_prob(3),
             },
             "5y": {
                 "price_target":       pt_5y,
-                "revenue_growth_pct": round(adj_sales_cagr_5y, 1),
-                "profit_growth_pct":  round(adj_profit_cagr_5y, 1),
+                "revenue_growth_pct": round(sales_5y_f, 1),
+                "profit_growth_pct":  round(profit_5y_f, 1),
                 "outperform_prob":    outperform_prob(5),
             },
             "current_price": price_now,
