@@ -2263,6 +2263,73 @@ def compare():
         return obj
 
     ordered = [fix_nan(results.get(s,{'symbol':s,'error':'timeout'})) for s in symbols]
+
+    # ── Add relative rankings within peer group ───────────────────────
+    RANK_METRICS = {
+        'pe_ratio':       {'higher_is': 'bad',  'label': 'P/E Ratio'},
+        'roce':           {'higher_is': 'good', 'label': 'ROCE'},
+        'sales_cagr_5y':  {'higher_is': 'good', 'label': 'Sales CAGR'},
+        'profit_cagr_5y': {'higher_is': 'good', 'label': 'Profit CAGR'},
+        'ml_score':       {'higher_is': 'good', 'label': 'ML Score'},
+        'screener_score': {'higher_is': 'good', 'label': 'Fundamental Score'},
+        'ret_1m':         {'higher_is': 'good', 'label': '1M Return'},
+        'ret_3m':         {'higher_is': 'good', 'label': '3M Return'},
+        'ret_1y':         {'higher_is': 'good', 'label': '1Y Return'},
+        'price_target_1y':{'higher_is': 'good', 'label': '1Y Target'},
+    }
+
+    rankings = {}
+    for metric, cfg in RANK_METRICS.items():
+        vals = [(i, s.get(metric)) for i, s in enumerate(ordered)
+                if s.get(metric) is not None and not s.get('error')]
+        if len(vals) < 2:
+            continue
+        reverse = cfg['higher_is'] == 'good'
+        sorted_vals = sorted(vals, key=lambda x: x[1], reverse=reverse)
+        n = len(sorted_vals)
+        for rank, (idx, val) in enumerate(sorted_vals):
+            sym = ordered[idx]['symbol']
+            if sym not in rankings:
+                rankings[sym] = {}
+            pct = round((1 - rank / (n - 1)) * 100) if n > 1 else 50
+            if pct >= 80:   lbl = 'Best in group'
+            elif pct >= 60: lbl = 'Above average'
+            elif pct >= 40: lbl = 'Average'
+            elif pct >= 20: lbl = 'Below average'
+            else:           lbl = 'Worst in group'
+            rankings[sym][metric] = {'rank': rank + 1, 'of': n, 'percentile': pct, 'label': lbl}
+
+    # ── Group averages for peer context ──────────────────────────────
+    group_avgs = {}
+    for metric in ['pe_ratio', 'roce', 'sales_cagr_5y', 'profit_cagr_5y']:
+        vals = [s.get(metric) for s in ordered
+                if s.get(metric) is not None and not s.get('error')]
+        if vals:
+            group_avgs[metric] = round(sum(vals) / len(vals), 1)
+
+    for s in ordered:
+        sym = s.get('symbol', '')
+        s['rankings']   = rankings.get(sym, {})
+        s['group_avgs'] = group_avgs
+
+        pe = s.get('pe_ratio')
+        avg_pe = group_avgs.get('pe_ratio')
+        if pe and avg_pe and avg_pe > 0:
+            pe_vs = round((pe - avg_pe) / avg_pe * 100, 1)
+            if pe_vs < -20:   s['pe_context'] = f"{abs(pe_vs):.0f}% cheaper than peers"
+            elif pe_vs < -5:  s['pe_context'] = f"{abs(pe_vs):.0f}% below peer avg"
+            elif pe_vs > 20:  s['pe_context'] = f"{abs(pe_vs):.0f}% more expensive than peers"
+            elif pe_vs > 5:   s['pe_context'] = f"{abs(pe_vs):.0f}% above peer avg"
+            else:             s['pe_context'] = "In line with peers"
+
+        roce = s.get('roce')
+        avg_roce = group_avgs.get('roce')
+        if roce and avg_roce and avg_roce > 0:
+            roce_vs = round((roce - avg_roce) / avg_roce * 100, 1)
+            if roce_vs > 20:    s['roce_context'] = f"{abs(roce_vs):.0f}% above peer avg"
+            elif roce_vs < -20: s['roce_context'] = f"{abs(roce_vs):.0f}% below peer avg"
+            else:               s['roce_context'] = "In line with peers"
+
     return jsonify({"status":"ok","count":len(ordered),"data":ordered})
 
 
