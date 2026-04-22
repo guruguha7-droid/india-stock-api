@@ -1067,7 +1067,173 @@ def stock_analysis():
     # ── Combined score ────────────────────────────────────────────────
     try:
         ml_raw  = result.get("ml", {}).get("ml_score", 50) or 50
-        scr_raw = result.get("fundamentals", {}).get("investment_score", 50) or 50
+
+        # ══════════════════════════════════════════════════════════════
+        # CUSTOM FUNDAMENTAL SCORE — replaces black-box Screener score
+        # Built from raw CSV fields across 4 categories:
+        #   30% Growth Quality
+        #   25% Profitability & Capital Efficiency
+        #   25% Financial Health
+        #   20% Management Quality
+        # ══════════════════════════════════════════════════════════════
+        _fund_raw_scr = result.get("fundamentals", {})
+        _quote_scr    = result.get("quote", {})
+        _sec_str      = str(_quote_scr.get("industry", "") or "").lower()
+
+        _is_bank_scr  = any(x in _sec_str for x in ['bank','nbfc','financ','insurance','microfinance'])
+        _is_it_scr    = any(x in _sec_str for x in ['it','software','technolog','computer'])
+        _is_fmcg_scr  = any(x in _sec_str for x in ['fmcg','consumer','food','beverag'])
+        _is_metal_scr = any(x in _sec_str for x in ['metal','steel','alumin','mining'])
+
+        def _f(key, default=0.0):
+            v = _fund_raw_scr.get(key)
+            try: return float(v) if v not in (None,'','None','nan') else default
+            except: return default
+
+        _sales_cagr5  = _f('sales_cagr_5y')
+        _sales_cagr10 = _f('sales_cagr_10y')
+        _sales_1y     = _f('sales_growth_1y')
+        _prof_cagr5   = _f('profit_cagr_5y')
+        _prof_cagr10  = _f('profit_cagr_10y')
+        _prof_1y      = _f('profit_growth_1y')
+        _eps_cagr5    = _f('eps_cagr_5y')
+        _opm_lat      = _f('opm_latest_pct')
+        _opm_avg      = _f('opm_avg_5y')
+        _opm_trend    = _f('opm_trend_5y')
+        _roce_lat     = _f('roce_latest_pct')
+        _roce_avg     = _f('roce_avg_5y', _roce_lat)
+        _roce_trend   = _f('roce_trend_5y')
+        _de           = _f('screener_de', 50)
+        _debt_gr      = _f('debt_growth_1y')
+        _debt_red     = str(_fund_raw_scr.get('debt_reducing','')).lower() == 'true'
+        _fcf_ok       = str(_fund_raw_scr.get('fcf_positive_3y','')).lower() == 'true'
+        _ocf_ok       = str(_fund_raw_scr.get('ocf_positive_3y','')).lower() == 'true'
+        _fcf_cagr     = _f('fcf_cagr_5y')
+        _promoter     = _f('promoter_pct')
+        _fii          = _f('fii_pct')
+        _dii          = _f('dii_pct')
+        _div_payout   = _f('dividend_payout_pct')
+
+        # ── Category 1: Growth Quality (0–100) ────────────────────────
+        g = 50
+
+        if _sales_cagr5 > 25:    g += 18
+        elif _sales_cagr5 > 18:  g += 12
+        elif _sales_cagr5 > 12:  g += 6
+        elif _sales_cagr5 > 5:   g += 0
+        elif _sales_cagr5 < 0:   g -= 15
+        else:                    g -= 5
+
+        if _sales_cagr10 > 0 and _sales_cagr5 > _sales_cagr10 * 1.2:
+            g += 8
+        elif _sales_cagr5 > 0 and _sales_cagr10 > 0 and _sales_cagr5 < _sales_cagr10 * 0.6:
+            g -= 8
+
+        _prof_weight = 0.6 if _is_metal_scr else 1.0
+        if _prof_cagr5 > 25:     g += int(15 * _prof_weight)
+        elif _prof_cagr5 > 15:   g += int(8  * _prof_weight)
+        elif _prof_cagr5 > 8:    g += int(3  * _prof_weight)
+        elif _prof_cagr5 < 0:    g -= 12
+        elif _prof_cagr5 < 5:    g -= 5
+
+        if _sales_1y > 20 and _prof_1y > 15:   g += 5
+        elif _sales_1y < -5 or _prof_1y < -10: g -= 8
+
+        g = max(0, min(100, g))
+
+        # ── Category 2: Profitability & Capital Efficiency (0–100) ────
+        p = 50
+
+        if not _is_bank_scr:
+            if _roce_lat > 35:    p += 22
+            elif _roce_lat > 25:  p += 15
+            elif _roce_lat > 18:  p += 8
+            elif _roce_lat > 12:  p += 2
+            elif _roce_lat < 8:   p -= 12
+            elif _roce_lat < 0:   p -= 20
+
+            if _roce_lat > _roce_avg + 5:    p += 10
+            elif _roce_lat > _roce_avg + 2:  p += 5
+            elif _roce_lat < _roce_avg - 5:  p -= 10
+            elif _roce_lat < _roce_avg - 2:  p -= 5
+        else:
+            if _prof_cagr5 > 20:   p += 15
+            elif _prof_cagr5 > 12: p += 8
+            elif _prof_cagr5 < 5:  p -= 8
+
+        if not _is_bank_scr:
+            if _opm_lat > 30:     p += 12
+            elif _opm_lat > 20:   p += 7
+            elif _opm_lat > 12:   p += 2
+            elif _opm_lat < 0:    p -= 15
+            elif _opm_lat < 5:    p -= 8
+
+            if _opm_trend > 5:    p += 6
+            elif _opm_trend < -5: p -= 6
+
+        p = max(0, min(100, p))
+
+        # ── Category 3: Financial Health (0–100) ──────────────────────
+        h = 50
+
+        if _fcf_ok:               h += 15
+        elif _ocf_ok:             h += 7
+        else:
+            if not _is_bank_scr:  h -= 12
+
+        if _fcf_cagr > 20:        h += 8
+        elif _fcf_cagr > 10:      h += 4
+        elif _fcf_cagr < -10:     h -= 6
+
+        if not _is_bank_scr:
+            if _de < 0.1:         h += 12
+            elif _de < 0.3:       h += 8
+            elif _de < 0.6:       h += 3
+            elif _de < 1.0:       h -= 3
+            elif _de < 2.0:
+                if _sales_1y < 15: h -= 10
+                else:              h -= 4
+            else:
+                h -= 18
+
+            if _debt_red:         h += 8
+            elif _debt_gr > 30 and _sales_1y < 10:
+                h -= 8
+
+        h = max(0, min(100, h))
+
+        # ── Category 4: Management Quality (0–100) ────────────────────
+        m = 50
+
+        _is_mnc = _promoter == 0 and _fii > 25
+        if _is_mnc:
+            m += 5
+        else:
+            if _promoter > 65:    m += 15
+            elif _promoter > 55:  m += 10
+            elif _promoter > 45:  m += 4
+            elif _promoter > 25:  m += 0
+            elif _promoter < 15:  m -= 8
+
+        _inst_total = _fii + _dii
+        if _inst_total > 50:      m += 10
+        elif _inst_total > 35:    m += 6
+        elif _inst_total > 20:    m += 2
+        elif _inst_total < 10:    m -= 5
+
+        if 20 <= _div_payout <= 60:   m += 6
+        elif _div_payout > 100:        m -= 8
+        elif _div_payout == 0:         m -= 2
+
+        m = max(0, min(100, m))
+
+        # ── Weighted final score ───────────────────────────────────────
+        scr_raw = round(
+            g * 0.30 +   # Growth Quality
+            p * 0.25 +   # Profitability & Capital Efficiency
+            h * 0.25 +   # Financial Health
+            m * 0.20,    # Management Quality
+            1)
 
         pe         = result.get("valuation", {}).get("pe_ratio") or 20
         _fund_raw  = result.get("fundamentals", {})
