@@ -92,8 +92,8 @@ NSE_STOCKS = [
 ]
 
 NIFTY        = "^NSEI"
-PERIOD       = "7y"           # extended from 5y for more training data
-FORWARD_DAYS = 126            # 6 months instead of 3 — fundamentals need time to play out
+PERIOD       = "8y"           # extra year needed since 1Y forward eats into the data
+FORWARD_DAYS = 252            # 1 year — fundamentals play out over 12 months, not 6
 
 # ── Technical features (same as v1) ──────────────────────────────────────────
 TECH_FEATURES = [
@@ -562,7 +562,7 @@ def save_model(model, features, accuracy, model_name):
 if __name__ == "__main__":
     print("=" * 65)
     print("  NSE ML Stock Screener — Training Pipeline v2")
-    print("  Technical + Fundamental Features | 6-Month Horizon")
+    print("  Technical + Fundamental Features | 1-Year Horizon")
     print("=" * 65)
 
     prices    = download_data()
@@ -585,5 +585,5 @@ if __name__ == "__main__":
     print(f"  Best model: {model_name}")
     print(f"  Accuracy:   {accuracy*100:.1f}%")
     print(f"  Features:   {len(features)} ({len(TECH_FEATURES)} tech + {len(FUND_FEATURES)} fundamental)")
-    print(f"  Horizon:    {FORWARD_DAYS} trading days (6 months)")
+    print(f"  Horizon:    {FORWARD_DAYS} trading days (1 year)")
     print("=" * 65)

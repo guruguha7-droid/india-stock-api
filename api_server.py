@@ -1358,11 +1358,11 @@ def stock_analysis():
         macro_score = max(0, min(100, 50 + macro_raw * 0.5))
 
         combined = round(
-            ml_raw      * 0.30 +
-            scr_raw     * 0.30 +
-            yfin_score  * 0.25 +
-            sent_score  * 0.08 +
-            macro_score * 0.07, 1)
+            ml_raw      * 0.20 +   # ML: 58% accuracy — useful but not dominant
+            scr_raw     * 0.40 +   # Fundamentals: our own score, most reliable
+            yfin_score  * 0.25 +   # Valuation: PE, ROCE, growth, debt
+            sent_score  * 0.08 +   # News: noisy, low weight
+            macro_score * 0.07, 1) # Macro: directional only
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
