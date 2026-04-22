@@ -1541,124 +1541,176 @@ def stock_analysis():
             cur_price   = float(str(result.get('quote', {}).get('price') or 0)
                                 .replace(',', '')) or None
 
-            if eps_latest > 0 and cur_price:
-                # ── Modern Graham formula ─────────────────────────────
-                # 1. RBI rate adjustment (Graham calibrated at 4.4% US rates)
-                try:
-                    rbi_rate = 6.5  # Current RBI repo rate — update manually or fetch live
-                    rate_adj = 4.4 / rbi_rate  # ~0.677 at 6.5%
-                except Exception:
-                    rate_adj = 0.677
+            if cur_price:
+                if eps_latest > 0:
+                    # ── Normal profitable company ─────────────────────────
+                    rbi_rate = 6.5
+                    rate_adj = 4.4 / rbi_rate
 
-                # 2. Sector PE anchor — different sectors deserve different base multiples
-                SECTOR_PE = {
-                    'IT': 28, 'Technology': 28, 'Software': 28,
-                    'FMCG': 35, 'Consumer': 32,
-                    'Pharma': 30, 'Healthcare': 30,
-                    'Banking': 15, 'Finance': 18, 'NBFC': 18,
-                    'Auto': 20, 'Automobile': 20,
-                    'Metals': 10, 'Steel': 10, 'Mining': 10,
-                    'Energy': 12, 'Oil': 12, 'Power': 14,
-                    'Infrastructure': 18, 'Construction': 16,
-                    'Cement': 20, 'Real Estate': 20,
-                    'Defence': 30, 'Chemicals': 22,
-                }
-                sector_str = str(result.get('quote', {}).get('industry', '') or '')
-                base_pe = 22  # Nifty 50 long-term average
-                for k, v in SECTOR_PE.items():
-                    if k.lower() in sector_str.lower():
-                        base_pe = v
-                        break
+                    SECTOR_PE = {
+                        'IT': 28, 'Technology': 28, 'Software': 28,
+                        'FMCG': 35, 'Consumer': 32,
+                        'Pharma': 30, 'Healthcare': 30,
+                        'Banking': 15, 'Finance': 18, 'NBFC': 18,
+                        'Auto': 20, 'Automobile': 20,
+                        'Metals': 10, 'Steel': 10, 'Mining': 10,
+                        'Energy': 12, 'Oil': 12, 'Power': 14,
+                        'Infrastructure': 18, 'Construction': 16,
+                        'Cement': 20, 'Real Estate': 20,
+                        'Defence': 30, 'Chemicals': 22,
+                    }
+                    sector_str = str(result.get('quote', {}).get('industry', '') or '')
+                    base_pe = 22
+                    for k, v in SECTOR_PE.items():
+                        if k.lower() in sector_str.lower():
+                            base_pe = v
+                            break
 
-                # 3. Quality premium — ROCE trend, FCF, debt
-                quality_mult = 1.0
-                roce_l2  = float(_r.get('roce_latest_pct') or 10)
-                roce_a2  = float(_r.get('roce_avg_5y') or roce_l2)
-                if roce_l2 > roce_a2 + 3:   quality_mult += 0.10  # ROCE improving
-                if bool(_r.get('fcf_positive_3y')): quality_mult += 0.08  # FCF positive
-                if bool(_r.get('debt_reducing')):    quality_mult += 0.07  # Debt reducing
-                if float(_r.get('promoter_pct') or 0) > 55: quality_mult += 0.05
-                quality_mult = min(quality_mult, 1.35)  # Cap at 35% premium
+                    quality_mult = 1.0
+                    roce_l2  = float(_r.get('roce_latest_pct') or 10)
+                    roce_a2  = float(_r.get('roce_avg_5y') or roce_l2)
+                    if roce_l2 > roce_a2 + 3:   quality_mult += 0.10
+                    if bool(_r.get('fcf_positive_3y')): quality_mult += 0.08
+                    if bool(_r.get('debt_reducing')):    quality_mult += 0.07
+                    if float(_r.get('promoter_pct') or 0) > 55: quality_mult += 0.05
+                    quality_mult = min(quality_mult, 1.35)
 
-                # 4. Growth reliability — cap cyclical inflation
-                opm_trend = float(_r.get('opm_trend_5y') or 0)
-                reliable_growth = min(float(eps_cagr or 8.0), 25)
-                if opm_trend < -3:  # Margins declining — growth less reliable
-                    reliable_growth = min(reliable_growth, 15)
+                    opm_trend = float(_r.get('opm_trend_5y') or 0)
+                    reliable_growth = min(float(eps_cagr or 8.0), 25)
+                    if opm_trend < -3:
+                        reliable_growth = min(reliable_growth, 15)
 
-                # 5. Final fair PE
-                fair_pe = min(
-                    (base_pe + 1.5 * reliable_growth) * rate_adj * quality_mult,
-                    55  # Hard cap — no stock deserves more than 55x on this model
-                )
-                fair_pe = round(fair_pe, 1)
-                fair_value = round(eps_latest * fair_pe, 1)
+                    fair_pe = min(
+                        (base_pe + 1.5 * reliable_growth) * rate_adj * quality_mult,
+                        55
+                    )
+                    fair_pe    = round(fair_pe, 1)
+                    fair_value = round(eps_latest * fair_pe, 1)
 
-                # Margin of safety — higher quality = less discount needed
-                if scr_raw >= 75:   mos = 0.10   # 10% for great businesses
-                elif scr_raw >= 60: mos = 0.15   # 15% for good businesses
-                else:               mos = 0.25   # 25% for average businesses
+                    if scr_raw >= 75:   mos = 0.10
+                    elif scr_raw >= 60: mos = 0.15
+                    else:               mos = 0.25
 
-                buy_zone_high = round(fair_value * (1 - mos * 0.5), 1)
-                buy_zone_low  = round(fair_value * (1 - mos), 1)
+                    buy_zone_high = round(fair_value * (1 - mos * 0.5), 1)
+                    buy_zone_low  = round(fair_value * (1 - mos), 1)
+                    pct_vs_fair   = round((cur_price - fair_value) / fair_value * 100, 1) \
+                                    if fair_value > 0 else 0
 
-                # Premium/discount to fair value
-                pct_vs_fair = round((cur_price - fair_value) / fair_value * 100, 1) \
-                              if fair_value > 0 else 0
+                    confidence = 50
+                    if eps_cagr > 15:    confidence += 15
+                    elif eps_cagr > 10:  confidence += 10
+                    elif eps_cagr > 5:   confidence += 5
+                    elif eps_cagr < 0:   confidence -= 15
+                    if roce_l > roce_a:  confidence += 10
+                    if fcf_ok:           confidence += 10
+                    if debt_red:         confidence += 5
+                    if scr_raw >= 75:    confidence += 10
+                    elif scr_raw < 45:   confidence -= 10
+                    if cur_pe <= 0:      confidence -= 10
+                    confidence = max(20, min(90, confidence))
 
-                # Confidence score — how reliable is this fair value estimate
-                confidence = 50
-                if eps_cagr > 15:    confidence += 15
-                elif eps_cagr > 10:  confidence += 10
-                elif eps_cagr > 5:   confidence += 5
-                elif eps_cagr < 0:   confidence -= 15
-                if roce_l > roce_a:  confidence += 10  # ROCE improving
-                if fcf_ok:           confidence += 10
-                if debt_red:         confidence += 5
-                if scr_raw >= 75:    confidence += 10
-                elif scr_raw < 45:   confidence -= 10
-                if cur_pe <= 0:      confidence -= 10
-                confidence = max(20, min(90, confidence))
+                    is_quality   = scr_raw >= 60
+                    is_expensive = cur_price > fair_value * 1.15
+                    is_cheap     = cur_price < fair_value * 0.90
 
-                # 4-quadrant classification
-                is_quality   = scr_raw >= 60
-                is_expensive = cur_price > fair_value * 1.15
-                is_cheap     = cur_price < fair_value * 0.90
+                    if is_quality and is_cheap:
+                        sig_label = "Undervalued Quality"
+                        sig_color = "green"
+                        sig_desc  = "Strong business trading below fair value — opportunity"
+                    elif is_quality and is_expensive:
+                        sig_label = "Overvalued Quality"
+                        sig_color = "gold"
+                        sig_desc  = "Strong business but priced above fair value — wait for dip"
+                    elif is_quality:
+                        sig_label = "Fairly Valued Quality"
+                        sig_color = "green"
+                        sig_desc  = "Strong business at a fair price"
+                    elif is_cheap:
+                        sig_label = "Value Trap Risk"
+                        sig_color = "red"
+                        sig_desc  = "Cheap valuation but weak fundamentals — be cautious"
+                    else:
+                        sig_label = "Overpriced Weak Business"
+                        sig_color = "red"
+                        sig_desc  = "Weak fundamentals and expensive — avoid"
 
-                if is_quality and is_cheap:
-                    sig_label = "Undervalued Quality"
-                    sig_color = "green"
-                    sig_desc  = "Strong business trading below fair value — opportunity"
-                elif is_quality and is_expensive:
-                    sig_label = "Overvalued Quality"
-                    sig_color = "gold"
-                    sig_desc  = "Strong business but priced above fair value — wait for dip"
-                elif is_quality:
-                    sig_label = "Fairly Valued Quality"
-                    sig_color = "green"
-                    sig_desc  = "Strong business at a fair price"
-                elif is_cheap:
-                    sig_label = "Value Trap Risk"
-                    sig_color = "red"
-                    sig_desc  = "Cheap valuation but weak fundamentals — be cautious"
+                    val_signal = {
+                        "label":         sig_label,
+                        "color":         sig_color,
+                        "description":   sig_desc,
+                        "fair_value":    fair_value,
+                        "fair_pe":       round(fair_pe, 1),
+                        "current_pe":    cur_pe if cur_pe > 0 else None,
+                        "pct_vs_fair":   pct_vs_fair,
+                        "buy_zone_low":  buy_zone_low,
+                        "buy_zone_high": buy_zone_high,
+                        "confidence":    confidence,
+                        "current_price": cur_price,
+                    }
+
                 else:
-                    sig_label = "Overpriced Weak Business"
-                    sig_color = "red"
-                    sig_desc  = "Weak fundamentals and expensive — avoid"
+                    # ── Loss-making company ───────────────────────────────
+                    _sales_cagr  = float(_r.get('sales_cagr_5y')    or 0)
+                    _prof_gr_1y  = float(_r.get('profit_growth_1y') or 0)
+                    _prof_cagr5  = float(_r.get('profit_cagr_5y')   or -999)
+                    _roce_loss   = float(_r.get('roce_latest_pct')  or 0)
 
-                val_signal = {
-                    "label":          sig_label,
-                    "color":          sig_color,
-                    "description":    sig_desc,
-                    "fair_value":     fair_value,
-                    "fair_pe":        round(fair_pe, 1),
-                    "current_pe":     cur_pe if cur_pe > 0 else None,
-                    "pct_vs_fair":    pct_vs_fair,
-                    "buy_zone_low":   buy_zone_low,
-                    "buy_zone_high":  buy_zone_high,
-                    "confidence":     confidence,
-                    "current_price":  cur_price,
-                }
+                    _is_turnaround = _prof_gr_1y > 30 and _sales_cagr > 5
+                    _is_pre_profit = _sales_cagr > 20 and _roce_loss > -20
+                    _is_distressed = _sales_cagr < 0 or (_prof_cagr5 < -15 and _prof_cagr5 != -999)
+
+                    if _is_turnaround:
+                        sig_label = "Turnaround In Progress"
+                        sig_color = "gold"
+                        sig_desc  = "Currently loss-making but profits improving rapidly — watch for EPS turning positive"
+                        confidence = 35
+                    elif _is_pre_profit:
+                        sig_label = "Pre-Profit Growth"
+                        sig_color = "gold"
+                        sig_desc  = "Loss-making but revenue growing strongly — valuation based on future earnings potential"
+                        confidence = 30
+                    elif _is_distressed:
+                        sig_label = "Distressed Business"
+                        sig_color = "red"
+                        sig_desc  = "Loss-making with declining revenue — high risk, avoid unless deep turnaround thesis"
+                        confidence = 20
+                    else:
+                        sig_label = "Loss-Making"
+                        sig_color = "red"
+                        sig_desc  = "Company is currently not profitable — Graham valuation not applicable"
+                        confidence = 25
+
+                    _sales_cr      = float(_r.get('sales_latest_cr') or 0)
+                    _ps_ratio      = None
+                    _fair_value_ps = None
+                    try:
+                        info = yf.Ticker(f"{symbol}.NS").info
+                        _mcap = float(info.get('marketCap') or 0)
+                        if _mcap > 0 and _sales_cr > 0:
+                            _sales_inr     = _sales_cr * 1e7
+                            _ps_ratio      = round(_mcap / _sales_inr, 1)
+                            _fair_ps       = 3.0 if _sales_cagr > 25 else 2.0 if _sales_cagr > 15 else 1.0
+                            _fair_value_ps = round((_sales_inr * _fair_ps) /
+                                                   float(info.get('sharesOutstanding') or 1), 1)
+                    except Exception:
+                        pass
+
+                    val_signal = {
+                        "label":         sig_label,
+                        "color":         sig_color,
+                        "description":   sig_desc,
+                        "fair_value":    _fair_value_ps,
+                        "fair_pe":       None,
+                        "current_pe":    None,
+                        "pct_vs_fair":   round((cur_price - _fair_value_ps) / _fair_value_ps * 100, 1)
+                                         if _fair_value_ps and _fair_value_ps > 0 else None,
+                        "buy_zone_low":  round(_fair_value_ps * 0.75, 1) if _fair_value_ps else None,
+                        "buy_zone_high": round(_fair_value_ps * 0.90, 1) if _fair_value_ps else None,
+                        "confidence":    confidence,
+                        "current_price": cur_price,
+                        "ps_ratio":      _ps_ratio,
+                        "pre_profit":    True,
+                    }
         except Exception:
             val_signal = None
 
