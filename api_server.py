@@ -1387,10 +1387,13 @@ def stock_analysis():
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
-        # ── Base verdict ──────────────────────────────────────────────
-        if combined >= 65:   verdict, verdict_color = 'BUY',  'green'
-        elif combined >= 50: verdict, verdict_color = 'HOLD', 'gold'
-        else:                verdict, verdict_color = 'SELL', 'red'
+        # ── Base verdict with conviction tiers ────────────────────────
+        if combined >= 82:   verdict, verdict_color = 'STRONG BUY', 'green'
+        elif combined >= 68: verdict, verdict_color = 'BUY',        'green'
+        elif combined >= 58: verdict, verdict_color = 'MILD BUY',   'green'
+        elif combined >= 48: verdict, verdict_color = 'HOLD',       'gold'
+        elif combined >= 38: verdict, verdict_color = 'MILD SELL',  'red'
+        else:                verdict, verdict_color = 'SELL',       'red'
 
         # ── Short-term verdict (ML + technicals) ─────────────────────
         ml_s         = float(ml_raw or 50)
@@ -1742,8 +1745,10 @@ def stock_analysis():
                        'BUY'  if lt_score >= 55 else \
                        'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
 
-        # Promote HOLD → BUY if both sub-verdicts agree
+        # Promote using sub-verdicts — respect conviction level
         if verdict == 'HOLD' and short_verdict == 'BUY' and long_verdict == 'BUY':
+            verdict, verdict_color = 'MILD BUY', 'green'
+        elif verdict in ('MILD BUY', 'BUY') and short_verdict == 'BUY' and long_verdict == 'BUY' and combined >= 68:
             verdict, verdict_color = 'BUY', 'green'
 
         result["combined"] = {
