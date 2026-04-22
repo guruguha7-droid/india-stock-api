@@ -2686,6 +2686,11 @@ def generate_report_endpoint():
             elif pe<18: yfin_score+=12
             elif pe<25: yfin_score+=5
             elif pe>40: yfin_score-=15
+            # ROCE from fundamentals
+            _roce_r = float(data.get('fundamentals',{}).get('roce') or data.get('fundamentals',{}).get('roce_latest_pct') or 0)
+            if _roce_r > 25:   yfin_score += 8
+            elif _roce_r > 15: yfin_score += 4
+            elif _roce_r < 8:  yfin_score -= 8
             yfin_score=max(0,min(100,yfin_score))
             sent_raw=data.get("sentiment",{}).get("sentiment_score",0) or 0
             sent_score=max(0,min(100,50+sent_raw*0.5))
