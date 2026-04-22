@@ -1070,20 +1070,43 @@ def stock_analysis():
         scr_raw = result.get("fundamentals", {}).get("investment_score", 50) or 50
 
         pe = result.get("valuation", {}).get("pe_ratio") or 20
-        pm = result.get("valuation", {}).get("profit_margin") or 0.10
-        rg = result.get("valuation", {}).get("revenue_growth") or 0.10
+        pm = result.get("valuation", {}).get("profit_margin")   # None if missing
+        rg = result.get("valuation", {}).get("revenue_growth")  # None if missing
+
+        # Use Screener CSV as the reliable source for pm/rg fallbacks
+        _fund_raw = result.get("fundamentals", {})
+        if pm is None:
+            opm = float(_fund_raw.get("opm_latest_pct") or 0)
+            pm  = opm / 100 if opm else None
+        if rg is None:
+            sc  = float(_fund_raw.get("sales_cagr_5y") or 0)
+            rg  = sc / 100 if sc else None
 
         yfin_score = 50
+        # PE scoring
         if pe < 12:      yfin_score += 20
         elif pe < 18:    yfin_score += 12
         elif pe < 25:    yfin_score += 5
         elif pe > 40:    yfin_score -= 15
-        if pm > 0.20:    yfin_score += 10
-        elif pm > 0.12:  yfin_score += 5
-        elif pm < 0:     yfin_score -= 15
-        if rg > 0.15:    yfin_score += 10
-        elif rg > 0.08:  yfin_score += 5
-        elif rg < -0.05: yfin_score -= 8
+
+        # Profit margin scoring — only if we have real data
+        if pm is not None:
+            if pm > 0.20:    yfin_score += 10
+            elif pm > 0.12:  yfin_score += 5
+            elif pm < 0:     yfin_score -= 15
+
+        # Revenue/sales growth scoring — only if we have real data
+        if rg is not None:
+            if rg > 0.15:    yfin_score += 10
+            elif rg > 0.08:  yfin_score += 5
+            elif rg < -0.05: yfin_score -= 8
+
+        # ROCE bonus from Screener — reliable and always present
+        roce = float(_fund_raw.get("roce") or _fund_raw.get("roce_latest_pct") or 0)
+        if roce > 25:    yfin_score += 8
+        elif roce > 15:  yfin_score += 4
+        elif roce < 8:   yfin_score -= 8
+
         yfin_score = max(0, min(100, yfin_score))
 
         sent_raw   = result.get("sentiment", {}).get("sentiment_score", 0) or 0
@@ -1093,11 +1116,11 @@ def stock_analysis():
         macro_score = max(0, min(100, 50 + macro_raw * 0.5))
 
         combined = round(
-            ml_raw      * 0.35 +
-            scr_raw     * 0.20 +
-            yfin_score  * 0.15 +
-            sent_score  * 0.15 +
-            macro_score * 0.15, 1)
+            ml_raw      * 0.30 +
+            scr_raw     * 0.30 +
+            yfin_score  * 0.25 +
+            sent_score  * 0.08 +
+            macro_score * 0.07, 1)
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
@@ -1110,27 +1133,9 @@ def stock_analysis():
         ml_s         = float(ml_raw or 50)
         short_verdict = 'BUY' if ml_s >= 62 else 'SELL' if ml_s < 40 else 'HOLD'
 
-        # ── Long-term verdict (fundamentals + valuation) ──────────────
+        # ── Long-term verdict — deferred until val_signal is computed below ──
         fund_score_v = float(scr_raw or 50)
-        val_discount = 0.0
-        try:
-            _vs_tmp = result.get('valuation', {})
-            _qr_tmp = result.get('quote', {})
-            _ep_tmp = float(_vs_tmp.get('eps') or 0)
-            _pr_tmp = float(str(_qr_tmp.get('price') or 0).replace(',', '')) or 0
-            if _ep_tmp > 0 and _pr_tmp > 0:
-                # Use valuation signal pct_vs_fair if available later; approximate here
-                pass
-        except Exception:
-            pass
-        lt_score    = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
-        long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
-                       'BUY'  if lt_score >= 55 else \
-                       'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
-
-        # Override: if both sub-verdicts agree on BUY, promote HOLD → BUY
-        if verdict == 'HOLD' and short_verdict == 'BUY' and long_verdict == 'BUY':
-            verdict, verdict_color = 'BUY', 'green'
+        long_verdict = 'HOLD'  # will be refined after val_signal is computed
 
         # ── Contrarian override ───────────────────────────────────────
         rsi_val  = float(result.get('ml', {}).get('rsi') or 50)
@@ -1170,12 +1175,37 @@ def stock_analysis():
         except Exception:
             is_large = False
 
-        de  = float(result.get('valuation', {}).get('debt_to_equity') or 50)
-        vol = abs(float(result.get('ml', {}).get('ret_1m_pct') or 0))
+        de       = float(result.get('valuation', {}).get('debt_to_equity') or 50)
+        vol      = abs(float(result.get('ml', {}).get('ret_1m_pct') or 0))
+        rsi_risk = float(result.get('ml', {}).get('rsi') or 50)
+        pos52_r  = float(result.get('ml', {}).get('pos52_pct') or 50)
+        scr_de   = float(result.get('fundamentals', {}).get('screener_de') or de)
 
-        if is_large and de < 60 and vol < 10:  risk, risk_color = 'Low',    'green'
-        elif is_large or de < 100:             risk, risk_color = 'Medium', 'gold'
-        else:                                  risk, risk_color = 'High',   'red'
+        risk_points = 0
+        # Size
+        if is_large:         risk_points += 0
+        else:                risk_points += 2
+        # Debt
+        if scr_de < 30:      risk_points += 0
+        elif scr_de < 70:    risk_points += 1
+        elif scr_de < 150:   risk_points += 2
+        else:                risk_points += 3
+        # Volatility (1M return as proxy)
+        if vol < 5:          risk_points += 0
+        elif vol < 12:       risk_points += 1
+        else:                risk_points += 2
+        # RSI extremes
+        if rsi_risk > 75:    risk_points += 1   # overbought
+        elif rsi_risk < 30:  risk_points += 1   # oversold/distressed
+        # 52W position
+        if pos52_r < 20:     risk_points += 1   # near 52W low — distressed
+        # Fundamental quality
+        if scr_raw < 45:     risk_points += 2
+        elif scr_raw >= 70:  risk_points -= 1
+
+        if risk_points <= 2:   risk, risk_color = 'Low',    'green'
+        elif risk_points <= 5: risk, risk_color = 'Medium', 'gold'
+        else:                  risk, risk_color = 'High',   'red'
 
         # ── Reason ────────────────────────────────────────────────────
         reasons = []
@@ -1338,13 +1368,16 @@ def stock_analysis():
         except Exception:
             val_signal = None
 
-        # Refine long_verdict now that val_signal is computed
-        if val_signal:
-            val_discount = float(val_signal.get('pct_vs_fair') or 0)
-            lt_score     = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
-            long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
-                           'BUY'  if lt_score >= 55 else \
-                           'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
+        # Compute long_verdict now that val_signal is available
+        val_discount = float(val_signal.get('pct_vs_fair') or 0) if val_signal else 0.0
+        lt_score     = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
+        long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
+                       'BUY'  if lt_score >= 55 else \
+                       'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
+
+        # Promote HOLD → BUY if both sub-verdicts agree
+        if verdict == 'HOLD' and short_verdict == 'BUY' and long_verdict == 'BUY':
+            verdict, verdict_color = 'BUY', 'green'
 
         result["combined"] = {
             "score":               combined,
@@ -1488,8 +1521,12 @@ def stock_analysis():
         # ══════════════════════════════════════════════════════════════
         def price_target(years, eps_cagr_adj, news_m, mom_m=1.0):
             if not eps or not pe: return None
-            fwd_eps = float(eps) * ((1 + eps_cagr_adj / 100) ** years)
-            raw     = fwd_eps * pe * news_m * mom_m
+            fwd_eps  = float(eps) * ((1 + eps_cagr_adj / 100) ** years)
+            # Use the lower of current PE or Graham fair PE to avoid inflated targets
+            _fair_pe = val_signal.get('fair_pe') if val_signal else None
+            exit_pe  = min(float(pe), float(_fair_pe)) if _fair_pe else float(pe)
+            exit_pe  = max(exit_pe, 8)  # floor at 8x — no stock priced at zero
+            raw      = fwd_eps * exit_pe * news_m * mom_m
             return round(raw, 0)
 
         pt_1y = price_target(1, adj_eps_cagr_1y, news_mult_1y, momentum_mult)
