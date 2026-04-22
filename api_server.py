@@ -1028,7 +1028,28 @@ def stock_analysis():
 
     def fetch_sentiment():
         try:
-            result["sentiment"] = get_sentiment_score(symbol)
+            from news_sentiment import get_sentiment_score
+            from ml_screener import _cache
+            sent = get_sentiment_score(symbol)
+
+            sent['fetched_at'] = datetime.now().isoformat()
+
+            cached_sent = _cache.get(f'sent_{symbol}', {})
+            if cached_sent.get('data') and cached_sent.get('ts'):
+                age_hours = (time.time() - cached_sent['ts']) / 3600
+                if age_hours > 24:
+                    raw = float(cached_sent['data'].get('sentiment_score', 0))
+                    decay = max(0.1, 1 - (age_hours - 24) / 72)
+                    sent['sentiment_score'] = round(raw * decay, 1)
+                    sent['sentiment_label'] = (
+                        'positive' if sent['sentiment_score'] > 8  else
+                        'negative' if sent['sentiment_score'] < -8 else
+                        'neutral'
+                    )
+                    sent['dampened'] = True
+
+            _cache[f'sent_{symbol}'] = {'data': sent, 'ts': time.time()}
+            result["sentiment"] = sent
         except Exception:
             result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
 
