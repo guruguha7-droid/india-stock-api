@@ -354,7 +354,7 @@ def generate_report(data: dict) -> bytes:
     metrics_values = Table([[
         Paragraph(str(price_str), S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_WHITE)),
         Paragraph(str(verdict),   S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=vc)),
-        Paragraph(f"{score_10}/1000", S('mv', fontName='Helvetica-Bold', fontSize=18,
+        Paragraph(f"{score_10}/100", S('mv', fontName='Helvetica-Bold', fontSize=18,
                                       textColor=score_color(combined.get('score', 50)))),
         Paragraph(str(grade),     S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_GOLD)),
     ]], colWidths=cw4)
@@ -393,7 +393,7 @@ def generate_report(data: dict) -> bytes:
     upside_str = f" with a 1-year price target of {fmt_price(pt_1y)} ({'+' if upside and upside > 0 else ''}{upside}% upside)" if pt_1y and pt_1y != '—' else ""
     summary_text = (
         f"<b>{company}</b> ({symbol}) is currently rated <b>{verdict}</b> with a score of "
-        f"<b>{score_10}/1000</b>. {reason.capitalize()}. "
+        f"<b>{score_10}/100</b>. {reason.capitalize()}. "
         f"The ML model ({safe(ml, 'accuracy')}% accuracy) predicts the stock will "
         f"<b>{prediction.lower()}</b> the Nifty 50 over the next 3 months{upside_str}. "
         f"Risk level is assessed as <b>{risk_lvl}</b>."
@@ -681,9 +681,9 @@ def generate_report(data: dict) -> bytes:
             ])
         elif verdict == 'MILD BUY':
             p1 = pick([
-                f"{company} earns a MILD BUY — the fundamentals are solid (score {score_10}/1000) but the entry point isn't perfect yet. Consider starting with a small position and adding on dips.",
+                f"{company} earns a MILD BUY — the fundamentals are solid (score {score_10}/100) but the entry point isn't perfect yet. Consider starting with a small position and adding on dips.",
                 f"A MILD BUY on {company} means the business is good but conviction isn't high enough for a full position at current levels. Start with 50% of your intended allocation and wait for a better price.",
-                f"{company} scores {score_10}/1000 — good enough to initiate a small position but not enough to go all-in. Build gradually rather than committing fully at current levels.",
+                f"{company} scores {score_10}/100 — good enough to initiate a small position but not enough to go all-in. Build gradually rather than committing fully at current levels.",
             ])
         elif verdict == 'HOLD':
             _hdir    = 'above' if pct_fair > 0 else 'below'
@@ -780,9 +780,9 @@ def generate_report(data: dict) -> bytes:
         elif verdict == 'HOLD':
             if buy_low and cur_price < float(buy_low):
                 p4 = pick([
-                    f"Bottom line: Hold existing positions. The price is attractive but the overall score ({score_10}/1000) doesn't yet justify aggressive buying — wait for fundamentals to improve.",
+                    f"Bottom line: Hold existing positions. The price is attractive but the overall score ({score_10}/100) doesn't yet justify aggressive buying — wait for fundamentals to improve.",
                     f"Bottom line: Existing holders should stay in. New investors can consider a very small starter position but keep most powder dry until the score improves.",
-                    f"Bottom line: {company} is cheap relative to fair value but the score of {score_10}/1000 reflects mixed signals — hold what you have and add only if the business shows improvement.",
+                    f"Bottom line: {company} is cheap relative to fair value but the score of {score_10}/100 reflects mixed signals — hold what you have and add only if the business shows improvement.",
                 ])
             elif buy_low:
                 p4 = pick([
@@ -798,8 +798,8 @@ def generate_report(data: dict) -> bytes:
                 ])
         elif verdict == 'MILD SELL':
             p4 = pick([
-                f"Bottom line: Consider trimming your position in {company}. The score of {score_10}/1000 suggests risk is building — don't add and review your allocation.",
-                f"Bottom line: Not an urgent exit but worth reducing exposure. {company} at {score_10}/1000 has better alternatives available in the market.",
+                f"Bottom line: Consider trimming your position in {company}. The score of {score_10}/100 suggests risk is building — don't add and review your allocation.",
+                f"Bottom line: Not an urgent exit but worth reducing exposure. {company} at {score_10}/100 has better alternatives available in the market.",
                 f"Bottom line: Mild caution on {company} — trim rather than exit completely, and set a stop if the score falls further.",
             ])
         else:
