@@ -2691,10 +2691,14 @@ def generate_report_endpoint():
             sent_score=max(0,min(100,50+sent_raw*0.5))
             macro_raw=data.get("macro",{}).get("macro_score",0) or 0
             macro_score=max(0,min(100,50+macro_raw*0.5))
-            combined=round(ml_raw*0.35+scr_raw*0.20+yfin_score*0.15+sent_score*0.15+macro_score*0.15,1)
+            combined=round(ml_raw*0.20+scr_raw*0.40+yfin_score*0.25+sent_score*0.08+macro_score*0.07,1)
             grade='A+' if combined>=80 else 'A' if combined>=70 else 'B' if combined>=60 else 'C' if combined>=50 else 'D'
-            verdict='BUY' if combined>=65 else 'HOLD' if combined>=50 else 'SELL'
-            verdict_color='green' if verdict=='BUY' else 'gold' if verdict=='HOLD' else 'red'
+            if combined >= 82:   verdict, verdict_color = 'STRONG BUY', 'green'
+            elif combined >= 68: verdict, verdict_color = 'BUY',        'green'
+            elif combined >= 58: verdict, verdict_color = 'MILD BUY',   'green'
+            elif combined >= 48: verdict, verdict_color = 'HOLD',       'gold'
+            elif combined >= 38: verdict, verdict_color = 'MILD SELL',  'red'
+            else:                verdict, verdict_color = 'SELL',       'red'
             rsi_val=float(data.get('ml',{}).get('rsi') or 50)
             pos52=float(data.get('ml',{}).get('pos52_pct') or 50)
             ret_1m=float(data.get('ml',{}).get('ret_1m_pct') or 0)
