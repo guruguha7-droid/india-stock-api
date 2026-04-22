@@ -409,6 +409,19 @@ def build_cache():
         json.dump(cache, fp, indent=2, default=str)
     print(f"\nSaved to {OUTPUT}")
     print(f"Cache size: {os.path.getsize(OUTPUT)/1024:.1f} KB")
+
+    # ── Auto-commit cache to GitHub so it survives Render restarts ────
+    try:
+        import subprocess
+        subprocess.run(['git', 'config', 'user.email', 'cache@graham.app'], check=False, capture_output=True)
+        subprocess.run(['git', 'config', 'user.name', 'Graham Cache Bot'], check=False, capture_output=True)
+        subprocess.run(['git', 'add', 'nightly_cache.json'], check=False, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', f'cache: nightly rebuild {datetime.now().strftime("%Y-%m-%d %H:%M")}'], check=False, capture_output=True)
+        subprocess.run(['git', 'push'], check=False, capture_output=True)
+        print("  Cache committed to GitHub")
+    except Exception as e:
+        print(f"  Git push failed: {e}")
+
     return cache
 
 
