@@ -1510,8 +1510,29 @@ def stock_analysis():
             _row     = _sdf[_sdf['symbol'] == _csv_sym]
             _r       = _row.iloc[0].to_dict() if not _row.empty else {}
 
-            eps_latest  = float(_r.get('eps_latest')   or 0)
-            eps_cagr    = float(_r.get('eps_cagr_5y')  or 8)
+            eps_latest_raw = float(_r.get('eps_latest') or 0)
+            eps_cagr_raw   = float(_r.get('eps_cagr_5y') or 8)
+            _opm_lat_v     = float(_r.get('opm_latest_pct') or 0)
+            _opm_avg_v     = float(_r.get('opm_avg_5y')     or _opm_lat_v)
+            _prof_cagr_10  = float(_r.get('profit_cagr_10y') or eps_cagr_raw)
+
+            # ── Cyclicality detection ──────────────────────────────────
+            _sec_v     = str(result.get('quote', {}).get('industry', '') or '').lower()
+            _is_cyc_v  = any(x in _sec_v for x in [
+                'metal', 'steel', 'alumin', 'mining', 'oil', 'petro', 'refin',
+                'fertiliser', 'chemical', 'coal', 'gas', 'cement'
+            ])
+
+            # ── Normalise EPS for cyclicals ────────────────────────────
+            if _is_cyc_v and _opm_lat_v > 0 and _opm_avg_v > 0:
+                margin_ratio = _opm_avg_v / _opm_lat_v
+                margin_ratio = min(margin_ratio, 1.0)
+                eps_latest   = round(eps_latest_raw * margin_ratio, 2)
+                eps_cagr     = min(eps_cagr_raw, _prof_cagr_10)
+                eps_cagr     = min(eps_cagr, 15.0)
+            else:
+                eps_latest = eps_latest_raw
+                eps_cagr   = eps_cagr_raw
             roce_l      = float(_r.get('roce_latest_pct') or 10)
             roce_a      = float(_r.get('roce_avg_5y')  or roce_l)
             fcf_ok      = bool(_r.get('fcf_positive_3y'))
@@ -1686,9 +1707,31 @@ def stock_analysis():
         price_now   = float(str(quote.get("price") or 0).replace(",","")) or None
 
         # ── Base CAGRs from historical Screener data ───────────────────
-        sales_cagr  = min(float(fund.get("sales_cagr_5y")  or 8), 25)
-        profit_cagr = min(float(fund.get("profit_cagr_5y") or 8), 30)
-        eps_cagr    = min(float(fund.get("eps_cagr_5y") or profit_cagr), 30)
+        sales_cagr_5  = float(fund.get("sales_cagr_5y")   or 8)
+        profit_cagr_5 = float(fund.get("profit_cagr_5y")  or 8)
+        profit_cagr_10= float(fund.get("profit_cagr_10y") or profit_cagr_5)
+        eps_cagr_5    = float(fund.get("eps_cagr_5y")     or profit_cagr_5)
+
+        # ── Cyclicality detection ──────────────────────────────────────
+        _fcast_sec   = str(quote.get("industry", "") or "").lower()
+        _is_cyclical = any(x in _fcast_sec for x in [
+            'metal', 'steel', 'alumin', 'mining', 'oil', 'petro', 'refin',
+            'fertiliser', 'chemical', 'coal', 'gas', 'cement'
+        ])
+
+        if _is_cyclical:
+            sales_cagr  = min(sales_cagr_5,  float(fund.get("sales_cagr_10y")  or sales_cagr_5),  12)
+            profit_cagr = min(profit_cagr_5, profit_cagr_10,                                      12)
+            eps_cagr    = min(eps_cagr_5,    profit_cagr_10,                                      12)
+            _opm_l = float(fund.get("opm_latest_pct") or 0)
+            _opm_a = float(fund.get("opm_avg_5y")     or _opm_l)
+            if _opm_l > 0 and _opm_a > 0 and eps:
+                _margin_adj = min(_opm_a / _opm_l, 1.0)
+                eps = round(float(eps) * _margin_adj, 2)
+        else:
+            sales_cagr  = min(sales_cagr_5,  25)
+            profit_cagr = min(profit_cagr_5, 30)
+            eps_cagr    = min(eps_cagr_5,    30)
         roce_latest = float(fund.get("roce") or fund.get("roce_latest_pct") or 10)
         roce_avg    = float(fund.get("roce_avg_5y") or roce_latest)
         ocf         = fund.get("ocf_latest_cr")
