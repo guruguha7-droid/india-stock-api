@@ -1,4 +1,4 @@
-"""
+﻿"""
 Investment Report Generator
 ============================
 Generates a professional PDF investment report for any NSE stock.
@@ -279,7 +279,7 @@ def generate_report(data: dict) -> bytes:
     sector   = safe(quote, 'industry', default='—')
     price    = safe(quote, 'price')
     verdict  = safe(combined, 'verdict', default='HOLD')
-    score_10 = safe(combined, 'score_10', default='—')
+    score_10 = safe(combined, 'score', default=safe(combined, 'score_10', default='—'))
     grade    = safe(combined, 'grade', default='—')
     risk     = safe(combined, 'risk', default='Medium')
     date_str = datetime.now().strftime('%d %B %Y, %I:%M %p IST')
@@ -354,7 +354,7 @@ def generate_report(data: dict) -> bytes:
     metrics_values = Table([[
         Paragraph(str(price_str), S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_WHITE)),
         Paragraph(str(verdict),   S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=vc)),
-        Paragraph(f"{score_10}/10", S('mv', fontName='Helvetica-Bold', fontSize=18,
+        Paragraph(f"{score_10}/1000", S('mv', fontName='Helvetica-Bold', fontSize=18,
                                       textColor=score_color(combined.get('score', 50)))),
         Paragraph(str(grade),     S('mv', fontName='Helvetica-Bold', fontSize=18, textColor=C_GOLD)),
     ]], colWidths=cw4)
@@ -393,7 +393,7 @@ def generate_report(data: dict) -> bytes:
     upside_str = f" with a 1-year price target of {fmt_price(pt_1y)} ({'+' if upside and upside > 0 else ''}{upside}% upside)" if pt_1y and pt_1y != '—' else ""
     summary_text = (
         f"<b>{company}</b> ({symbol}) is currently rated <b>{verdict}</b> with a score of "
-        f"<b>{score_10}/10</b>. {reason.capitalize()}. "
+        f"<b>{score_10}/1000</b>. {reason.capitalize()}. "
         f"The ML model ({safe(ml, 'accuracy')}% accuracy) predicts the stock will "
         f"<b>{prediction.lower()}</b> the Nifty 50 over the next 3 months{upside_str}. "
         f"Risk level is assessed as <b>{risk_lvl}</b>."
@@ -562,7 +562,7 @@ def generate_report(data: dict) -> bytes:
 
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
-        'Scoring weights: 35% ML · 20% Fundamentals · 15% Valuation · 15% News · 15% Macro',
+        'Scoring weights: 20% ML · 40% Fundamentals · 25% Valuation · 8% News · 7% Macro',
         S('wt', fontSize=8, textColor=C_MUTED)))
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -668,33 +668,39 @@ def generate_report(data: dict) -> bytes:
         if verdict in ('BUY', 'STRONG BUY') and pct_fair < -10:
             p1 = pick([
                 f"{company} stands out as a compelling buy right now \u2014 trading {abs(pct_fair):.0f}% below its Graham fair value of Rs.{_p(fair_val)}, the market appears to be mispricing this business. With {qual} fundamentals and an ML outperform probability of {ml_s:.0f}%, the risk-reward here is attractive.",
-                f"At Rs.{_p(cur_price)}, {company} is trading well below its estimated fair value of Rs.{_p(fair_val)} \u2014 a {abs(pct_fair):.0f}% discount that rarely lasts long for a business of this quality. The combined score of {score_10}/10 and positive ML signal make this one worth acting on.",
-                f"This is the kind of setup value investors look for \u2014 {company} has {qual} fundamentals (score {score_10}/10) but is priced {abs(pct_fair):.0f}% below fair value at Rs.{_p(cur_price)}. When quality meets discount, it usually pays to pay attention.",
+                f"At Rs.{_p(cur_price)}, {company} is trading well below its estimated fair value of Rs.{_p(fair_val)} \u2014 a {abs(pct_fair):.0f}% discount that rarely lasts long for a business of this quality. The combined score of {score_10}/100 and positive ML signal make this one worth acting on.",
+                f"This is the kind of setup value investors look for \u2014 {company} has {qual} fundamentals (score {score_10}/100) but is priced {abs(pct_fair):.0f}% below fair value at Rs.{_p(cur_price)}. When quality meets discount, it usually pays to pay attention.",
             ])
         elif verdict in ('BUY', 'STRONG BUY'):
             _val_note = 'The valuation is reasonable near fair value.' if abs(pct_fair) < 10 else f'At {abs(pct_fair):.0f}% above fair value, patience at entry will improve your returns.'
             _val_note2 = 'Valuation is fair.' if abs(pct_fair) < 10 else f'The stock trades {pct_fair:.0f}% above fair value so a staggered entry is wise.'
             p1 = pick([
-                f"{company} earns a BUY rating with a score of {score_10}/10. The business has delivered {profit_c:.0f}% profit CAGR over 5 years and the ML model gives it a {ml_s:.0f}% probability of outperforming Nifty. {_val_note}",
+                f"{company} earns a BUY rating with a score of {score_10}/100. The business has delivered {profit_c:.0f}% profit CAGR over 5 years and the ML model gives it a {ml_s:.0f}% probability of outperforming Nifty. {_val_note}",
                 f"With {qual} fundamentals and a positive ML signal, {company} makes a solid case for a BUY at current levels. A {profit_c:.0f}% profit CAGR and ROCE of {roce_v:.0f}% suggest the business is growing efficiently. {_val_note2}",
-                f"{company} scores {score_10}/10 and is rated BUY. The {qual} fundamentals \u2014 {profit_c:.0f}% profit CAGR, {roce_v:.0f}% ROCE \u2014 give this business staying power. The ML model backs the thesis with a {ml_s:.0f}% outperform probability.",
+                f"{company} scores {score_10}/100 and is rated BUY. The {qual} fundamentals \u2014 {profit_c:.0f}% profit CAGR, {roce_v:.0f}% ROCE \u2014 give this business staying power. The ML model backs the thesis with a {ml_s:.0f}% outperform probability.",
+            ])
+        elif verdict == 'MILD BUY':
+            p1 = pick([
+                f"{company} earns a MILD BUY — the fundamentals are solid (score {score_10}/1000) but the entry point isn't perfect yet. Consider starting with a small position and adding on dips.",
+                f"A MILD BUY on {company} means the business is good but conviction isn't high enough for a full position at current levels. Start with 50% of your intended allocation and wait for a better price.",
+                f"{company} scores {score_10}/1000 — good enough to initiate a small position but not enough to go all-in. Build gradually rather than committing fully at current levels.",
             ])
         elif verdict == 'HOLD':
             _hdir    = 'above' if pct_fair > 0 else 'below'
             _vs_fair = f"{abs(pct_fair):.0f}% {_hdir} its Graham fair value of Rs.{_p(fair_val)}" if abs(pct_fair) >= 10 else "near its Graham fair value"
             _action  = "new investors can consider a small position here given the margin of safety" if pct_fair < -10 else "new investors are better off waiting for a pullback"
             p1 = pick([
-                f"{company} is a HOLD \u2014 {qual} business (score {score_10}/10) currently trading {_vs_fair}. Existing holders have no reason to exit; {_action}.",
-                f"The HOLD rating on {company} reflects a {qual} business at {'a stretched' if pct_fair > 15 else 'a fair' if abs(pct_fair) < 10 else 'an attractive'} valuation. Score of {score_10}/10 means it is worth keeping in the portfolio but not necessarily adding aggressively right now.",
-                f"{company} sits comfortably in HOLD territory \u2014 {qual} fundamentals with a score of {score_10}/10, trading {_vs_fair}. Hold what you have; {_action}.",
+                f"{company} is a HOLD \u2014 {qual} business (score {score_10}/100) currently trading {_vs_fair}. Existing holders have no reason to exit; {_action}.",
+                f"The HOLD rating on {company} reflects a {qual} business at {'a stretched' if pct_fair > 15 else 'a fair' if abs(pct_fair) < 10 else 'an attractive'} valuation. Score of {score_10}/100 means it is worth keeping in the portfolio but not necessarily adding aggressively right now.",
+                f"{company} sits comfortably in HOLD territory \u2014 {qual} fundamentals with a score of {score_10}/100, trading {_vs_fair}. Hold what you have; {_action}.",
             ])
         else:
             _sell_lead = 'Weak fundamentals combined with ' if scr < 50 else ''
             _sell_sent = 'negative news sentiment' if news_s < -10 else 'unfavourable ML signals'
             p1 = pick([
-                f"{company} is rated SELL at current levels \u2014 a score of {score_10}/10 signals that the risk-reward does not favour buyers right now. {_sell_lead.capitalize()}{_sell_sent} suggest looking elsewhere.",
-                f"The SELL rating on {company} is driven by a combination of {qual} fundamentals and unfavourable technicals. At a score of {score_10}/10, there are better opportunities in the market than holding or buying here.",
-                f"{company} scores {score_10}/10 \u2014 not strong enough to justify buying or holding at current levels. Until fundamentals improve or the price corrects significantly, this one is best avoided.",
+                f"{company} is rated SELL at current levels \u2014 a score of {score_10}/100 signals that the risk-reward does not favour buyers right now. {_sell_lead.capitalize()}{_sell_sent} suggest looking elsewhere.",
+                f"The SELL rating on {company} is driven by a combination of {qual} fundamentals and unfavourable technicals. At a score of {score_10}/100, there are better opportunities in the market than holding or buying here.",
+                f"{company} scores {score_10}/100 \u2014 not strong enough to justify buying or holding at current levels. Until fundamentals improve or the price corrects significantly, this one is best avoided.",
             ])
 
         # ── P2: Who should buy and at what price ──────────────────────
@@ -774,21 +780,28 @@ def generate_report(data: dict) -> bytes:
         elif verdict == 'HOLD':
             if buy_low and cur_price < float(buy_low):
                 p4 = pick([
-                    f"Bottom line: Existing holders should stay in. New investors get a rare chance to buy {company} below the target entry zone \u2014 use it.",
-                    f"Bottom line: Hold if you own it, buy if you don't \u2014 current levels below Rs.{_p(buy_low)} represent better value than the buy zone itself.",
-                    f"Bottom line: {company} at Rs.{_p(cur_price)} is cheaper than the ideal entry \u2014 a good position to initiate for new investors and hold for existing ones.",
+                    f"Bottom line: Hold existing positions. The price is attractive but the overall score ({score_10}/1000) doesn't yet justify aggressive buying — wait for fundamentals to improve.",
+                    f"Bottom line: Existing holders should stay in. New investors can consider a very small starter position but keep most powder dry until the score improves.",
+                    f"Bottom line: {company} is cheap relative to fair value but the score of {score_10}/1000 reflects mixed signals — hold what you have and add only if the business shows improvement.",
                 ])
             elif buy_low:
                 p4 = pick([
-                    f"Bottom line: Hold existing positions. New investors should wait for a dip to Rs.{_p(buy_low)}\u2013Rs.{_p(buy_high)} before entering.",
-                    f"Bottom line: No need to exit {company} if you own it. If you don't, patience \u2014 wait for Rs.{_p(buy_low)} before committing.",
-                    f"Bottom line: Current holders are in a good spot. New investors should keep Rs.{_p(buy_low)}\u2013Rs.{_p(buy_high)} as their entry target.",
+                    f"Bottom line: Hold existing positions. New investors should wait for a dip to Rs.{_p(buy_low)}–Rs.{_p(buy_high)} before entering.",
+                    f"Bottom line: No need to exit {company} if you own it. If you don't, patience — wait for Rs.{_p(buy_low)} before committing.",
+                    f"Bottom line: Current holders are in a good spot. New investors should keep Rs.{_p(buy_low)}–Rs.{_p(buy_high)} as their entry target.",
                 ])
             else:
                 p4 = pick([
                     f"Bottom line: Hold {company} and reassess after the next quarterly results.",
-                    f"Bottom line: Stay put with {company} \u2014 no urgent action needed in either direction.",
+                    f"Bottom line: Stay put with {company} — no urgent action needed in either direction.",
+                    f"Bottom line: Neither a compelling buy nor a reason to sell — hold and monitor.",
                 ])
+        elif verdict == 'MILD SELL':
+            p4 = pick([
+                f"Bottom line: Consider trimming your position in {company}. The score of {score_10}/1000 suggests risk is building — don't add and review your allocation.",
+                f"Bottom line: Not an urgent exit but worth reducing exposure. {company} at {score_10}/1000 has better alternatives available in the market.",
+                f"Bottom line: Mild caution on {company} — trim rather than exit completely, and set a stop if the score falls further.",
+            ])
         else:
             p4 = pick([
                 f"Bottom line: Avoid {company} until fundamentals improve or the price corrects significantly.",
@@ -796,7 +809,7 @@ def generate_report(data: dict) -> bytes:
                 f"Bottom line: Step aside on {company} for now. Revisit when the score improves above 55/100.",
             ])
 
-        advice_color = C_GREEN if verdict in ('BUY', 'STRONG BUY') else C_RED if verdict == 'SELL' else C_GOLD
+        advice_color = C_GREEN if verdict in ('BUY', 'STRONG BUY', 'MILD BUY') else C_RED if verdict in ('SELL', 'MILD SELL') else C_GOLD
         for i, para in enumerate([p1, p2, p3, p4]):
             story.append(Paragraph(para, S(f'adv{i}',
                 fontSize=10, textColor=advice_color if i == 0 else C_TEXT, leading=15)))

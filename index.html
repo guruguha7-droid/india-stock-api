@@ -54,6 +54,8 @@ body{
 .pf-holding-del:hover{color:var(--red)}
 .pf-analyse-btn{width:100%;padding:12px;background:var(--orange);border:none;border-radius:10px;color:#fff;font-family:var(--font-mono);font-size:13px;cursor:pointer;margin-top:12px;font-weight:600}
 .pf-analyse-btn:disabled{opacity:.5;cursor:not-allowed}
+#pf-from-date{border:1.5px solid #3b82f6;border-radius:10px;color:var(--text);background:var(--bg3);padding:10px 14px;font-family:var(--font-mono);font-size:13px;outline:none;cursor:pointer;color-scheme:dark}
+#pf-from-date:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
 .pf-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px}
 .pf-card-title{font-size:10px;font-family:var(--font-mono);color:var(--text3);letter-spacing:1px;margin-bottom:10px}
 .pf-score-big{font-size:36px;font-weight:800;font-family:var(--font-head)}
@@ -204,8 +206,8 @@ body{
 .sent-label{font-size:10px;color:var(--text3);font-family:var(--font-mono)}
 
 /* ── Peer Comparison Modal ── */
-.modal-overlay{position:fixed;inset:0;background:#060e1e;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:1100px;max-height:90vh;overflow-y:auto;padding:24px}
+.modal-overlay{position:fixed;inset:0;background:rgba(6,14,30,0.85);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-box{background:#0d1f3c;border:1px solid var(--border2);border-radius:20px;width:100%;max-width:820px;min-height:340px;max-height:90vh;overflow-y:auto;padding:32px}
 .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .modal-title{font-size:15px;font-weight:700;color:var(--text1);font-family:var(--font-mono)}
 .modal-close{background:none;border:none;color:var(--text3);font-size:22px;cursor:pointer;padding:2px 8px;border-radius:6px;line-height:1}
@@ -404,8 +406,7 @@ body{
         <div style="flex:1">
           <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">TRACK FROM DATE</div>
           <input type="date" id="pf-from-date" class="pf-sym-input"
-            style="width:100%;padding:7px 12px"
-            value="${new Date(Date.now()-30*864e5).toISOString().slice(0,10)}"/>
+            style="width:100%;padding:7px 12px"/>
         </div>
       </div>
       <button class="pf-analyse-btn" id="pf-analyse-btn" onclick="pfAnalyse()" disabled>Analyse Portfolio</button>
@@ -582,14 +583,16 @@ async function pfAnalyse() {
 
     // Fetch Beat Nifty + Sector Alerts in parallel
     const fromDate = document.getElementById('pf-from-date')?.value || '';
-    fetch(`${API}/portfolio-vs-nifty?symbols=${encodeURIComponent(syms)}&from=${fromDate}`)
-      .then(r => r.json()).then(d => pfRenderBeatsNifty(d, window._pfHoldings))
+    const beatCtrl = new AbortController();
+    setTimeout(() => beatCtrl.abort(), 25000);
+    fetch(`${API}/portfolio-vs-nifty?symbols=${encodeURIComponent(syms)}&from=${fromDate}`, { signal: beatCtrl.signal })
+      .then(r => r.json()).then(d => { window._lastBeatNiftyData = d; pfRenderBeatsNifty(d, window._pfHoldings); })
       .catch(() => {
         const d = document.getElementById('pf-beat-nifty');
         if (d) d.innerHTML = `<div class="pf-card"><div class="pf-card-title">📈 BEAT NIFTY TRACKER</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Could not load — try analysing again.</div></div>`;
       });
     fetch(`${API}/macro-sentiment`)
-      .then(r => r.json()).then(d => pfRenderSectorAlerts(d, window._pfHoldings, resp.stocks))
+      .then(r => r.json()).then(d => { window._lastSectorData = d; pfRenderSectorAlerts(d, window._pfHoldings, resp.stocks); })
       .catch(() => {
         const d = document.getElementById('pf-sector-alerts');
         if (d) d.innerHTML = `<div class="pf-card"><div class="pf-card-title">🔄 SECTOR ROTATION ALERTS</div><div style="font-size:12px;color:var(--text3);font-family:var(--font-mono)">Could not load — try analysing again.</div></div>`;
@@ -663,21 +666,28 @@ function pfRenderSectorAlerts(macroData, holdings, stocks) {
 
   // Sector → macro topic mapping
   const SECTOR_MAP = {
-    'Banking': 'banking_stress', 'NBFC': 'banking_stress', 'Finance': 'banking_stress',
-    'IT': 'it_sector', 'Technology': 'it_sector', 'Software': 'it_sector',
-    'Pharma': 'pharma_us', 'Healthcare': 'pharma_us',
-    'Energy': 'crude_oil', 'Oil': 'crude_oil',
-    'Auto': 'auto_sector', 'Automobile': 'auto_sector',
-    'FMCG': 'fmcg_rural', 'Consumer': 'fmcg_rural',
-    'Infrastructure': 'infra_govt', 'Construction': 'infra_govt',
-    'Defence': 'defence_budget', 'Metals': 'global_risk',
-    'Real Estate': 'income_tax', 'Chemicals': 'global_risk',
+    'Bank': 'banking_stress', 'NBFC': 'banking_stress', 'Financ': 'banking_stress',
+    'Insurance': 'banking_stress', 'Microfinance': 'banking_stress',
+    'IT': 'it_sector', 'Technolog': 'it_sector', 'Software': 'it_sector', 'Computer': 'it_sector',
+    'Pharma': 'pharma_us', 'Health': 'pharma_us', 'Medical': 'pharma_us', 'Hospital': 'pharma_us', 'Diagnostic': 'pharma_us',
+    'Energy': 'crude_oil', 'Oil': 'crude_oil', 'Gas': 'crude_oil', 'Petro': 'crude_oil', 'Refin': 'crude_oil',
+    'Auto': 'auto_sector', 'Automobile': 'auto_sector', 'Vehicle': 'auto_sector', 'Tyre': 'auto_sector',
+    'FMCG': 'fmcg_rural', 'Consumer': 'fmcg_rural', 'Food': 'fmcg_rural', 'Beverag': 'fmcg_rural',
+    'Infrastr': 'infra_govt', 'Construct': 'infra_govt', 'Cement': 'infra_govt', 'Road': 'infra_govt',
+    'Defence': 'defence_budget', 'Shipbuild': 'defence_budget', 'Aerospace': 'defence_budget',
+    'Metal': 'global_risk', 'Steel': 'global_risk', 'Alumin': 'global_risk', 'Mining': 'global_risk', 'Ferrous': 'global_risk',
+    'Real Estate': 'income_tax', 'Realty': 'income_tax', 'Property': 'income_tax',
+    'Chemical': 'global_risk', 'Fertiliser': 'global_risk', 'Agrochemi': 'global_risk',
+    'Power': 'infra_govt', 'Utilities': 'infra_govt', 'Electric': 'infra_govt',
+    'Textile': 'fmcg_rural', 'Retail': 'fmcg_rural',
   };
 
   const topics = {};
   (macroData.topics || macroData.macro_topics || []).forEach(t => {
     topics[t.topic] = t;
   });
+  console.log('Macro topics:', Object.keys(topics));
+  console.log('Stock sectors:', holdings.map(h => ({ sym: h.sym, sector: stocks?.[h.sym]?.sector })));
 
   // Build alerts per holding
   const alerts = [];
@@ -834,12 +844,12 @@ function pfRenderResults(resp, holdings) {
             let verdict = s.verdict || '—';
             const valSig = s.val_signal || '';
             // Override verdict display when valuation conflicts
-            if ((verdict==='BUY'||verdict==='STRONG BUY') && valSig.includes('Overvalued')) {
+            if (['BUY','STRONG BUY','MILD BUY'].includes(verdict) && valSig.includes('Overvalued')) {
               verdict = 'HOLD';
             } else if (verdict==='BUY' && valSig.includes('Value Trap')) {
               verdict = 'AVOID';
             }
-            const vcolor = verdict==='BUY'||verdict==='STRONG BUY' ? 'var(--green)' : verdict==='SELL'||verdict==='AVOID' ? 'var(--red)' : 'var(--gold)';
+            const vcolor = ['BUY','STRONG BUY','MILD BUY'].includes(verdict) ? 'var(--green)' : ['SELL','MILD SELL'].includes(verdict) ? 'var(--red)' : 'var(--gold)';
             const scolor = score !== '—' ? (parseFloat(score)>=65?'var(--green)':parseFloat(score)>=50?'var(--gold)':'var(--red)') : 'var(--text3)';
             let pnlHtml  = '';
             if (hasPnl && h.avg && price !== '—') {
@@ -1444,12 +1454,12 @@ window.showGoldenCrossInfo = function(isGolden) {
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
               <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">3M OUTLOOK</div>
-              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${combined.short_term_verdict==='BUY'?'var(--green)':combined.short_term_verdict==='SELL'?'var(--red)':'var(--gold)'}">${combined.short_term_verdict}</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${['BUY','STRONG BUY','MILD BUY'].includes(combined.short_term_verdict)?'var(--green)':['SELL','MILD SELL'].includes(combined.short_term_verdict)?'var(--red)':'var(--gold)'}">${combined.short_term_verdict}</div>
               <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ML signal</div>
             </div>
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
               <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">1-2Y OUTLOOK</div>
-              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${combined.long_term_verdict==='BUY'?'var(--green)':combined.long_term_verdict==='SELL'?'var(--red)':'var(--gold)'}">${combined.long_term_verdict}</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${['BUY','STRONG BUY','MILD BUY'].includes(combined.long_term_verdict)?'var(--green)':['SELL','MILD SELL'].includes(combined.long_term_verdict)?'var(--red)':'var(--gold)'}">${combined.long_term_verdict}</div>
               <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">Graham valuation</div>
             </div>
           </div>` : ''}
@@ -1850,7 +1860,6 @@ function downloadReport(sym) {
   const params = new URLSearchParams({
     symbol: sym,
     score:    d.combined?.score     ?? '',
-    score_10: d.combined?.score_10  ?? '',
     verdict:  d.combined?.verdict   ?? '',
     grade:    d.combined?.grade     ?? '',
   });
@@ -1907,7 +1916,7 @@ async function loadIndices() {
         const el = document.getElementById('v-vix');
         if (el) {
           el.textContent = d.INDIA_VIX.price + (d.INDIA_VIX.change_pct && d.INDIA_VIX.change_pct !== '—' ? ' ' + d.INDIA_VIX.change_pct : '');
-          el.className = d.INDIA_VIX.change_pct?.includes('-') ? 'up' : 'dn'; // VIX down = market up
+          el.className = d.INDIA_VIX.change_pct?.includes('-') ? 'dn' : 'up';
         }
       }
     }
@@ -1933,6 +1942,13 @@ function setMode(mode) {
   // Re-render portfolio results if visible
   if (window._lastPfData) {
     pfRenderResults(window._lastPfData.resp, window._lastPfData.holdings);
+    // Re-populate async cards from cache instead of re-fetching
+    if (window._lastBeatNiftyData) {
+      pfRenderBeatsNifty(window._lastBeatNiftyData, window._lastPfData.holdings);
+    }
+    if (window._lastSectorData) {
+      pfRenderSectorAlerts(window._lastSectorData, window._lastPfData.holdings, window._lastPfData.resp.stocks);
+    }
   }
 }
 
@@ -2507,19 +2523,25 @@ function renderCompareTable(data, anchor) {
       { label:'1Y Return',  vals:data.map(d=>f(d.ret_1y,'','%')),           cls:hl(data.map(d=>d.ret_1y)) },
     ]},
     { title: '💰 Valuation', rows: [
-      { label:'P/E Ratio',  vals:data.map(d=>f(d.pe_ratio,'','x')),         cls:hl(data.map(d=>d.pe_ratio),true) },
+      { label:'P/E Ratio',  vals:data.map(d=>d.pe_ratio != null ? `${f(d.pe_ratio,'','x')}${d.pe_context ? `<br><span style="font-size:9px;opacity:.6">${d.pe_context}</span>` : ''}` : '—'), cls:hl(data.map(d=>d.pe_ratio),true) },
       { label:'EPS',        vals:data.map(d=>f(d.eps,'₹','')),              cls:hl(data.map(d=>d.eps)) },
       { label:'Div Yield',  vals:data.map(d=>d.div_yield != null && parseFloat(d.div_yield) < 0.5 ? 'Negligible' : f(d.div_yield,'','%')), cls:hl(data.map(d=>d.div_yield)) },
     ]},
     { title: '📊 Fundamentals', rows: [
-      { label:'ROCE',          vals:data.map(d=>f(d.roce,'','%')),          cls:hl(data.map(d=>d.roce)) },
+      { label:'ROCE',          vals:data.map(d=>d.roce != null ? `${f(d.roce,'','%')}${d.roce_context ? `<br><span style="font-size:9px;opacity:.6">${d.roce_context}</span>` : ''}` : '—'), cls:hl(data.map(d=>d.roce)) },
       { label:'Sales CAGR 5Y', vals:data.map(d=>f(d.sales_cagr_5y,'','%')),cls:hl(data.map(d=>d.sales_cagr_5y)) },
       { label:'Profit CAGR 5Y',vals:data.map(d=>f(d.profit_cagr_5y,'','%')),cls:hl(data.map(d=>d.profit_cagr_5y)) },
     ]},
     { title: '🤖 Scores', rows: [
       { label:'ML Score',      vals:data.map(d=>f(d.ml_score,'','%')),      cls:hl(data.map(d=>d.ml_score)) },
-      { label:'Screener Score',vals:data.map(d=>f(d.screener_score,'','/100')),cls:hl(data.map(d=>d.screener_score)) },
+      { label:'Fundamentals Score', vals:data.map(d=>f(d.screener_score,'','/100')), cls:hl(data.map(d=>d.screener_score)) },
       { label:'Fundamentals Grade', vals:data.map(d=>d.screener_grade||'—'), cls:data.map(()=>'') },
+      { label:'Rank in Group', vals:data.map(d => {
+          const r = d.rankings?.screener_score;
+          if (!r) return '—';
+          const color = r.percentile >= 60 ? 'var(--green)' : r.percentile >= 40 ? 'var(--text2)' : 'var(--red)';
+          return `<span style="color:${color}">#${r.rank} of ${r.of}</span><br><span style="font-size:9px;opacity:.6">${r.label}</span>`;
+        }), cls:data.map(()=>'') },
     ]},
     { title: '🔮 Forecast', rows: [
       { label:'1Y Price Target',vals:data.map(d=>f(d.price_target_1y,'₹','',0)),cls:hl(data.map(d=>d.price_target_1y)) },
@@ -2536,7 +2558,7 @@ function renderCompareTable(data, anchor) {
     html += `<tr class="compare-section-head"><td colspan="${data.length+1}">${sec.title}</td></tr>`;
     for (const row of sec.rows) {
       html += `<tr><td class="lbl">${row.label}</td>
-        ${data.map((d,i)=>`<td class="${row.cls[i]||''}">${row.vals[i]}</td>`).join('')}
+        ${data.map((d,i)=>`<td class="${row.cls[i]||''}" style="line-height:1.5">${row.vals[i]}</td>`).join('')}
       </tr>`;
     }
   }
@@ -2593,6 +2615,14 @@ window._warmDone = false;
 
 renderRecent();
 loadIndices();
+
+// Set default from-date to 3 months ago
+(function() {
+  const el = document.getElementById('pf-from-date');
+  if (el && !el.value) {
+    el.value = new Date(Date.now() - 90*864e5).toISOString().slice(0,10);
+  }
+})();
 </script>
 <!-- ── Peer Comparison Modal ── -->
 <div id="compare-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeCompare()">

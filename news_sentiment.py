@@ -148,6 +148,7 @@ def get_news(symbol: str, company_name: str = None, max_articles: int = 10) -> l
                 'score':     score,
                 'url':       link,
                 'date':      pub,
+                'published': datetime.now().isoformat(),
                 'sentiment': 'positive' if score > 0 else 'negative' if score < 0 else 'neutral',
             })
 
