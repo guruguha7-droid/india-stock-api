@@ -1069,43 +1069,119 @@ def stock_analysis():
         ml_raw  = result.get("ml", {}).get("ml_score", 50) or 50
         scr_raw = result.get("fundamentals", {}).get("investment_score", 50) or 50
 
-        pe = result.get("valuation", {}).get("pe_ratio") or 20
-        pm = result.get("valuation", {}).get("profit_margin")   # None if missing
-        rg = result.get("valuation", {}).get("revenue_growth")  # None if missing
+        pe         = result.get("valuation", {}).get("pe_ratio") or 20
+        _fund_raw  = result.get("fundamentals", {})
+        _quote_raw = result.get("quote", {})
 
-        # Use Screener CSV as the reliable source for pm/rg fallbacks
-        _fund_raw = result.get("fundamentals", {})
-        if pm is None:
-            opm = float(_fund_raw.get("opm_latest_pct") or 0)
-            pm  = opm / 100 if opm else None
-        if rg is None:
-            sc  = float(_fund_raw.get("sales_cagr_5y") or 0)
-            rg  = sc / 100 if sc else None
+        # ── Pull all available Screener fields ────────────────────────
+        sector_str   = str(_quote_raw.get("industry", "") or "")
+        eps_cagr_s   = float(_fund_raw.get("eps_cagr_5y")    or 0)
+        sales_cagr_s = float(_fund_raw.get("sales_cagr_5y")  or 0)
+        profit_cagr_s= float(_fund_raw.get("profit_cagr_5y") or 0)
+        opm_latest   = float(_fund_raw.get("opm_latest_pct") or 0)
+        opm_avg      = float(_fund_raw.get("opm_avg_5y")     or opm_latest)
+        opm_trend    = float(_fund_raw.get("opm_trend_5y")   or 0)
+        roce_s       = float(_fund_raw.get("roce")           or _fund_raw.get("roce_latest_pct") or 0)
+        roce_avg_s   = float(_fund_raw.get("roce_avg_5y")    or roce_s)
+        debt_growth  = float(_fund_raw.get("debt_growth_1y") or 0)
+        debt_red_s   = _fund_raw.get("debt_reducing")
+        fcf_ok_s     = bool(_fund_raw.get("fcf_positive_3y"))
+        ocf_s        = float(_fund_raw.get("ocf_latest_cr")  or 0)
+        promoter_s   = float(_fund_raw.get("promoter_pct")   or 0)
+        screener_de  = float(_fund_raw.get("screener_de")    or 50)
+        sales_1y     = float(_fund_raw.get("sales_growth_1y") or 0)
+        profit_1y    = float(_fund_raw.get("profit_growth_1y") or 0)
+
+        # ── Detect sector context ─────────────────────────────────────
+        is_bank    = any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance'])
+        is_it      = any(x in sector_str.lower() for x in ['it','software','technolog','computer'])
+        is_fmcg    = any(x in sector_str.lower() for x in ['fmcg','consumer','food','beverag'])
+        is_pharma  = any(x in sector_str.lower() for x in ['pharma','health','medical','hospital'])
+        is_defence = any(x in sector_str.lower() for x in ['defence','shipbuild','aerospace'])
+        is_metal   = any(x in sector_str.lower() for x in ['metal','steel','alumin','mining'])
+        is_infra   = any(x in sector_str.lower() for x in ['infra','construct','cement','road','power'])
+
+        # ── PEG ratio — PE relative to growth ────────────────────────
+        growth_for_peg = max(eps_cagr_s, sales_cagr_s, 1)
+        peg = round(pe / growth_for_peg, 2) if growth_for_peg > 0 else None
 
         yfin_score = 50
-        # PE scoring
-        if pe < 12:      yfin_score += 20
-        elif pe < 18:    yfin_score += 12
-        elif pe < 25:    yfin_score += 5
-        elif pe > 40:    yfin_score -= 15
 
-        # Profit margin scoring — only if we have real data
-        if pm is not None:
-            if pm > 0.20:    yfin_score += 10
-            elif pm > 0.12:  yfin_score += 5
-            elif pm < 0:     yfin_score -= 15
+        # ── 1. PE scoring — contextual by sector ─────────────────────
+        if is_bank:
+            sector_pe_fair = 14
+        elif is_fmcg or is_it:
+            sector_pe_fair = 32
+        elif is_pharma or is_defence:
+            sector_pe_fair = 28
+        elif is_metal or is_infra:
+            sector_pe_fair = 14
+        else:
+            sector_pe_fair = 22
 
-        # Revenue/sales growth scoring — only if we have real data
-        if rg is not None:
-            if rg > 0.15:    yfin_score += 10
-            elif rg > 0.08:  yfin_score += 5
-            elif rg < -0.05: yfin_score -= 8
+        pe_vs_sector = pe / sector_pe_fair if sector_pe_fair > 0 else 1.0
+        if pe_vs_sector < 0.7:    yfin_score += 20
+        elif pe_vs_sector < 0.9:  yfin_score += 12
+        elif pe_vs_sector < 1.1:  yfin_score += 5
+        elif pe_vs_sector < 1.4:  yfin_score -= 5
+        else:                     yfin_score -= 15
 
-        # ROCE bonus from Screener — reliable and always present
-        roce = float(_fund_raw.get("roce") or _fund_raw.get("roce_latest_pct") or 0)
-        if roce > 25:    yfin_score += 8
-        elif roce > 15:  yfin_score += 4
-        elif roce < 8:   yfin_score -= 8
+        # ── 2. PEG override ───────────────────────────────────────────
+        if peg is not None:
+            if peg < 0.8:    yfin_score += 12
+            elif peg < 1.2:  yfin_score += 6
+            elif peg < 2.0:  yfin_score -= 3
+            else:            yfin_score -= 10
+
+        # ── 3. Margin scoring — contextual ───────────────────────────
+        if not is_bank:
+            if opm_latest > 25:     yfin_score += 10
+            elif opm_latest > 15:   yfin_score += 5
+            elif opm_latest < 0:    yfin_score -= 15
+            elif opm_latest < 5:    yfin_score -= 8
+            if opm_trend > 3:       yfin_score += 5
+            elif opm_trend < -3:    yfin_score -= 5
+
+        # ── 4. Growth scoring ─────────────────────────────────────────
+        if sales_cagr_s > 20:     yfin_score += 10
+        elif sales_cagr_s > 12:   yfin_score += 5
+        elif sales_cagr_s < 0:    yfin_score -= 10
+        elif sales_cagr_s < 5:    yfin_score -= 4
+
+        if profit_cagr_s > 20:    yfin_score += 8
+        elif profit_cagr_s > 12:  yfin_score += 4
+        elif profit_cagr_s < 0:   yfin_score -= 8
+
+        # ── 5. ROCE scoring ───────────────────────────────────────────
+        if not is_bank:
+            if roce_s > 25:        yfin_score += 10
+            elif roce_s > 15:      yfin_score += 5
+            elif roce_s < 8:       yfin_score -= 10
+            if roce_s > roce_avg_s + 3:   yfin_score += 5
+            elif roce_s < roce_avg_s - 3: yfin_score -= 5
+
+        # ── 6. Debt scoring — contextual ─────────────────────────────
+        if not is_bank:
+            if debt_red_s is True:
+                yfin_score += 6
+            elif debt_growth > 20:
+                if sales_1y > 15 and profit_1y > 10:
+                    yfin_score += 0
+                elif sales_1y > 0:
+                    yfin_score -= 4
+                else:
+                    yfin_score -= 12
+            elif debt_growth > 0:
+                yfin_score -= 2
+
+        # ── 7. FCF / Cash flow quality ────────────────────────────────
+        if fcf_ok_s:                  yfin_score += 8
+        if ocf_s > 0:                 yfin_score += 3
+
+        # ── 8. Promoter confidence ────────────────────────────────────
+        if promoter_s > 60:           yfin_score += 5
+        elif promoter_s > 50:         yfin_score += 3
+        elif promoter_s < 25:         yfin_score -= 5
 
         yfin_score = max(0, min(100, yfin_score))
 
@@ -1175,34 +1251,65 @@ def stock_analysis():
         except Exception:
             is_large = False
 
-        de       = float(result.get('valuation', {}).get('debt_to_equity') or 50)
         vol      = abs(float(result.get('ml', {}).get('ret_1m_pct') or 0))
         rsi_risk = float(result.get('ml', {}).get('rsi') or 50)
         pos52_r  = float(result.get('ml', {}).get('pos52_pct') or 50)
-        scr_de   = float(result.get('fundamentals', {}).get('screener_de') or de)
 
         risk_points = 0
-        # Size
-        if is_large:         risk_points += 0
-        else:                risk_points += 2
-        # Debt
-        if scr_de < 30:      risk_points += 0
-        elif scr_de < 70:    risk_points += 1
-        elif scr_de < 150:   risk_points += 2
-        else:                risk_points += 3
-        # Volatility (1M return as proxy)
-        if vol < 5:          risk_points += 0
-        elif vol < 12:       risk_points += 1
-        else:                risk_points += 2
-        # RSI extremes
-        if rsi_risk > 75:    risk_points += 1   # overbought
-        elif rsi_risk < 30:  risk_points += 1   # oversold/distressed
-        # 52W position
-        if pos52_r < 20:     risk_points += 1   # near 52W low — distressed
-        # Fundamental quality
-        if scr_raw < 45:     risk_points += 2
-        elif scr_raw >= 70:  risk_points -= 1
 
+        # ── Size ──────────────────────────────────────────────────────
+        if is_large:           risk_points += 0
+        else:                  risk_points += 2
+
+        # ── Debt — contextual by sector ───────────────────────────────
+        if is_bank:
+            risk_points += 0
+        elif debt_red_s is True:
+            risk_points += 0
+        elif screener_de < 30:   risk_points += 0
+        elif screener_de < 80:
+            if sales_1y > 15 and profit_1y > 10:
+                risk_points += 0
+            else:
+                risk_points += 1
+        elif screener_de < 150:
+            if sales_1y > 20:  risk_points += 1
+            else:              risk_points += 2
+        else:
+            risk_points += 3
+
+        # ── Margin stability ──────────────────────────────────────────
+        if not is_bank:
+            if opm_trend < -5:   risk_points += 2
+            elif opm_trend < -2: risk_points += 1
+            if opm_latest < 0:   risk_points += 2
+
+        # ── FCF health ────────────────────────────────────────────────
+        if not fcf_ok_s:         risk_points += 1
+
+        # ── Volatility ────────────────────────────────────────────────
+        if vol < 5:              risk_points += 0
+        elif vol < 12:           risk_points += 1
+        else:                    risk_points += 2
+
+        # ── RSI extremes ──────────────────────────────────────────────
+        if rsi_risk > 78:        risk_points += 1
+        elif rsi_risk < 28:      risk_points += 1
+
+        # ── 52W position ──────────────────────────────────────────────
+        if pos52_r < 15:         risk_points += 1
+
+        # ── Fundamental quality ───────────────────────────────────────
+        if scr_raw < 45:         risk_points += 2
+        elif scr_raw >= 70:      risk_points -= 1
+
+        # ── Growth trajectory ─────────────────────────────────────────
+        if sales_cagr_s < 0 and profit_cagr_s < 0:
+            risk_points += 2
+        elif sales_cagr_s > 15 and profit_cagr_s > 15:
+            risk_points -= 1
+
+        risk_points = max(0, risk_points)
         if risk_points <= 2:   risk, risk_color = 'Low',    'green'
         elif risk_points <= 5: risk, risk_color = 'Medium', 'gold'
         else:                  risk, risk_color = 'High',   'red'
