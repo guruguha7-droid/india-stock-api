@@ -17,6 +17,7 @@ Endpoints:
 """
 
 import os
+import json as _json
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
@@ -30,6 +31,29 @@ except Exception as e:
 import threading
 import time
 from datetime import datetime
+
+# ── Disk cache helpers — survive process restarts ─────────────────────────────
+DISK_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def save_disk_cache(name: str, data):
+    try:
+        path = os.path.join(DISK_CACHE_DIR, f'_{name}_cache.json')
+        with open(path, 'w') as f:
+            _json.dump({'data': data, 'ts': time.time()}, f)
+    except Exception as e:
+        print(f"  Disk cache save error ({name}): {e}")
+
+def load_disk_cache(name: str, max_age_hours: int = 24):
+    try:
+        path = os.path.join(DISK_CACHE_DIR, f'_{name}_cache.json')
+        if os.path.exists(path):
+            with open(path) as f:
+                entry = _json.load(f)
+            if (time.time() - entry.get('ts', 0)) / 3600 < max_age_hours:
+                return entry['data']
+    except Exception as e:
+        print(f"  Disk cache load error ({name}): {e}")
+    return None
 
 app = Flask(__name__)
 CORS(app)  # Allow ALL origins — lets your browser widget call this freely
@@ -1030,6 +1054,11 @@ def stock_analysis():
         try:
             from news_sentiment import get_sentiment_score
             from ml_screener import _cache
+            # Try disk cache first (6h TTL)
+            disk_sent = load_disk_cache(f'sent_{symbol}', max_age_hours=6)
+            if disk_sent:
+                result["sentiment"] = disk_sent
+                return
             sent = get_sentiment_score(symbol)
 
             sent['fetched_at'] = datetime.now().isoformat()
@@ -1049,6 +1078,7 @@ def stock_analysis():
                     sent['dampened'] = True
 
             _cache[f'sent_{symbol}'] = {'data': sent, 'ts': time.time()}
+            save_disk_cache(f'sent_{symbol}', sent)
             result["sentiment"] = sent
         except Exception:
             result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
@@ -1066,6 +1096,7 @@ def stock_analysis():
                 macro_data = get_macro_sentiment()
                 _cache['macro_news']['data'] = macro_data
                 _cache['macro_news']['ts']   = time.time()
+                save_disk_cache('macro', macro_data)
             result["macro"] = _apply(symbol, macro_data)
         except Exception:
             result["macro"] = {"macro_score": 0, "macro_label": "neutral"}
@@ -3094,17 +3125,24 @@ def warm_nse_session():
 
 
 def warm_macro():
-    """Pre-fetch macro sentiment on startup. Fires 60s after boot."""
+    """Pre-fetch macro sentiment on startup. Uses disk cache if fresh."""
     def _warm():
-        time.sleep(60)  # Let Nifty + NSE session warm first
-        print("  Warming macro sentiment cache (26 topics)...")
         try:
-            from macro_sentiment import get_macro_sentiment
             from ml_screener import _cache
+            cached = load_disk_cache('macro', max_age_hours=12)
+            if cached:
+                _cache['macro_news']['data'] = cached
+                _cache['macro_news']['ts']   = time.time()
+                print(f"  Macro cache loaded from disk — {len(cached)} topics")
+                return
+            time.sleep(60)
+            print("  Warming macro sentiment cache (26 topics)...")
+            from macro_sentiment import get_macro_sentiment
             macro_data = get_macro_sentiment()
             _cache['macro_news']['data'] = macro_data
             _cache['macro_news']['ts']   = time.time()
-            print(f"  Macro cache ready — {len(macro_data)} topics fetched")
+            save_disk_cache('macro', macro_data)
+            print(f"  Macro cache ready and saved to disk — {len(macro_data)} topics")
         except Exception as e:
             print(f"  Macro warm error: {e}")
     threading.Thread(target=_warm, daemon=True).start()
