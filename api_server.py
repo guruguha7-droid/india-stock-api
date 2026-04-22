@@ -2498,7 +2498,6 @@ def generate_report_endpoint():
     # Accept pre-computed values from frontend to ensure score consistency
     _score    = request.args.get("score")
     _score_10 = request.args.get("score_10")
-    _verdict  = request.args.get("verdict")
     _grade    = request.args.get("grade")
     try:
         from report_generator import generate_report
@@ -2799,7 +2798,7 @@ def generate_report_endpoint():
             data["combined"]={
                 "score":    float(_score)    if _score    else combined,
                 "score_10": float(_score_10) if _score_10 else round(combined/10,1),
-                "verdict":  _verdict         if _verdict  else verdict,
+                "verdict":  verdict,
                 "grade":    _grade           if _grade    else grade,
                 "yfin_score":round(yfin_score,1),
                 "sent_score":round(sent_score,1),"macro_score":round(macro_score,1),
