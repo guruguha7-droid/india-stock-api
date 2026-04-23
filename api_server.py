@@ -889,17 +889,46 @@ def stock_analysis():
             if not row.empty:
                 r = row.iloc[0].to_dict()
                 result["fundamentals"] = {
-                    "roce":             r.get('roce_latest_pct'),
-                    "sales_cagr_5y":    r.get('sales_cagr_5y'),
-                    "profit_cagr_5y":   r.get('profit_cagr_5y'),
-                    "eps_cagr_5y":      r.get('eps_cagr_5y'),
-                    "promoter_pct":     r.get('promoter_pct'),
-                    "fcf_positive_3y":  r.get('fcf_positive_3y'),
-                    "debt_reducing":    r.get('debt_reducing'),
-                    "investment_score": r.get('investment_score'),
-                    "investment_grade": r.get('investment_grade'),
-                    "opm_latest_pct":   r.get('opm_latest_pct'),
-                    "roce_avg_5y":      r.get('roce_avg_5y'),
+                    # Core metrics
+                    "roce":              r.get('roce_latest_pct'),
+                    "roce_latest_pct":   r.get('roce_latest_pct'),
+                    "roce_avg_5y":       r.get('roce_avg_5y'),
+                    "roce_trend_5y":     r.get('roce_trend_5y'),
+                    # Growth
+                    "sales_cagr_5y":     r.get('sales_cagr_5y'),
+                    "sales_cagr_10y":    r.get('sales_cagr_10y'),
+                    "sales_growth_1y":   r.get('sales_growth_1y'),
+                    "profit_cagr_5y":    r.get('profit_cagr_5y'),
+                    "profit_cagr_10y":   r.get('profit_cagr_10y'),
+                    "profit_growth_1y":  r.get('profit_growth_1y'),
+                    "eps_cagr_5y":       r.get('eps_cagr_5y'),
+                    "eps_growth_1y":     r.get('eps_growth_1y'),
+                    # Margins
+                    "opm_latest_pct":    r.get('opm_latest_pct'),
+                    "opm_avg_5y":        r.get('opm_avg_5y'),
+                    "opm_trend_5y":      r.get('opm_trend_5y'),
+                    # Cash flow
+                    "fcf_positive_3y":   r.get('fcf_positive_3y'),
+                    "ocf_positive_3y":   r.get('ocf_positive_3y'),
+                    "fcf_cagr_5y":       r.get('fcf_cagr_5y'),
+                    "ocf_latest_cr":     r.get('ocf_latest_cr'),
+                    # Balance sheet
+                    "debt_reducing":     r.get('debt_reducing'),
+                    "debt_growth_1y":    r.get('debt_growth_1y'),
+                    "screener_de":       r.get('screener_de'),
+                    "networth_cr":       r.get('networth_cr'),
+                    # Ownership
+                    "promoter_pct":      r.get('promoter_pct'),
+                    "fii_pct":           r.get('fii_pct'),
+                    "dii_pct":           r.get('dii_pct'),
+                    # Valuation
+                    "eps_latest":        r.get('eps_latest'),
+                    "dividend_payout_pct": r.get('dividend_payout_pct'),
+                    "profit_latest_cr":  r.get('profit_latest_cr'),
+                    "sales_latest_cr":   r.get('sales_latest_cr'),
+                    # Scores
+                    "investment_score":  r.get('investment_score'),
+                    "investment_grade":  r.get('investment_grade'),
                 }
             else:
                 result["fundamentals"] = {}
