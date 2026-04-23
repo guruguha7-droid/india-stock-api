@@ -1409,12 +1409,12 @@ def stock_analysis():
         macro_raw   = result.get("macro", {}).get("macro_score", 0) or 0
         macro_score = max(0, min(100, 50 + macro_raw * 0.5))
 
+        # Sentiment and macro excluded from combined score — too noisy on free tier
+        # They still appear in the report but don't affect the verdict
         combined = round(
-            ml_raw      * 0.20 +   # ML: 58% accuracy — useful but not dominant
-            scr_raw     * 0.40 +   # Fundamentals: our own score, most reliable
-            yfin_score  * 0.25 +   # Valuation: PE, ROCE, growth, debt
-            sent_score  * 0.08 +   # News: noisy, low weight
-            macro_score * 0.07, 1) # Macro: directional only
+            ml_raw     * 0.22 +
+            scr_raw    * 0.44 +
+            yfin_score * 0.34, 1)
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
@@ -2726,7 +2726,7 @@ def generate_report_endpoint():
             sent_score=max(0,min(100,50+sent_raw*0.5))
             macro_raw=data.get("macro",{}).get("macro_score",0) or 0
             macro_score=max(0,min(100,50+macro_raw*0.5))
-            combined=round(ml_raw*0.20+scr_raw*0.40+yfin_score*0.25+sent_score*0.08+macro_score*0.07,1)
+            combined=round(ml_raw*0.22+scr_raw*0.44+yfin_score*0.34,1)
             grade='A+' if combined>=80 else 'A' if combined>=70 else 'B' if combined>=60 else 'C' if combined>=50 else 'D'
             if combined >= 82:   verdict, verdict_color = 'STRONG BUY', 'green'
             elif combined >= 68: verdict, verdict_color = 'BUY',        'green'
