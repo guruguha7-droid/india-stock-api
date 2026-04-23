@@ -18,6 +18,12 @@ Endpoints:
 
 import os
 import json as _json
+import logging
+logging.basicConfig(
+    level=logging.ERROR,
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[logging.StreamHandler()]
+)
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
@@ -34,6 +40,9 @@ from datetime import datetime
 
 # ── Disk cache helpers — survive process restarts ─────────────────────────────
 DISK_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# ── Market constants — update manually when RBI changes rates ────────────────
+RBI_REPO_RATE = 6.5   # Current RBI repo rate — update when changed
 
 def save_disk_cache(name: str, data):
     try:
@@ -776,7 +785,7 @@ def stock_analysis():
             l52 = float(np.min(sw[-252:])) if len(sw) >= 252 else float(np.min(sw))
             rng = h52 - l52
 
-            d_rsi = np.diff(sw[-16:]) if len(sw) >= 16 else np.array([0.001, -0.001])
+            d_rsi = np.diff(sw[-15:]) if len(sw) >= 15 else np.array([0.001, -0.001])
             g     = d_rsi[d_rsi > 0].mean() if len(d_rsi[d_rsi > 0]) > 0 else 0.001
             ls    = abs(d_rsi[d_rsi < 0].mean()) if len(d_rsi[d_rsi < 0]) > 0 else 0.001
 
@@ -1320,7 +1329,10 @@ def stock_analysis():
         is_infra   = any(x in sector_str.lower() for x in ['infra','construct','cement','road','power'])
 
         # ── PEG ratio — PE relative to growth ────────────────────────
-        growth_for_peg = max(eps_cagr_s, sales_cagr_s, 1)
+        # Use minimum of 5Y CAGR and recent 1Y growth to avoid peak-cycle inflation
+        _recent_growth = float(_fund_raw.get('profit_growth_1y') or eps_cagr_s)
+        _forward_proxy = min(eps_cagr_s, _recent_growth) if _recent_growth > 0 else eps_cagr_s
+        growth_for_peg = max(_forward_proxy, 1)
         peg = round(pe / growth_for_peg, 2) if growth_for_peg > 0 else None
 
         yfin_score = 50
@@ -1593,7 +1605,9 @@ def stock_analysis():
             elif macro_raw < -10:reasons.append('unfavourable macro')
             if not reasons:      reasons.append('Mixed signals')
 
-        reason   = reasons[0].capitalize() + (', ' + reasons[1] if len(reasons) > 1 else '')
+        reason = reasons[0].capitalize()
+        if len(reasons) > 1:
+            reason += ', ' + ', '.join(reasons[1:3])
         score_10 = round(combined / 10, 1)
 
         # ── Valuation Signal + Buy Zone ───────────────────────────────
@@ -1640,7 +1654,7 @@ def stock_analysis():
             if cur_price:
                 if eps_latest > 0:
                     # ── Normal profitable company ─────────────────────────
-                    rbi_rate = 6.5
+                    rbi_rate = RBI_REPO_RATE
                     rate_adj = 4.4 / rbi_rate
 
                     SECTOR_PE = {
@@ -1686,6 +1700,10 @@ def stock_analysis():
                     if scr_raw >= 75:   mos = 0.10
                     elif scr_raw >= 60: mos = 0.15
                     else:               mos = 0.25
+                    if is_bank:    mos += 0.05
+                    if _is_cyc_v:  mos += 0.05
+                    if not fcf_ok: mos += 0.05
+                    mos = min(mos, 0.35)
 
                     buy_zone_high = round(fair_value * (1 - mos * 0.5), 1)
                     buy_zone_low  = round(fair_value * (1 - mos), 1)
@@ -2011,22 +2029,26 @@ def stock_analysis():
             fade_rate = 0.38    # very aggressive — distressed/peak cycle
             label = "distressed"
 
-        def fade(cagr, years):
-            """Fade growth rate toward terminal rate at quality-adjusted speed."""
+        def fade(cagr, years, terminal=TERMINAL_GROWTH):
+            """Fade toward a type-specific terminal rate."""
             faded = cagr
             for _ in range(years):
-                faded = faded - fade_rate * (faded - TERMINAL_GROWTH)
-            return max(faded, TERMINAL_GROWTH * 0.4)  # floor at 40% of terminal
+                faded = faded - fade_rate * (faded - terminal)
+            return max(faded, terminal * 0.4)
 
-        eps_1y      = fade(eps_cagr,    1)
-        eps_3y      = fade(eps_cagr,    3)
-        eps_5y      = fade(eps_cagr,    5)
-        sales_1y_f  = fade(sales_cagr,  1)
-        sales_3y_f  = fade(sales_cagr,  3)
-        sales_5y_f  = fade(sales_cagr,  5)
-        profit_1y_f = fade(profit_cagr, 1)
-        profit_3y_f = fade(profit_cagr, 3)
-        profit_5y_f = fade(profit_cagr, 5)
+        EPS_TERMINAL    = 12.0
+        SALES_TERMINAL  = 9.0
+        PROFIT_TERMINAL = 10.0
+
+        eps_1y      = fade(eps_cagr,    1, EPS_TERMINAL)
+        eps_3y      = fade(eps_cagr,    3, EPS_TERMINAL)
+        eps_5y      = fade(eps_cagr,    5, EPS_TERMINAL)
+        sales_1y_f  = fade(sales_cagr,  1, SALES_TERMINAL)
+        sales_3y_f  = fade(sales_cagr,  3, SALES_TERMINAL)
+        sales_5y_f  = fade(sales_cagr,  5, SALES_TERMINAL)
+        profit_1y_f = fade(profit_cagr, 1, PROFIT_TERMINAL)
+        profit_3y_f = fade(profit_cagr, 3, PROFIT_TERMINAL)
+        profit_5y_f = fade(profit_cagr, 5, PROFIT_TERMINAL)
 
         # ══════════════════════════════════════════════════════════════
         # PRICE TARGET
@@ -2050,9 +2072,15 @@ def stock_analysis():
         # ══════════════════════════════════════════════════════════════
         scr_score = float(fund.get("investment_score") or 50)
         def outperform_prob(years):
-            base  = ml_score * 0.50 + scr_score * 0.30 + (50 + macro_score * 0.20) * 0.20
-            decay = 0.85 ** years
-            return round(clamp(50 + (base - 50) * decay, 20, 85), 1)
+            ml_prob    = clamp(ml_score, 30, 80)
+            qual_decay = 0.90 if scr_score >= 70 else 0.82 if scr_score >= 50 else 0.75
+            prob = ml_prob * (qual_decay ** (years - 1))
+            if val_signal:
+                pct = float(val_signal.get('pct_vs_fair') or 0)
+                if pct > 30:    prob -= 8
+                elif pct > 15:  prob -= 4
+                elif pct < -20: prob += 5
+            return round(clamp(prob, 20, 85), 1)
 
         # ══════════════════════════════════════════════════════════════
         # FACTOR SUMMARY
@@ -2522,7 +2550,7 @@ def portfolio_xray():
                         eps_l = float(r.get('eps_latest') or 0) or None
                         if eps_l and stock['price'] and float(stock['price']) > 0:
                             eps_cagr = float(r.get('eps_cagr_5y') or 8)
-                            rbi_rate = 6.5; rate_adj = 4.4/rbi_rate
+                            rbi_rate = RBI_REPO_RATE; rate_adj = 4.4/rbi_rate
                             base_pe  = 22
                             SECTOR_PE= {'IT':28,'Technology':28,'FMCG':35,'Pharma':30,'Banking':15,'Finance':18,'Metals':10,'Energy':12,'Defence':30}
                             for k,v in SECTOR_PE.items():
@@ -2622,7 +2650,7 @@ def generate_report_endpoint():
                 h52=float(np.max(sw[-252:])) if len(sw)>=252 else float(np.max(sw))
                 l52=float(np.min(sw[-252:])) if len(sw)>=252 else float(np.min(sw))
                 rng=h52-l52
-                d_r=np.diff(sw[-16:]) if len(sw)>=16 else np.array([0.001,-0.001])
+                d_r=np.diff(sw[-15:]) if len(sw)>=15 else np.array([0.001,-0.001])
                 g=d_r[d_r>0].mean() if len(d_r[d_r>0])>0 else 0.001
                 ls=abs(d_r[d_r<0].mean()) if len(d_r[d_r<0])>0 else 0.001
                 f = {

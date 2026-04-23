@@ -291,7 +291,7 @@ def engineer_features(prices: dict, fund_dict: dict, val_dict: dict = None) -> p
             # Use defaults — don't skip, just use median values
             fund = FUND_DEFAULTS.copy()
 
-        step = 15
+        step = 30  # reduce overlap — consecutive samples share only 222/252 forward days
 
         for i in range(200, len(stock_s) - FORWARD_DAYS, step):
             try:

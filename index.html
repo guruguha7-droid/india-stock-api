@@ -445,8 +445,8 @@ window._pfHoldings = [];
     const q = input.value.trim().toUpperCase();
     box.innerHTML = '';
     if (q.length < 1) return;
-    const matches = STOCKS.filter(([sym, name]) =>
-      sym.startsWith(q) || name.toUpperCase().includes(q)
+    const matches = STOCKS.filter(([sym, name, sector]) =>
+      sym.startsWith(q) || name.toUpperCase().includes(q) || (sector || '').toUpperCase().includes(q)
     ).slice(0, 6);
     if (!matches.length) return;
     matches.forEach(([sym, name, sector]) => {
@@ -471,8 +471,8 @@ function pfSymAC(val) {
   const ac = document.getElementById('pf-sym-ac');
   if (!val || val.length < 1) { ac.style.display='none'; return; }
   const q = val.toUpperCase();
-  const matches = STOCKS.filter(([sym, name]) =>
-    sym.startsWith(q) || name.toUpperCase().includes(q)
+  const matches = STOCKS.filter(([sym, name, sector]) =>
+    sym.startsWith(q) || name.toUpperCase().includes(q) || (sector || '').toUpperCase().includes(q)
   ).slice(0, 8);
   if (!matches.length) { ac.style.display='none'; return; }
   ac.innerHTML = matches.map(([sym, name]) => `
@@ -1111,8 +1111,8 @@ const ac  = document.getElementById('autocomplete');
 inp.addEventListener('input', () => {
   const q = inp.value.trim().toUpperCase();
   if (q.length < 1) { ac.classList.remove('show'); return; }
-  const matches = STOCKS.filter(([sym, name]) =>
-    sym.includes(q) || name.toUpperCase().includes(q)
+  const matches = STOCKS.filter(([sym, name, sector]) =>
+    sym.includes(q) || name.toUpperCase().includes(q) || (sector || '').toUpperCase().includes(q)
   ).slice(0, 6);
   if (!matches.length) { ac.classList.remove('show'); return; }
   ac.innerHTML = matches.map(([sym, name, sector]) => `
@@ -1537,6 +1537,7 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div style="flex:1;min-width:80px">
                   <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">CONFIDENCE</div>
                   <div style="font-size:15px;font-weight:700;color:var(--text1)">${vs.confidence ?? '—'}%</div>
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-top:2px">relative signal</div>
                 </div>
               </div>
             </div>`;
@@ -1735,7 +1736,7 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div class="fund-item">
                   <div class="fund-label">Confidence</div>
                   <div class="fund-val" style="color:${confColor}">${vs.confidence}%</div>
-                  <div class="fund-trend trend-neu">data quality score</div>
+                  <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">relative signal strength</div>
                 </div>
               </div>
 
@@ -1836,7 +1837,15 @@ window.showGoldenCrossInfo = function(isGolden) {
     priceEl.parentNode.insertBefore(dot, priceEl.nextSibling);
   }
 
+  function isMarketOpen() {
+    const ist  = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Kolkata'}));
+    const day  = ist.getDay();
+    const mins = ist.getHours() * 60 + ist.getMinutes();
+    return day >= 1 && day <= 5 && mins >= 555 && mins <= 930;
+  }
+
   window._liveTicker = setInterval(async () => {
+    if (!isMarketOpen()) return;
     try {
       const r = await fetch(`${API}/quote?symbol=${encodeURIComponent(_rawSym)}`);
       const j = await r.json();
@@ -2529,8 +2538,8 @@ function renderCompareTable(data, anchor) {
     ]},
     { title: '📊 Fundamentals', rows: [
       { label:'ROCE',          vals:data.map(d=>d.roce != null ? `${f(d.roce,'','%')}${d.roce_context ? `<br><span style="font-size:9px;opacity:.6">${d.roce_context}</span>` : ''}` : '—'), cls:hl(data.map(d=>d.roce)) },
-      { label:'Sales CAGR 5Y', vals:data.map(d=>f(d.sales_cagr_5y,'','%')),cls:hl(data.map(d=>d.sales_cagr_5y)) },
-      { label:'Profit CAGR 5Y',vals:data.map(d=>f(d.profit_cagr_5y,'','%')),cls:hl(data.map(d=>d.profit_cagr_5y)) },
+      { label:'Sales CAGR 5Y', vals:data.map(d=>f(d.sales_cagr_5y,'','% p.a.')),cls:hl(data.map(d=>d.sales_cagr_5y)) },
+      { label:'Profit CAGR 5Y',vals:data.map(d=>f(d.profit_cagr_5y,'','% p.a.')),cls:hl(data.map(d=>d.profit_cagr_5y)) },
     ]},
     { title: '🤖 Scores', rows: [
       { label:'ML Score',      vals:data.map(d=>f(d.ml_score,'','%')),      cls:hl(data.map(d=>d.ml_score)) },
@@ -2577,8 +2586,8 @@ function peerSearchAC(val) {
   const ac = document.getElementById('peer-ac');
   if (!val || val.length < 1) { ac.style.display='none'; return; }
   const q = val.toUpperCase();
-  const matches = STOCKS.filter(([sym, name]) =>
-    sym.startsWith(q) || name.toUpperCase().includes(q)
+  const matches = STOCKS.filter(([sym, name, sector]) =>
+    sym.startsWith(q) || name.toUpperCase().includes(q) || (sector || '').toUpperCase().includes(q)
   ).slice(0, 8);
   if (!matches.length) { ac.style.display='none'; return; }
   ac.innerHTML = matches.map(([sym, name]) => `

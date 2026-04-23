@@ -141,7 +141,7 @@ def compute_ml_features(symbol, sw, nw, fund):
     l52 = float(np.min(sw[-252:])) if len(sw) >= 252 else float(np.min(sw))
     rng = h52 - l52
 
-    d_rsi = np.diff(sw[-16:]) if len(sw) >= 16 else np.array([0.001, -0.001])
+    d_rsi = np.diff(sw[-15:]) if len(sw) >= 15 else np.array([0.001, -0.001])
     g     = d_rsi[d_rsi > 0].mean() if len(d_rsi[d_rsi > 0]) > 0 else 0.001
     ls    = abs(d_rsi[d_rsi < 0].mean()) if len(d_rsi[d_rsi < 0]) > 0 else 0.001
 
@@ -188,24 +188,53 @@ def compute_ml_features(symbol, sw, nw, fund):
 
 
 def compute_valuation(symbol, price, fund):
-    """Compute PE, EPS, div yield from Screener CSV — no yfinance needed."""
-    eps_latest = float(fund.get('eps_latest') or 0) or None
-    pe         = round(price / eps_latest, 1) if eps_latest and eps_latest > 0 and price else None
-    div_payout = float(fund.get('dividend_payout_pct') or 0)
-    profit     = float(fund.get('profit_latest_cr') or 0)
-    # Estimate annual div per share from payout ratio × EPS
+    """Compute valuation metrics from Screener CSV."""
+    # NOTE: eps_latest is annual EPS from Screener, not TTM.
+    # For companies with strong recent quarters, fair value may be understated.
+    eps_latest    = float(fund.get('eps_latest') or 0) or None
+    pe            = round(price / eps_latest, 1) if eps_latest and eps_latest > 0 and price else None
+    div_payout    = float(fund.get('dividend_payout_pct') or 0)
     div_per_share = round(div_payout / 100 * eps_latest, 2) if eps_latest and div_payout > 0 else None
     div_yield     = round(div_per_share / price, 6) if div_per_share and price and price > 0 else None
 
+    # PB: derive shares from profit_cr / eps_latest, then compute mcap/book
+    pb = None
+    try:
+        nw_cr     = float(fund.get('networth_cr') or 0)
+        profit_cr = float(fund.get('profit_latest_cr') or 0)
+        if nw_cr > 0 and profit_cr > 0 and eps_latest and eps_latest > 0:
+            shares   = (profit_cr * 1e7) / eps_latest
+            pb       = round((price * shares) / (nw_cr * 1e7), 2)
+    except Exception:
+        pass
+
+    # Profit margin from OPM
+    pm = None
+    try:
+        opm = float(fund.get('opm_latest_pct') or 0)
+        if opm:
+            pm = round(opm / 100, 4)
+    except Exception:
+        pass
+
+    # Revenue growth from 1Y sales growth
+    rg = None
+    try:
+        sg = float(fund.get('sales_growth_1y') or 0)
+        if sg:
+            rg = round(sg / 100, 4)
+    except Exception:
+        pass
+
     return {
-        'pe_ratio':    pe,
-        'eps':         eps_latest,
-        'dividend_yield': div_yield,
-        'pb_ratio':    None,
-        'profit_margin': None,
-        'revenue_growth': None,
-        'earnings_growth': None,
-        'debt_to_equity': None,
+        'pe_ratio':        pe,
+        'eps':             eps_latest,
+        'dividend_yield':  div_yield,
+        'pb_ratio':        pb,
+        'profit_margin':   pm,
+        'revenue_growth':  rg,
+        'earnings_growth': round(float(fund.get('eps_growth_1y') or 0) / 100, 4) if fund.get('eps_growth_1y') else None,
+        'debt_to_equity':  float(fund.get('screener_de') or 0) or None,
     }
 
 
@@ -329,9 +358,9 @@ def build_cache():
             fund    = screener.get(csv_sym, screener.get(sym, {}))
 
             # Download price data
-            df = yf.download(f"{sym}.NS", period="14mo", interval="1d",
+            df = yf.download(f"{sym}.NS", period="2y", interval="1d",
                              auto_adjust=True, progress=False)
-            if df is None or len(df) < 100:
+            if df is None or len(df) < 150:
                 failed.append(sym)
                 print(f"  [{i:3d}] FAIL {sym} — insufficient data")
                 time.sleep(0.3)
