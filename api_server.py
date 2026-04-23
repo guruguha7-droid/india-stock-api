@@ -1409,12 +1409,38 @@ def stock_analysis():
         macro_raw   = result.get("macro", {}).get("macro_score", 0) or 0
         macro_score = max(0, min(100, 50 + macro_raw * 0.5))
 
-        # Sentiment and macro excluded from combined score — too noisy on free tier
-        # They still appear in the report but don't affect the verdict
-        combined = round(
-            ml_raw     * 0.22 +
-            scr_raw    * 0.44 +
-            yfin_score * 0.34, 1)
+        # ── Sentiment gated by magnitude ──────────────────────────────
+        # Small daily noise (|score| < 15) → excluded from combined
+        # Significant news (15-40) → small weight
+        # Crisis-level news (>40) → hard override applied after
+        sent_impact  = 0
+        macro_impact = 0
+        if abs(sent_raw) >= 15:
+            sent_impact  = max(0, min(100, 50 + sent_raw * 0.5))
+        if abs(macro_raw) >= 15:
+            macro_impact = max(0, min(100, 50 + macro_raw * 0.5))
+
+        if sent_impact or macro_impact:
+            combined = round(
+                ml_raw       * 0.20 +
+                scr_raw      * 0.40 +
+                yfin_score   * 0.28 +
+                sent_impact  * 0.07 +
+                macro_impact * 0.05, 1)
+        else:
+            # No significant sentiment — stable score
+            combined = round(
+                ml_raw     * 0.22 +
+                scr_raw    * 0.44 +
+                yfin_score * 0.34, 1)
+
+        # ── Crisis override — extreme negative sentiment ───────────────
+        if sent_raw < -40:
+            combined      = min(combined, 35)
+            verdict       = 'SELL'
+            verdict_color = 'red'
+        elif sent_raw < -25 and combined >= 50:
+            combined      = min(combined, 49)
 
         grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
 
