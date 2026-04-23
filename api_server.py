@@ -1426,17 +1426,28 @@ def stock_analysis():
 
         if sent_impact or macro_impact:
             combined = round(
-                ml_raw       * 0.20 +
-                scr_raw      * 0.40 +
-                yfin_score   * 0.28 +
+                ml_raw       * 0.22 +
+                scr_raw      * 0.42 +
+                yfin_score   * 0.26 +
+                sent_impact  * 0.07 +
+                macro_impact * 0.05 - 2.0
+                if ml_raw > 65 and scr_raw > 75 else
+                ml_raw       * 0.22 +
+                scr_raw      * 0.42 +
+                yfin_score   * 0.26 +
                 sent_impact  * 0.07 +
                 macro_impact * 0.05, 1)
         else:
             # No significant sentiment — stable score
             combined = round(
-                ml_raw     * 0.22 +
-                scr_raw    * 0.44 +
-                yfin_score * 0.34, 1)
+                ml_raw     * 0.25 +
+                scr_raw    * 0.45 +
+                yfin_score * 0.30, 1)
+            # Correlation penalty — ML and fundamentals share inputs
+            if ml_raw > 65 and scr_raw > 75:
+                combined = round(combined - 2.0, 1)
+
+        combined = max(0, min(100, combined))
 
         # ── Crisis override — extreme negative sentiment ───────────────
         if sent_raw < -40:
@@ -1446,7 +1457,7 @@ def stock_analysis():
         elif sent_raw < -25 and combined >= 50:
             combined      = min(combined, 49)
 
-        grade = 'A+' if combined >= 80 else 'A' if combined >= 70 else 'B' if combined >= 60 else 'C' if combined >= 50 else 'D'
+        grade = 'A+' if combined >= 82 else 'A' if combined >= 68 else 'B' if combined >= 58 else 'C' if combined >= 48 else 'D'
 
         # ── Base verdict with conviction tiers ────────────────────────
         if combined >= 82:   verdict, verdict_color = 'STRONG BUY', 'green'
@@ -1470,7 +1481,7 @@ def stock_analysis():
         ret_1m   = float(result.get('ml', {}).get('ret_1m_pct') or 0)
 
         contrarian = (
-            sent_raw  < -15  and
+            sent_raw  < -25  and
             scr_raw   >= 60  and
             rsi_val   < 45   and
             pos52     < 40   and
@@ -1801,10 +1812,10 @@ def stock_analysis():
 
         # Compute long_verdict now that val_signal is available
         val_discount = float(val_signal.get('pct_vs_fair') or 0) if val_signal else 0.0
-        lt_score     = fund_score_v * 0.6 + max(0, -val_discount) * 0.8
+        lt_score     = fund_score_v * 0.5 + max(0, -val_discount) * 2.0
         long_verdict = 'BUY'  if (fund_score_v >= 60 and val_discount < -10) else \
-                       'BUY'  if lt_score >= 55 else \
-                       'SELL' if (fund_score_v < 40 or val_discount > 30) else 'HOLD'
+                       'BUY'  if (lt_score >= 50 and val_discount <= 15) else \
+                       'SELL' if (fund_score_v < 40 or val_discount > 40) else 'HOLD'
 
         # Promote using sub-verdicts — respect conviction level
         if verdict == 'HOLD' and short_verdict == 'BUY' and long_verdict == 'BUY':

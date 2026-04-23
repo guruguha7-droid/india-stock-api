@@ -1298,7 +1298,7 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   // Quote data
   const price      = quote?.price ?? '—';
   const change     = quote?.change ?? '—';
-  const changePct  = quote?.change_pct ?? '—';
+  const changePct  = quote?.change_pct != null ? quote.change_pct + '%' : '—';
   const high52     = quote?.week52_high ? `₹${quote.week52_high}` : '—';
   const low52      = quote?.week52_low  ? `₹${quote.week52_low}`  : '—';
   const mktcap     = quote?.market_cap  || '—';
@@ -1453,7 +1453,7 @@ window.showGoldenCrossInfo = function(isGolden) {
           ${combined?.short_term_verdict && combined?.long_term_verdict ? `
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
-              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">3M OUTLOOK</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">1Y OUTLOOK</div>
               <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${['BUY','STRONG BUY','MILD BUY'].includes(combined.short_term_verdict)?'var(--green)':['SELL','MILD SELL'].includes(combined.short_term_verdict)?'var(--red)':'var(--gold)'}">${combined.short_term_verdict}</div>
               <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ML signal</div>
             </div>
