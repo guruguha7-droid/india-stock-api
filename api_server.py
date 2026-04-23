@@ -1338,18 +1338,22 @@ def stock_analysis():
             sector_pe_fair = 22
 
         pe_vs_sector = pe / sector_pe_fair if sector_pe_fair > 0 else 1.0
-        if pe_vs_sector < 0.7:    yfin_score += 20
-        elif pe_vs_sector < 0.9:  yfin_score += 12
-        elif pe_vs_sector < 1.1:  yfin_score += 5
-        elif pe_vs_sector < 1.4:  yfin_score -= 5
-        else:                     yfin_score -= 15
+        if pe_vs_sector < 0.7:    yfin_score += 12
+        elif pe_vs_sector < 0.9:  yfin_score += 7
+        elif pe_vs_sector < 1.1:  yfin_score += 3
+        elif pe_vs_sector < 1.4:  yfin_score -= 3
+        else:                     yfin_score -= 8
 
-        # ── 2. PEG override ───────────────────────────────────────────
+        # ── 2. PEG override — growth justifies PE ─────────────────────
+        # PEG < 1 means earnings growing faster than PE — genuinely cheap
+        # PEG > 3 means paying a lot more than growth warrants — expensive
         if peg is not None:
-            if peg < 0.8:    yfin_score += 12
-            elif peg < 1.2:  yfin_score += 6
-            elif peg < 2.0:  yfin_score -= 3
-            else:            yfin_score -= 10
+            if peg < 0.5:    yfin_score += 15
+            elif peg < 0.8:  yfin_score += 10
+            elif peg < 1.2:  yfin_score += 5
+            elif peg < 2.0:  yfin_score -= 2
+            elif peg < 3.0:  yfin_score -= 6
+            else:            yfin_score -= 12
 
         # ── 3. Margin scoring — contextual ───────────────────────────
         if not is_bank:
@@ -2751,11 +2755,25 @@ def generate_report_endpoint():
             scr_raw=data.get("fundamentals",{}).get("custom_score") or data.get("fundamentals",{}).get("investment_score",50) or 50
             pe=data.get("valuation",{}).get("pe_ratio") or 20
             yfin_score=50
-            if pe<12: yfin_score+=20
-            elif pe<18: yfin_score+=12
-            elif pe<25: yfin_score+=5
-            elif pe>40: yfin_score-=15
-            # ROCE from fundamentals
+            if pe<12: yfin_score+=12
+            elif pe<18: yfin_score+=7
+            elif pe<25: yfin_score+=3
+            elif pe>40: yfin_score-=8
+            # PEG adjustment in report endpoint
+            try:
+                _fund_rep = data.get('fundamentals', {})
+                _eps_cagr_rep = float(_fund_rep.get('eps_cagr_5y') or 0)
+                if _eps_cagr_rep > 0 and pe > 0:
+                    _peg_rep = pe / _eps_cagr_rep
+                    if _peg_rep < 0.5:    yfin_score += 15
+                    elif _peg_rep < 0.8:  yfin_score += 10
+                    elif _peg_rep < 1.2:  yfin_score += 5
+                    elif _peg_rep < 2.0:  yfin_score -= 2
+                    elif _peg_rep < 3.0:  yfin_score -= 6
+                    else:                 yfin_score -= 12
+            except Exception:
+                pass
+            # ROCE bonus
             _roce_r = float(data.get('fundamentals',{}).get('roce') or data.get('fundamentals',{}).get('roce_latest_pct') or 0)
             if _roce_r > 25:   yfin_score += 8
             elif _roce_r > 15: yfin_score += 4
