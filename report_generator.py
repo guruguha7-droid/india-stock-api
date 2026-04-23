@@ -562,7 +562,7 @@ def generate_report(data: dict) -> bytes:
 
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph(
-        'Scoring weights: 20% ML · 40% Fundamentals · 25% Valuation · 8% News · 7% Macro',
+        'Scoring weights: 22% ML · 44% Fundamentals · 34% Valuation (sentiment gated)',
         S('wt', fontSize=8, textColor=C_MUTED)))
 
     # ══════════════════════════════════════════════════════════════════════════
