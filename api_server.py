@@ -1137,17 +1137,20 @@ def stock_analysis():
         #   25% Financial Health
         #   20% Management Quality
         # ══════════════════════════════════════════════════════════════
-        _fund_raw_scr = result.get("fundamentals", {})
-        _quote_scr    = result.get("quote", {})
-        _sec_str      = str(_quote_scr.get("industry", "") or "").lower()
+        _fund_raw  = result.get("fundamentals", {})
+        _quote_raw = result.get("quote", {})
+        _sec_str   = str(_quote_raw.get("industry", "") or "").lower()
 
-        _is_bank_scr  = any(x in _sec_str for x in ['bank','nbfc','financ','insurance','microfinance'])
-        _is_it_scr    = any(x in _sec_str for x in ['it','software','technolog','computer'])
-        _is_fmcg_scr  = any(x in _sec_str for x in ['fmcg','consumer','food','beverag'])
-        _is_metal_scr = any(x in _sec_str for x in ['metal','steel','alumin','mining'])
+        _is_bank    = any(x in _sec_str for x in ['bank','nbfc','financ','insurance','microfinance'])
+        _is_it      = any(x in _sec_str for x in ['it','software','technolog','computer'])
+        _is_fmcg    = any(x in _sec_str for x in ['fmcg','consumer','food','beverag'])
+        _is_pharma  = any(x in _sec_str for x in ['pharma','health','medical','hospital'])
+        _is_defence = any(x in _sec_str for x in ['defence','shipbuild','aerospace'])
+        _is_metal   = any(x in _sec_str for x in ['metal','steel','alumin','mining'])
+        _is_infra   = any(x in _sec_str for x in ['infra','construct','cement','road','power'])
 
         def _f(key, default=0.0):
-            v = _fund_raw_scr.get(key)
+            v = _fund_raw.get(key)
             try: return float(v) if v not in (None,'','None','nan') else default
             except: return default
 
@@ -1166,9 +1169,9 @@ def stock_analysis():
         _roce_trend   = _f('roce_trend_5y')
         _de           = _f('screener_de', 50)
         _debt_gr      = _f('debt_growth_1y')
-        _debt_red     = str(_fund_raw_scr.get('debt_reducing','')).lower() == 'true'
-        _fcf_ok       = str(_fund_raw_scr.get('fcf_positive_3y','')).lower() == 'true'
-        _ocf_ok       = str(_fund_raw_scr.get('ocf_positive_3y','')).lower() == 'true'
+        _debt_red     = str(_fund_raw.get('debt_reducing','')).lower() == 'true'
+        _fcf_ok       = str(_fund_raw.get('fcf_positive_3y','')).lower() == 'true'
+        _ocf_ok       = str(_fund_raw.get('ocf_positive_3y','')).lower() == 'true'
         _fcf_cagr     = _f('fcf_cagr_5y')
         _promoter     = _f('promoter_pct')
         _fii          = _f('fii_pct')
@@ -1190,7 +1193,7 @@ def stock_analysis():
         elif _sales_cagr5 > 0 and _sales_cagr10 > 0 and _sales_cagr5 < _sales_cagr10 * 0.6:
             g -= 8
 
-        _prof_weight = 0.6 if _is_metal_scr else 1.0
+        _prof_weight = 0.6 if _is_metal else 1.0
         if _prof_cagr5 > 25:     g += int(15 * _prof_weight)
         elif _prof_cagr5 > 15:   g += int(8  * _prof_weight)
         elif _prof_cagr5 > 8:    g += int(3  * _prof_weight)
@@ -1205,7 +1208,7 @@ def stock_analysis():
         # ── Category 2: Profitability & Capital Efficiency (0–100) ────
         p = 50
 
-        if not _is_bank_scr:
+        if not _is_bank:
             if _roce_lat > 35:    p += 22
             elif _roce_lat > 25:  p += 15
             elif _roce_lat > 18:  p += 8
@@ -1222,7 +1225,7 @@ def stock_analysis():
             elif _prof_cagr5 > 12: p += 8
             elif _prof_cagr5 < 5:  p -= 8
 
-        if not _is_bank_scr:
+        if not _is_bank:
             if _opm_lat > 30:     p += 12
             elif _opm_lat > 20:   p += 7
             elif _opm_lat > 12:   p += 2
@@ -1240,13 +1243,13 @@ def stock_analysis():
         if _fcf_ok:               h += 15
         elif _ocf_ok:             h += 7
         else:
-            if not _is_bank_scr:  h -= 12
+            if not _is_bank:  h -= 12
 
         if _fcf_cagr > 20:        h += 8
         elif _fcf_cagr > 10:      h += 4
         elif _fcf_cagr < -10:     h -= 6
 
-        if not _is_bank_scr:
+        if not _is_bank:
             if _de < 0.1:         h += 12
             elif _de < 0.3:       h += 8
             elif _de < 0.6:       h += 3
@@ -1296,55 +1299,24 @@ def stock_analysis():
             m * 0.20,    # Management Quality
             1)
 
-        pe         = result.get("valuation", {}).get("pe_ratio") or 20
-        _fund_raw  = result.get("fundamentals", {})
-        _quote_raw = result.get("quote", {})
-
-        # ── Pull all available Screener fields ────────────────────────
-        sector_str   = str(_quote_raw.get("industry", "") or "")
-        eps_cagr_s   = float(_fund_raw.get("eps_cagr_5y")    or 0)
-        sales_cagr_s = float(_fund_raw.get("sales_cagr_5y")  or 0)
-        profit_cagr_s= float(_fund_raw.get("profit_cagr_5y") or 0)
-        opm_latest   = float(_fund_raw.get("opm_latest_pct") or 0)
-        opm_avg      = float(_fund_raw.get("opm_avg_5y")     or opm_latest)
-        opm_trend    = float(_fund_raw.get("opm_trend_5y")   or 0)
-        roce_s       = float(_fund_raw.get("roce")           or _fund_raw.get("roce_latest_pct") or 0)
-        roce_avg_s   = float(_fund_raw.get("roce_avg_5y")    or roce_s)
-        debt_growth  = float(_fund_raw.get("debt_growth_1y") or 0)
-        debt_red_s   = _fund_raw.get("debt_reducing")
-        fcf_ok_s     = bool(_fund_raw.get("fcf_positive_3y"))
-        ocf_s        = float(_fund_raw.get("ocf_latest_cr")  or 0)
-        promoter_s   = float(_fund_raw.get("promoter_pct")   or 0)
-        screener_de  = float(_fund_raw.get("screener_de")    or 50)
-        sales_1y     = float(_fund_raw.get("sales_growth_1y") or 0)
-        profit_1y    = float(_fund_raw.get("profit_growth_1y") or 0)
-
-        # ── Detect sector context ─────────────────────────────────────
-        is_bank    = any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance'])
-        is_it      = any(x in sector_str.lower() for x in ['it','software','technolog','computer'])
-        is_fmcg    = any(x in sector_str.lower() for x in ['fmcg','consumer','food','beverag'])
-        is_pharma  = any(x in sector_str.lower() for x in ['pharma','health','medical','hospital'])
-        is_defence = any(x in sector_str.lower() for x in ['defence','shipbuild','aerospace'])
-        is_metal   = any(x in sector_str.lower() for x in ['metal','steel','alumin','mining'])
-        is_infra   = any(x in sector_str.lower() for x in ['infra','construct','cement','road','power'])
+        pe = result.get("valuation", {}).get("pe_ratio") or 20
 
         # ── PEG ratio — PE relative to growth ────────────────────────
         # Use minimum of 5Y CAGR and recent 1Y growth to avoid peak-cycle inflation
-        _recent_growth = float(_fund_raw.get('profit_growth_1y') or eps_cagr_s)
-        _forward_proxy = min(eps_cagr_s, _recent_growth) if _recent_growth > 0 else eps_cagr_s
-        growth_for_peg = max(_forward_proxy, 1)
+        _recent_growth = min(_eps_cagr5, _prof_1y) if _prof_1y > 0 else _eps_cagr5
+        growth_for_peg = max(_recent_growth, 1)
         peg = round(pe / growth_for_peg, 2) if growth_for_peg > 0 else None
 
         yfin_score = 50
 
         # ── 1. PE scoring — contextual by sector ─────────────────────
-        if is_bank:
+        if _is_bank:
             sector_pe_fair = 14
-        elif is_fmcg or is_it:
+        elif _is_fmcg or _is_it:
             sector_pe_fair = 32
-        elif is_pharma or is_defence:
+        elif _is_pharma or _is_defence:
             sector_pe_fair = 28
-        elif is_metal or is_infra:
+        elif _is_metal or _is_infra:
             sector_pe_fair = 14
         else:
             sector_pe_fair = 22
@@ -1368,54 +1340,54 @@ def stock_analysis():
             else:            yfin_score -= 12
 
         # ── 3. Margin scoring — contextual ───────────────────────────
-        if not is_bank:
-            if opm_latest > 25:     yfin_score += 10
-            elif opm_latest > 15:   yfin_score += 5
-            elif opm_latest < 0:    yfin_score -= 15
-            elif opm_latest < 5:    yfin_score -= 8
-            if opm_trend > 3:       yfin_score += 5
-            elif opm_trend < -3:    yfin_score -= 5
+        if not _is_bank:
+            if _opm_lat > 25:     yfin_score += 10
+            elif _opm_lat > 15:   yfin_score += 5
+            elif _opm_lat < 0:    yfin_score -= 15
+            elif _opm_lat < 5:    yfin_score -= 8
+            if _opm_trend > 3:    yfin_score += 5
+            elif _opm_trend < -3: yfin_score -= 5
 
         # ── 4. Growth scoring ─────────────────────────────────────────
-        if sales_cagr_s > 20:     yfin_score += 10
-        elif sales_cagr_s > 12:   yfin_score += 5
-        elif sales_cagr_s < 0:    yfin_score -= 10
-        elif sales_cagr_s < 5:    yfin_score -= 4
+        if _sales_cagr5 > 20:     yfin_score += 10
+        elif _sales_cagr5 > 12:   yfin_score += 5
+        elif _sales_cagr5 < 0:    yfin_score -= 10
+        elif _sales_cagr5 < 5:    yfin_score -= 4
 
-        if profit_cagr_s > 20:    yfin_score += 8
-        elif profit_cagr_s > 12:  yfin_score += 4
-        elif profit_cagr_s < 0:   yfin_score -= 8
+        if _prof_cagr5 > 20:      yfin_score += 8
+        elif _prof_cagr5 > 12:    yfin_score += 4
+        elif _prof_cagr5 < 0:     yfin_score -= 8
 
         # ── 5. ROCE scoring ───────────────────────────────────────────
-        if not is_bank:
-            if roce_s > 25:        yfin_score += 10
-            elif roce_s > 15:      yfin_score += 5
-            elif roce_s < 8:       yfin_score -= 10
-            if roce_s > roce_avg_s + 3:   yfin_score += 5
-            elif roce_s < roce_avg_s - 3: yfin_score -= 5
+        if not _is_bank:
+            if _roce_lat > 25:    yfin_score += 10
+            elif _roce_lat > 15:  yfin_score += 5
+            elif _roce_lat < 8:   yfin_score -= 10
+            if _roce_lat > _roce_avg + 3:   yfin_score += 5
+            elif _roce_lat < _roce_avg - 3: yfin_score -= 5
 
         # ── 6. Debt scoring — contextual ─────────────────────────────
-        if not is_bank:
-            if debt_red_s is True:
+        if not _is_bank:
+            if _debt_red:
                 yfin_score += 6
-            elif debt_growth > 20:
-                if sales_1y > 15 and profit_1y > 10:
+            elif _debt_gr > 20:
+                if _sales_1y > 15 and _prof_1y > 10:
                     yfin_score += 0
-                elif sales_1y > 0:
+                elif _sales_1y > 0:
                     yfin_score -= 4
                 else:
                     yfin_score -= 12
-            elif debt_growth > 0:
+            elif _debt_gr > 0:
                 yfin_score -= 2
 
         # ── 7. FCF / Cash flow quality ────────────────────────────────
-        if fcf_ok_s:                  yfin_score += 8
-        if ocf_s > 0:                 yfin_score += 3
+        if _fcf_ok:               yfin_score += 8
+        if _ocf_ok:               yfin_score += 3
 
         # ── 8. Promoter confidence ────────────────────────────────────
-        if promoter_s > 60:           yfin_score += 5
-        elif promoter_s > 50:         yfin_score += 3
-        elif promoter_s < 25:         yfin_score -= 5
+        if _promoter > 60:        yfin_score += 5
+        elif _promoter > 50:      yfin_score += 3
+        elif _promoter < 25:      yfin_score -= 5
 
         yfin_score = max(0, min(100, yfin_score))
 
@@ -1536,30 +1508,30 @@ def stock_analysis():
         else:                  risk_points += 2
 
         # ── Debt — contextual by sector ───────────────────────────────
-        if is_bank:
+        if _is_bank:
             risk_points += 0
-        elif debt_red_s is True:
+        elif _debt_red:
             risk_points += 0
-        elif screener_de < 30:   risk_points += 0
-        elif screener_de < 80:
-            if sales_1y > 15 and profit_1y > 10:
+        elif _de < 30:   risk_points += 0
+        elif _de < 80:
+            if _sales_1y > 15 and _prof_1y > 10:
                 risk_points += 0
             else:
                 risk_points += 1
-        elif screener_de < 150:
-            if sales_1y > 20:  risk_points += 1
-            else:              risk_points += 2
+        elif _de < 150:
+            if _sales_1y > 20:  risk_points += 1
+            else:               risk_points += 2
         else:
             risk_points += 3
 
         # ── Margin stability ──────────────────────────────────────────
-        if not is_bank:
-            if opm_trend < -5:   risk_points += 2
-            elif opm_trend < -2: risk_points += 1
-            if opm_latest < 0:   risk_points += 2
+        if not _is_bank:
+            if _opm_trend < -5:   risk_points += 2
+            elif _opm_trend < -2: risk_points += 1
+            if _opm_lat < 0:      risk_points += 2
 
         # ── FCF health ────────────────────────────────────────────────
-        if not fcf_ok_s:         risk_points += 1
+        if not _fcf_ok:          risk_points += 1
 
         # ── Volatility ────────────────────────────────────────────────
         if vol < 5:              risk_points += 0
@@ -1578,9 +1550,9 @@ def stock_analysis():
         elif scr_raw >= 70:      risk_points -= 1
 
         # ── Growth trajectory ─────────────────────────────────────────
-        if sales_cagr_s < 0 and profit_cagr_s < 0:
+        if _sales_cagr5 < 0 and _prof_cagr5 < 0:
             risk_points += 2
-        elif sales_cagr_s > 15 and profit_cagr_s > 15:
+        elif _sales_cagr5 > 15 and _prof_cagr5 > 15:
             risk_points -= 1
 
         risk_points = max(0, risk_points)
@@ -1700,7 +1672,7 @@ def stock_analysis():
                     if scr_raw >= 75:   mos = 0.10
                     elif scr_raw >= 60: mos = 0.15
                     else:               mos = 0.25
-                    if is_bank:    mos += 0.05
+                    if _is_bank:   mos += 0.05
                     if _is_cyc_v:  mos += 0.05
                     if not fcf_ok: mos += 0.05
                     mos = min(mos, 0.35)
@@ -1999,18 +1971,18 @@ def stock_analysis():
         quality_signals = 0
 
         # Positive signals — slow the fade
-        if roce_s > roce_avg_s + 2:   quality_signals += 1  # ROCE improving
-        if fcf_ok:                    quality_signals += 1  # FCF consistently positive
-        if debt_red is True:          quality_signals += 1  # reducing debt
-        if opm_trend > 2:             quality_signals += 1  # margins expanding
-        if promoter > 55:             quality_signals += 1  # high promoter conviction
-        if scr_raw >= 75:             quality_signals += 1  # strong overall fundamentals
+        if roce_latest > roce_avg + 2: quality_signals += 1  # ROCE improving
+        if fcf_ok:                     quality_signals += 1  # FCF consistently positive
+        if debt_red is True:           quality_signals += 1  # reducing debt
+        if _opm_trend > 2:             quality_signals += 1  # margins expanding
+        if promoter > 55:              quality_signals += 1  # high promoter conviction
+        if scr_raw >= 75:              quality_signals += 1  # strong overall fundamentals
 
         # Negative signals — accelerate the fade
-        if is_metal or is_infra:      quality_signals -= 2  # cyclical — peak earnings likely
-        if opm_trend < -3:            quality_signals -= 1  # margins declining
-        if not fcf_ok:                quality_signals -= 1  # burning cash
-        if debt_growth > 20 and sales_1y < 10: quality_signals -= 1  # debt rising, growth not
+        if _is_metal or _is_infra:     quality_signals -= 2  # cyclical — peak earnings likely
+        if _opm_trend < -3:            quality_signals -= 1  # margins declining
+        if not fcf_ok:                 quality_signals -= 1  # burning cash
+        if _debt_gr > 20 and _sales_1y < 10: quality_signals -= 1  # debt rising, growth not
 
         # ── Step 2: Map quality signals to fade rate ──────────────────
         if quality_signals >= 4:
@@ -2070,7 +2042,7 @@ def stock_analysis():
         # ══════════════════════════════════════════════════════════════
         # OUTPERFORM CONFIDENCE
         # ══════════════════════════════════════════════════════════════
-        scr_score = float(fund.get("investment_score") or 50)
+        scr_score = float(scr_raw)  # use custom score already computed above
         def outperform_prob(years):
             ml_prob    = clamp(ml_score, 30, 80)
             qual_decay = 0.90 if scr_score >= 70 else 0.82 if scr_score >= 50 else 0.75
