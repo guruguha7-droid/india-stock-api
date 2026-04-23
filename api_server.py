@@ -2708,8 +2708,21 @@ def generate_report_endpoint():
 
         # Build combined score (same logic as stock_analysis)
         try:
+            # ── If frontend passed a pre-computed score, use it directly ──
+            if _score:
+                try:
+                    combined = float(_score)
+                    if combined >= 82:   verdict, verdict_color = 'STRONG BUY', 'green'
+                    elif combined >= 68: verdict, verdict_color = 'BUY',        'green'
+                    elif combined >= 58: verdict, verdict_color = 'MILD BUY',   'green'
+                    elif combined >= 48: verdict, verdict_color = 'HOLD',       'gold'
+                    elif combined >= 38: verdict, verdict_color = 'MILD SELL',  'red'
+                    else:                verdict, verdict_color = 'SELL',       'red'
+                    grade = 'A+' if combined>=80 else 'A' if combined>=70 else 'B' if combined>=60 else 'C' if combined>=50 else 'D'
+                except Exception:
+                    pass
             ml_raw=data.get("ml",{}).get("ml_score",50) or 50
-            scr_raw=data.get("fundamentals",{}).get("investment_score",50) or 50
+            scr_raw=data.get("fundamentals",{}).get("custom_score") or data.get("fundamentals",{}).get("investment_score",50) or 50
             pe=data.get("valuation",{}).get("pe_ratio") or 20
             yfin_score=50
             if pe<12: yfin_score+=20
