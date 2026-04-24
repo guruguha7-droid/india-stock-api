@@ -18,7 +18,7 @@ warnings.filterwarnings('ignore')
 NSE_STOCKS = [
     "HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN",
     "BAJFINANCE", "BAJAJFINSV", "SHRIRAMFIN", "TCS", "INFY",
-    "WIPRO", "HCLTECH", "TECHM", "LTIM", "RELIANCE",
+    "WIPRO", "HCLTECH", "TECHM", "LTM", "RELIANCE",
     "ONGC", "BPCL", "IOC", "POWERGRID", "NTPC",
     "ADANIPORTS", "ADANIENT", "TATAPOWER", "HINDUNILVR", "ITC",
     "NESTLEIND", "BRITANNIA", "TATACONSUM", "MARUTI", "M&M",
@@ -248,7 +248,7 @@ def run_predictions():
 
         # Screener data
         sc             = screener_data.get(sym, {})
-        screener_score = float(sc.get('investment_score', 50) or 50)
+        screener_score = float(sc.get('custom_score') or sc.get('investment_score', 50) or 50)
         screener_grade = sc.get('investment_grade', 'C') or 'C'
         roce           = float(sc.get('roce_latest_pct', 10) or 10)
         sales_cagr     = float(sc.get('sales_cagr_5y', 10) or 10)
@@ -290,20 +290,17 @@ def run_predictions():
         macro_score = round(50 + macro_raw * 0.5, 1)
         macro_score = max(0, min(100, macro_score))
 
-        # 35% ML + 20% Screener + 15% yfinance + 15% Company News + 15% Macro
         combined = round(
-            ml_raw         * 0.35 +
-            screener_score * 0.20 +
-            yfin_score     * 0.15 +
-            sent_score     * 0.15 +
-            macro_score    * 0.15,
+            ml_raw         * 0.25 +
+            screener_score * 0.45 +
+            yfin_score     * 0.30,
             1
         )
 
-        if combined >= 80:   inv_grade = 'A+'
-        elif combined >= 70: inv_grade = 'A'
-        elif combined >= 60: inv_grade = 'B'
-        elif combined >= 50: inv_grade = 'C'
+        if combined >= 82:   inv_grade = 'A+'
+        elif combined >= 68: inv_grade = 'A'
+        elif combined >= 58: inv_grade = 'B'
+        elif combined >= 48: inv_grade = 'C'
         else:                inv_grade = 'D'
 
         results.append({

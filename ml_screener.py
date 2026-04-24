@@ -375,7 +375,7 @@ def run_ml_screen(top_n=10):
         # Screener fundamentals
         _CSV_MAP = {'VBL': 'VBLLTD', 'LTM': 'LTIMINDTREE'}
         sc             = screener_data.get(_CSV_MAP.get(sym, sym), {})
-        screener_score = float(sc.get('investment_score', 50) or 50)
+        screener_score = float(sc.get('custom_score') or sc.get('investment_score', 50) or 50)
         screener_grade = sc.get('investment_grade', 'C') or 'C'
         roce           = float(sc.get('roce_latest_pct', 10) or 10)
         sales_cagr_5y  = float(sc.get('sales_cagr_5y', 10) or 10)
@@ -421,20 +421,25 @@ def run_ml_screen(top_n=10):
         macro_score = round(50 + macro_raw * 0.5, 1)
         macro_score = max(0, min(100, macro_score))
 
-        # 5-layer combined score
-        combined = round(
-            ml_raw         * 0.35 +
-            screener_score * 0.20 +
-            yfin_score     * 0.15 +
-            sent_score     * 0.15 +
-            macro_score    * 0.15,
-            1
-        )
+        sent_impact  = max(0, min(100, 50 + sent_raw * 0.5)) if abs(sent_raw) >= 15 else 0
+        macro_impact = max(0, min(100, 50 + macro_raw * 0.5)) if abs(macro_raw) >= 15 else 0
+        if sent_impact or macro_impact:
+            combined = round(
+                ml_raw         * 0.22 +
+                screener_score * 0.41 +
+                yfin_score     * 0.25 +
+                sent_impact    * 0.07 +
+                macro_impact   * 0.05, 1)
+        else:
+            combined = round(
+                ml_raw         * 0.25 +
+                screener_score * 0.45 +
+                yfin_score     * 0.30, 1)
 
-        if combined >= 80:   inv_grade = 'A+'
-        elif combined >= 70: inv_grade = 'A'
-        elif combined >= 60: inv_grade = 'B'
-        elif combined >= 50: inv_grade = 'C'
+        if combined >= 82:   inv_grade = 'A+'
+        elif combined >= 68: inv_grade = 'A'
+        elif combined >= 58: inv_grade = 'B'
+        elif combined >= 48: inv_grade = 'C'
         else:                inv_grade = 'D'
 
         results.append({

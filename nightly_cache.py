@@ -147,6 +147,18 @@ def compute_ml_features(symbol, sw, nw, fund):
 
     eps_latest = float(fund.get('eps_latest') or 0) or None
     pe_ratio   = round(cp / eps_latest, 1) if eps_latest and eps_latest > 0 else 22.0
+
+    # Compute PB ratio from balance sheet data
+    _pb_for_ml = 3.0
+    try:
+        nw_cr     = float(fund.get('networth_cr') or 0)
+        profit_cr = float(fund.get('profit_latest_cr') or 0)
+        eps_l     = float(fund.get('eps_latest') or 0)
+        if nw_cr > 0 and profit_cr > 0 and eps_l > 0:
+            shares     = (profit_cr * 1e7) / eps_l
+            _pb_for_ml = round((cp * shares) / (nw_cr * 1e7), 2)
+    except Exception:
+        pass
     eps_cagr   = float(fund.get('eps_cagr_5y') or 8.0)
     peg_ratio  = round(pe_ratio / max(eps_cagr, 0.1), 2)
 
@@ -176,7 +188,7 @@ def compute_ml_features(symbol, sw, nw, fund):
         'debt_reducing':    float(bool(fund.get('debt_reducing'))),
         'screener_de':      float(fund.get('screener_de')       or 50.0),
         'pe_ratio':         pe_ratio,
-        'pb_ratio':         3.0,
+        'pb_ratio':         _pb_for_ml,
         'peg_ratio':        peg_ratio,
         # Extra fields for response
         '_price':           round(cp, 2),

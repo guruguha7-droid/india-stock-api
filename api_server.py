@@ -1440,14 +1440,14 @@ def stock_analysis():
         if sent_impact or macro_impact:
             combined = round(
                 ml_raw       * 0.22 +
-                scr_raw      * 0.42 +
-                yfin_score   * 0.26 +
+                scr_raw      * 0.41 +
+                yfin_score   * 0.25 +
                 sent_impact  * 0.07 +
                 macro_impact * 0.05 - 2.0
                 if ml_raw > 65 and scr_raw > 75 else
                 ml_raw       * 0.22 +
-                scr_raw      * 0.42 +
-                yfin_score   * 0.26 +
+                scr_raw      * 0.41 +
+                yfin_score   * 0.25 +
                 sent_impact  * 0.07 +
                 macro_impact * 0.05, 1)
         else:
@@ -1541,13 +1541,13 @@ def stock_analysis():
             risk_points += 0
         elif _debt_red:
             risk_points += 0
-        elif _de < 30:   risk_points += 0
-        elif _de < 80:
+        elif _de < 0.3:   risk_points += 0
+        elif _de < 0.8:
             if _sales_1y > 15 and _prof_1y > 10:
                 risk_points += 0
             else:
                 risk_points += 1
-        elif _de < 150:
+        elif _de < 1.5:
             if _sales_1y > 20:  risk_points += 1
             else:               risk_points += 2
         else:
@@ -1621,7 +1621,8 @@ def stock_analysis():
             _row     = _sdf[_sdf['symbol'] == _csv_sym]
             _r       = _row.iloc[0].to_dict() if not _row.empty else {}
 
-            eps_latest_raw = float(_r.get('eps_latest') or 0)
+            eps_from_valuation = result.get("valuation", {}).get("eps")
+            eps_latest_raw = float(eps_from_valuation or _r.get('eps_latest') or 0)
             eps_cagr_raw   = float(_r.get('eps_cagr_5y') or 8)
             _opm_lat_v     = float(_r.get('opm_latest_pct') or 0)
             _opm_avg_v     = float(_r.get('opm_avg_5y')     or _opm_lat_v)
@@ -1691,9 +1692,10 @@ def stock_analysis():
                     if opm_trend < -3:
                         reliable_growth = min(reliable_growth, 15)
 
+                    fair_pe_cap = 70 if (_is_it or _is_defence or _is_pharma) else 55
                     fair_pe = min(
                         (base_pe + 1.5 * reliable_growth) * rate_adj * quality_mult,
-                        55
+                        fair_pe_cap
                     )
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
@@ -1864,6 +1866,14 @@ def stock_analysis():
 
     # ── Forecast ──────────────────────────────────────────────────────
     try:
+        # Safe fallbacks for variables from combined score block
+        _opm_trend  = _opm_trend  if '_opm_trend'  in dir() else 0.0
+        _is_metal   = _is_metal   if '_is_metal'   in dir() else False
+        _is_infra   = _is_infra   if '_is_infra'   in dir() else False
+        _debt_gr    = _debt_gr    if '_debt_gr'    in dir() else 0.0
+        _sales_1y   = _sales_1y   if '_sales_1y'   in dir() else 0.0
+        scr_raw     = scr_raw     if 'scr_raw'     in dir() else 50.0
+
         fund  = result.get("fundamentals") or {}
         val   = result.get("valuation") or {}
         quote = result.get("quote") or {}
@@ -1904,8 +1914,8 @@ def stock_analysis():
         roce_latest = float(fund.get("roce") or fund.get("roce_latest_pct") or 10)
         roce_avg    = float(fund.get("roce_avg_5y") or roce_latest)
         ocf         = fund.get("ocf_latest_cr")
-        fcf_ok      = fund.get("fcf_positive_3y")
-        debt_red    = fund.get("debt_reducing")
+        fcf_ok      = str(fund.get("fcf_positive_3y", "")).lower() == 'true'
+        debt_red    = str(fund.get("debt_reducing",    "")).lower() == 'true'
         promoter    = float(fund.get("promoter_pct") or 40)
 
         # ── RSI & momentum from ML ─────────────────────────────────────
@@ -1946,12 +1956,12 @@ def stock_analysis():
 
         # 4. Capex/FCF multiplier — company investing in growth
         capex_mult = 1.0
-        if fcf_ok is True:   capex_mult += 0.05
+        if fcf_ok:           capex_mult += 0.05
         if ocf and float(ocf) > 0: capex_mult += 0.03
         capex_mult = clamp(capex_mult, 0.95, 1.08)
 
         # 5. Debt trend multiplier — reducing debt = lower risk
-        debt_mult = 1.03 if debt_red is True else 0.97 if debt_red is False else 1.0
+        debt_mult = 1.03 if debt_red else 0.97
 
         # 6. Promoter holding multiplier
         if promoter > 60:   promo_mult = 1.04
