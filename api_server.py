@@ -1806,14 +1806,35 @@ def stock_analysis():
                     _ps_ratio      = None
                     _fair_value_ps = None
                     try:
-                        info = yf.Ticker(f"{symbol}.NS").info
-                        _mcap = float(info.get('marketCap') or 0)
+                        # Use nightly cache for market cap — avoids yfinance timeout on Render
+                        _nc_stock  = (get_nightly_cache() or {}).get('stocks', {}).get(symbol, {})
+                        _mcap_str  = _nc_stock.get('quote', {}).get('market_cap', '') or ''
+                        _mcap      = 0
+                        try:
+                            if 'L Cr' in _mcap_str:
+                                _mcap = float(_mcap_str.replace('₹','').replace('L Cr','').strip()) * 1e12
+                            elif 'T Cr' in _mcap_str:
+                                _mcap = float(_mcap_str.replace('₹','').replace('T Cr','').strip()) * 1e14
+                            elif 'Cr' in _mcap_str:
+                                _mcap = float(_mcap_str.replace('₹','').replace('Cr','').strip()) * 1e7
+                        except Exception:
+                            pass
+                        # Fallback: estimate from live quote price × shares proxy
+                        if _mcap == 0:
+                            _cp_now    = float(result.get('quote', {}).get('price') or 0)
+                            _profit_cr = float(_r.get('profit_latest_cr') or 0)
+                            _eps_csv   = float(_r.get('eps_latest') or 0)
+                            if _cp_now > 0 and abs(_eps_csv) > 0 and _profit_cr != 0:
+                                _shares = abs(_profit_cr * 1e7 / _eps_csv)
+                                _mcap   = _cp_now * _shares
                         if _mcap > 0 and _sales_cr > 0:
-                            _sales_inr     = _sales_cr * 1e7
-                            _ps_ratio      = round(_mcap / _sales_inr, 1)
-                            _fair_ps       = 3.0 if _sales_cagr > 25 else 2.0 if _sales_cagr > 15 else 1.0
-                            _fair_value_ps = round((_sales_inr * _fair_ps) /
-                                                   float(info.get('sharesOutstanding') or 1), 1)
+                            _sales_inr    = _sales_cr * 1e7
+                            _ps_ratio     = round(_mcap / _sales_inr, 1)
+                            _fair_ps      = 3.0 if _sales_cagr > 25 else 2.0 if _sales_cagr > 15 else 1.0
+                            _eps_abs      = abs(float(_r.get('eps_latest') or 1))
+                            _profit_cr2   = abs(float(_r.get('profit_latest_cr') or 0))
+                            _shares_est   = (_profit_cr2 * 1e7 / _eps_abs) if _eps_abs > 0 and _profit_cr2 > 0 else 1
+                            _fair_value_ps = round((_sales_inr * _fair_ps) / _shares_est, 1) if _shares_est > 0 else None
                     except Exception:
                         pass
 
