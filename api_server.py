@@ -723,7 +723,7 @@ def stock_analysis():
             except Exception:
                 pass
 
-            stock_df = _yf.download(f"{symbol}.NS", period="14mo", interval="1d",
+            stock_df = _yf.download(f"{symbol}.NS", period="2y", interval="1d",
                                     auto_adjust=True, progress=False)
             nifty_close_cached = get_nifty_close()
             if nifty_close_cached is not None and len(nifty_close_cached) >= 100:
@@ -1196,7 +1196,7 @@ def stock_analysis():
         _roce_lat     = _f('roce_latest_pct')
         _roce_avg     = _f('roce_avg_5y', _roce_lat)
         _roce_trend   = _f('roce_trend_5y')
-        _de           = _f('screener_de', 50)
+        _de           = _f('screener_de', None)
         _debt_gr      = _f('debt_growth_1y')
         _debt_red     = str(_fund_raw.get('debt_reducing','')).lower() == 'true'
         _fcf_ok       = str(_fund_raw.get('fcf_positive_3y','')).lower() == 'true'
@@ -1206,6 +1206,10 @@ def stock_analysis():
         _fii          = _f('fii_pct')
         _dii          = _f('dii_pct')
         _div_payout   = _f('dividend_payout_pct')
+
+        # ── Clamp extreme outliers ────────────────────────────────────
+        _opm_lat  = max(_opm_lat, -100.0)
+        _opm_avg  = max(_opm_avg, -100.0)
 
         # ── Category 1: Growth Quality (0–100) ────────────────────────
         g = 50
@@ -1278,7 +1282,7 @@ def stock_analysis():
         elif _fcf_cagr > 10:      h += 4
         elif _fcf_cagr < -10:     h -= 6
 
-        if not _is_bank:
+        if not _is_bank and _de is not None:
             if _de < 0.1:         h += 12
             elif _de < 0.3:       h += 8
             elif _de < 0.6:       h += 3
@@ -1443,13 +1447,9 @@ def stock_analysis():
                 scr_raw      * 0.41 +
                 yfin_score   * 0.25 +
                 sent_impact  * 0.07 +
-                macro_impact * 0.05 - 2.0
-                if ml_raw > 65 and scr_raw > 75 else
-                ml_raw       * 0.22 +
-                scr_raw      * 0.41 +
-                yfin_score   * 0.25 +
-                sent_impact  * 0.07 +
                 macro_impact * 0.05, 1)
+            if ml_raw > 65 and scr_raw > 75:
+                combined = round(combined - 2.0, 1)
         else:
             # No significant sentiment — stable score
             combined = round(
@@ -1541,7 +1541,7 @@ def stock_analysis():
             risk_points += 0
         elif _debt_red:
             risk_points += 0
-        elif _de < 0.3:   risk_points += 0
+        elif _de is None or _de < 0.3:   risk_points += 0
         elif _de < 0.8:
             if _sales_1y > 15 and _prof_1y > 10:
                 risk_points += 0
@@ -1692,10 +1692,12 @@ def stock_analysis():
                     if opm_trend < -3:
                         reliable_growth = min(reliable_growth, 15)
 
-                    fair_pe_cap = 70 if (_is_it or _is_defence or _is_pharma) else 55
+                    _fair_pe_cap = 70 if any(x in sector_str.lower() for x in
+                                   ['it','software','technolog','defence','shipbuild',
+                                    'pharma','health','fmcg','consumer']) else 55
                     fair_pe = min(
                         (base_pe + 1.5 * reliable_growth) * rate_adj * quality_mult,
-                        fair_pe_cap
+                        _fair_pe_cap
                     )
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
@@ -1867,12 +1869,13 @@ def stock_analysis():
     # ── Forecast ──────────────────────────────────────────────────────
     try:
         # Safe fallbacks for variables from combined score block
-        _opm_trend  = _opm_trend  if '_opm_trend'  in dir() else 0.0
-        _is_metal   = _is_metal   if '_is_metal'   in dir() else False
-        _is_infra   = _is_infra   if '_is_infra'   in dir() else False
-        _debt_gr    = _debt_gr    if '_debt_gr'    in dir() else 0.0
-        _sales_1y   = _sales_1y   if '_sales_1y'   in dir() else 0.0
-        scr_raw     = scr_raw     if 'scr_raw'     in dir() else 50.0
+        _opm_trend  = _opm_trend  if '_opm_trend'  in locals() else 0.0
+        _is_metal   = _is_metal   if '_is_metal'   in locals() else False
+        _is_infra   = _is_infra   if '_is_infra'   in locals() else False
+        _debt_gr    = _debt_gr    if '_debt_gr'    in locals() else 0.0
+        _sales_1y   = _sales_1y   if '_sales_1y'   in locals() else 0.0
+        _prof_1y    = _prof_1y    if '_prof_1y'    in locals() else 0.0
+        scr_raw     = scr_raw     if 'scr_raw'     in locals() else 50.0
 
         fund  = result.get("fundamentals") or {}
         val   = result.get("valuation") or {}
@@ -2637,7 +2640,7 @@ def generate_report_endpoint():
                 import joblib, pandas as pd, yfinance as _yf, numpy as np
                 saved    = joblib.load(os.path.join(os.path.dirname(__file__), 'ml_model.pkl'))
                 model    = saved['model']; features = saved['features']; accuracy = saved['accuracy']
-                stock_df = _yf.download(f"{symbol}.NS", period="14mo", interval="1d",
+                stock_df = _yf.download(f"{symbol}.NS", period="2y", interval="1d",
                                         auto_adjust=True, progress=False)
                 nc = get_nifty_close()
                 nifty_df = pd.DataFrame({'Close': nc}, index=nc.index) if nc is not None and len(nc) >= 100 \
@@ -2719,12 +2722,38 @@ def generate_report_endpoint():
                 if not row.empty:
                     r=row.iloc[0].to_dict()
                     data["fundamentals"]={
-                        "roce":r.get('roce_latest_pct'),"sales_cagr_5y":r.get('sales_cagr_5y'),
-                        "profit_cagr_5y":r.get('profit_cagr_5y'),"eps_cagr_5y":r.get('eps_cagr_5y'),
-                        "promoter_pct":r.get('promoter_pct'),"fcf_positive_3y":r.get('fcf_positive_3y'),
-                        "debt_reducing":r.get('debt_reducing'),"investment_score":r.get('investment_score'),
-                        "investment_grade":r.get('investment_grade'),"opm_latest_pct":r.get('opm_latest_pct'),
-                        "roce_avg_5y":r.get('roce_avg_5y'),
+                        "roce":               r.get('roce_latest_pct'),
+                        "roce_latest_pct":    r.get('roce_latest_pct'),
+                        "roce_avg_5y":        r.get('roce_avg_5y'),
+                        "roce_trend_5y":      r.get('roce_trend_5y'),
+                        "sales_cagr_5y":      r.get('sales_cagr_5y'),
+                        "sales_cagr_10y":     r.get('sales_cagr_10y'),
+                        "sales_growth_1y":    r.get('sales_growth_1y'),
+                        "profit_cagr_5y":     r.get('profit_cagr_5y'),
+                        "profit_cagr_10y":    r.get('profit_cagr_10y'),
+                        "profit_growth_1y":   r.get('profit_growth_1y'),
+                        "eps_cagr_5y":        r.get('eps_cagr_5y'),
+                        "eps_growth_1y":      r.get('eps_growth_1y'),
+                        "opm_latest_pct":     r.get('opm_latest_pct'),
+                        "opm_avg_5y":         r.get('opm_avg_5y'),
+                        "opm_trend_5y":       r.get('opm_trend_5y'),
+                        "fcf_positive_3y":    r.get('fcf_positive_3y'),
+                        "ocf_positive_3y":    r.get('ocf_positive_3y'),
+                        "fcf_cagr_5y":        r.get('fcf_cagr_5y'),
+                        "ocf_latest_cr":      r.get('ocf_latest_cr'),
+                        "debt_reducing":      r.get('debt_reducing'),
+                        "debt_growth_1y":     r.get('debt_growth_1y'),
+                        "screener_de":        r.get('screener_de'),
+                        "networth_cr":        r.get('networth_cr'),
+                        "promoter_pct":       r.get('promoter_pct'),
+                        "fii_pct":            r.get('fii_pct'),
+                        "dii_pct":            r.get('dii_pct'),
+                        "eps_latest":         r.get('eps_latest'),
+                        "dividend_payout_pct":r.get('dividend_payout_pct'),
+                        "profit_latest_cr":   r.get('profit_latest_cr'),
+                        "sales_latest_cr":    r.get('sales_latest_cr'),
+                        "investment_score":   r.get('investment_score'),
+                        "investment_grade":   r.get('investment_grade'),
                     }
                 else: data["fundamentals"]={}
             except Exception: data["fundamentals"]={}
@@ -2851,9 +2880,48 @@ def generate_report_endpoint():
                 mc_val=float(mcap_str.replace('₹','').replace('L Cr','').replace('T Cr','').replace('Cr','').replace(',','').strip() or 0)
                 is_large='L Cr' in mcap_str and mc_val>50
             except Exception: is_large=False
-            de=float(data.get('valuation',{}).get('debt_to_equity') or 50)
-            vol=abs(float(data.get('ml',{}).get('ret_1m_pct') or 0))
-            risk='Low' if is_large and de<60 and vol<10 else 'Medium' if is_large or de<100 else 'High'
+            _xr_fund   = data.get('fundamentals', {})
+            _xr_sec    = str(data.get('quote', {}).get('industry', '') or '').lower()
+            _xr_bank   = any(x in _xr_sec for x in ['bank','nbfc','financ','insurance','microfinance'])
+            _xr_metal  = any(x in _xr_sec for x in ['metal','steel','alumin','mining'])
+            _xr_de     = float(_xr_fund.get('screener_de') or 0) or None
+            _xr_debt_r = str(_xr_fund.get('debt_reducing','')).lower() == 'true'
+            _xr_opm_t  = float(_xr_fund.get('opm_trend_5y') or 0)
+            _xr_opm_l  = float(_xr_fund.get('opm_latest_pct') or 0)
+            _xr_fcf    = str(_xr_fund.get('fcf_positive_3y','')).lower() == 'true'
+            _xr_s1y    = float(_xr_fund.get('sales_growth_1y') or 0)
+            _xr_p1y    = float(_xr_fund.get('profit_growth_1y') or 0)
+            _xr_sc5    = float(_xr_fund.get('sales_cagr_5y') or 0)
+            _xr_pc5    = float(_xr_fund.get('profit_cagr_5y') or 0)
+            vol        = abs(float(data.get('ml',{}).get('ret_1m_pct') or 0))
+            rsi_xr     = float(data.get('ml',{}).get('rsi') or 50)
+            p52_xr     = float(data.get('ml',{}).get('pos52_pct') or 50)
+
+            xr_risk_pts = 0
+            if not is_large:                xr_risk_pts += 2
+            if _xr_bank:                    xr_risk_pts += 0
+            elif _xr_debt_r:                xr_risk_pts += 0
+            elif _xr_de is None or _xr_de < 0.3: xr_risk_pts += 0
+            elif _xr_de < 0.8:              xr_risk_pts += 1 if _xr_s1y <= 15 else 0
+            elif _xr_de < 1.5:              xr_risk_pts += 2
+            else:                           xr_risk_pts += 3
+            if not _xr_bank:
+                if _xr_opm_t < -5:          xr_risk_pts += 2
+                elif _xr_opm_t < -2:        xr_risk_pts += 1
+                if _xr_opm_l < 0:           xr_risk_pts += 2
+            if not _xr_fcf:                 xr_risk_pts += 1
+            if vol < 5:                     xr_risk_pts += 0
+            elif vol < 12:                  xr_risk_pts += 1
+            else:                           xr_risk_pts += 2
+            if rsi_xr > 78:                 xr_risk_pts += 1
+            elif rsi_xr < 28:               xr_risk_pts += 1
+            if p52_xr < 15:                 xr_risk_pts += 1
+            if scr_raw < 45:                xr_risk_pts += 2
+            elif scr_raw >= 70:             xr_risk_pts -= 1
+            if _xr_sc5 < 0 and _xr_pc5 < 0: xr_risk_pts += 2
+            elif _xr_sc5 > 15 and _xr_pc5 > 15: xr_risk_pts -= 1
+            xr_risk_pts = max(0, xr_risk_pts)
+            risk = 'Low' if xr_risk_pts <= 2 else 'Medium' if xr_risk_pts <= 5 else 'High'
             reasons=[]
             if scr_raw>=70: reasons.append('Strong fundamentals')
             elif scr_raw<45: reasons.append('Weak fundamentals')
@@ -2971,20 +3039,66 @@ def generate_report_endpoint():
             prom=float(fund.get("promoter_pct") or 40)
             promoter_mult=1.05 if prom>60 else 1.02 if prom>45 else 0.97 if prom<30 else 1.0
             base_out=ml_s/100
-            def proj(yrs,sc,pc):
-                if not price_now: return {"price_target":None,"revenue_growth_pct":round(sc,1),"profit_growth_pct":round(pc,1),"outperform_prob":round(base_out*100,1)}
-                rev_f=min(sc*(0.85**yrs)+max(0,sc-10)*(1-0.85**yrs),25)
-                prof_f=min(pc*(0.80**yrs)+max(0,pc-8)*(1-0.80**yrs),30)
-                mult=macro_mult*roce_mult*capex_mult*momentum_mult*news_mult*promoter_mult
-                mult=max(0.60,min(1.40,mult))
-                pt=round(price_now*(1+prof_f/100)**yrs*mult,0)
-                op=min(75,max(35,base_out*100+(ml_s-50)*0.1-yrs*1.3))
-                return {"price_target":pt,"revenue_growth_pct":round(rev_f,1),"profit_growth_pct":round(prof_f,1),"outperform_prob":round(op,1)}
-            data["forecast"]={
-                "current_price":price_now,
-                "1y":proj(1,sales_cagr,profit_cagr),
-                "3y":proj(3,sales_cagr*0.85,profit_cagr*0.80),
-                "5y":proj(5,sales_cagr*0.75,profit_cagr*0.70),
+            # ── Quality-adjusted fade (same as stock_analysis) ─────────
+            _r_scr_rep = data.get('fundamentals', {})
+            _r_roce_rep = float(_r_scr_rep.get('roce') or _r_scr_rep.get('roce_latest_pct') or 10)
+            _r_roce_avg_rep = float(_r_scr_rep.get('roce_avg_5y') or _r_roce_rep)
+            _r_fcf_rep  = str(_r_scr_rep.get('fcf_positive_3y','')).lower() == 'true'
+            _r_debt_rep = str(_r_scr_rep.get('debt_reducing','')).lower() == 'true'
+            _r_opm_t_rep= float(_r_scr_rep.get('opm_trend_5y') or 0)
+            _r_prom_rep = float(_r_scr_rep.get('promoter_pct') or 40)
+            _r_sec_rep  = str(data.get('quote',{}).get('industry','') or '').lower()
+            _r_metal_rep= any(x in _r_sec_rep for x in ['metal','steel','alumin','mining','oil','petro','refin','fertiliser','chemical','coal','gas','cement'])
+
+            qs = 0
+            if _r_roce_rep > _r_roce_avg_rep + 2:  qs += 1
+            if _r_fcf_rep:                          qs += 1
+            if _r_debt_rep:                         qs += 1
+            if _r_opm_t_rep > 2:                    qs += 1
+            if _r_prom_rep > 55:                    qs += 1
+            if _r_metal_rep:                        qs -= 2
+            if _r_opm_t_rep < -3:                   qs -= 1
+            if not _r_fcf_rep:                      qs -= 1
+
+            _fr = 0.08 if qs >= 4 else 0.13 if qs >= 2 else 0.20 if qs >= 0 else 0.28 if qs >= -2 else 0.38
+            TERM = 10.0
+
+            def _fade_rep(cagr, yrs, term=TERM):
+                v = cagr
+                for _ in range(yrs):
+                    v = v - _fr * (v - term)
+                return max(v, term * 0.4)
+
+            eps_rep  = data.get('valuation', {}).get('eps')
+            pe_rep   = float(data.get('valuation', {}).get('pe_ratio') or 20)
+            _fpe_rep = data.get('combined', {}).get('valuation_signal') or {}
+            _fpe_rep = float(_fpe_rep.get('fair_pe') or pe_rep) if _fpe_rep else pe_rep
+            exit_pe_rep = max(min(pe_rep, _fpe_rep), 8)
+
+            def proj(yrs, sc, pc, ec):
+                rev_f  = round(_fade_rep(sc, yrs, 9.0), 1)
+                prof_f = round(_fade_rep(pc, yrs, 10.0), 1)
+                eps_f  = round(_fade_rep(ec, yrs, 12.0), 1)
+                pt = None
+                if eps_rep and pe_rep:
+                    fwd_eps = float(eps_rep) * ((1 + eps_f / 100) ** yrs)
+                    pt = round(fwd_eps * exit_pe_rep * macro_mult * roce_mult * capex_mult * news_mult * promoter_mult, 0)
+                prob = min(75, max(35, ml_s + (scr_raw - 50) * 0.2 - yrs * 2.0))
+                if price_now and pt:
+                    upside = (pt - price_now) / price_now * 100
+                    if upside < 0: prob = max(prob - 10, 20)
+                return {
+                    "price_target":       pt,
+                    "revenue_growth_pct": rev_f,
+                    "profit_growth_pct":  prof_f,
+                    "outperform_prob":    round(prob, 1)
+                }
+
+            data["forecast"] = {
+                "current_price": price_now,
+                "1y": proj(1, sales_cagr, profit_cagr, eps_cagr_f),
+                "3y": proj(3, sales_cagr, profit_cagr, eps_cagr_f),
+                "5y": proj(5, sales_cagr, profit_cagr, eps_cagr_f),
             }
         except Exception: data["forecast"]={}
 

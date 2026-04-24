@@ -394,8 +394,8 @@ def generate_report(data: dict) -> bytes:
     summary_text = (
         f"<b>{company}</b> ({symbol}) is currently rated <b>{verdict}</b> with a score of "
         f"<b>{score_10}/100</b>. {reason.capitalize()}. "
-        f"The ML model ({safe(ml, 'accuracy')}% accuracy) predicts the stock will "
-        f"<b>{prediction.lower()}</b> the Nifty 50 over the next 3 months{upside_str}. "
+        f"The ML model ({round(float(data.get('ml',{}).get('accuracy') or data.get('ml',{}).get('model_accuracy') or 60.2), 1)}% accuracy) predicts the stock will "
+        f"<b>{prediction.lower()}</b> the Nifty 50 over the next 1 year{upside_str}. "
         f"Risk level is assessed as <b>{risk_lvl}</b>."
     )
     story.append(Paragraph(summary_text, S('sum', fontSize=10, leading=16,

@@ -290,12 +290,21 @@ def run_predictions():
         macro_score = round(50 + macro_raw * 0.5, 1)
         macro_score = max(0, min(100, macro_score))
 
-        combined = round(
-            ml_raw         * 0.25 +
-            screener_score * 0.45 +
-            yfin_score     * 0.30,
-            1
-        )
+        # Gated sentiment — only include if signal is strong
+        _sent_imp  = max(0, min(100, 50 + sent_raw * 0.5)) if abs(sent_raw) >= 15 else 0
+        _macro_imp = max(0, min(100, 50 + macro_raw * 0.5)) if abs(macro_raw) >= 15 else 0
+        if _sent_imp or _macro_imp:
+            combined = round(
+                ml_raw         * 0.22 +
+                screener_score * 0.41 +
+                yfin_score     * 0.25 +
+                _sent_imp      * 0.07 +
+                _macro_imp     * 0.05, 1)
+        else:
+            combined = round(
+                ml_raw         * 0.25 +
+                screener_score * 0.45 +
+                yfin_score     * 0.30, 1)
 
         if combined >= 82:   inv_grade = 'A+'
         elif combined >= 68: inv_grade = 'A'
