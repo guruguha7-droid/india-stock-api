@@ -1677,9 +1677,9 @@ def stock_analysis():
                         if k.lower() in sector_str.lower():
                             base_pe = v
                             break
-                # Explicit bank override — banks always use lower PE
-                if any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance']):
-                    base_pe = min(base_pe, 15)
+                    # Explicit bank override — banks always use lower PE
+                    if any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance']):
+                        base_pe = min(base_pe, 15)
 
                     quality_mult = 1.0
                     roce_l2  = float(_r.get('roce_latest_pct') or 10)
