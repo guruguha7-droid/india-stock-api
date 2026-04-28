@@ -24,6 +24,12 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s',
     handlers=[logging.StreamHandler()]
 )
+logger = logging.getLogger('graham')
+
+def _log_exc(where, sym=None):
+    """Log a swallowed exception with traceback. Use in hot paths where pass would hide bugs."""
+    suffix = f" [{sym}]" if sym else ""
+    logger.exception(f"swallowed in {where}{suffix}")
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
@@ -700,7 +706,7 @@ def stock_analysis():
                 result['chart_insights']  = cached.get('chart_insights', {})
                 return
         except Exception:
-            pass
+            _log_exc('fetch_ml.cache_lookup', symbol)
 
         # ── Fallback: compute live ────────────────────────────────────
         try:
@@ -1677,9 +1683,9 @@ def stock_analysis():
                         if k.lower() in sector_str.lower():
                             base_pe = v
                             break
-                # Explicit bank override — banks always use lower PE
-                if any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance']):
-                    base_pe = min(base_pe, 15)
+                    # Explicit bank override — banks always use lower PE
+                    if any(x in sector_str.lower() for x in ['bank','nbfc','financ','insurance','microfinance']):
+                        base_pe = min(base_pe, 15)
 
                     quality_mult = 1.0
                     roce_l2  = float(_r.get('roce_latest_pct') or 10)
@@ -1805,6 +1811,7 @@ def stock_analysis():
                     _sales_cr      = float(_r.get('sales_latest_cr') or 0)
                     _ps_ratio      = None
                     _fair_value_ps = None
+                    _fair_ps       = None
                     try:
                         # Use nightly cache for market cap — avoids yfinance timeout on Render
                         _nc_stock  = (get_nightly_cache() or {}).get('stocks', {}).get(symbol, {})
@@ -1836,7 +1843,7 @@ def stock_analysis():
                             _shares_est   = (_profit_cr2 * 1e7 / _eps_abs) if _eps_abs > 0 and _profit_cr2 > 0 else 1
                             _fair_value_ps = round((_sales_inr * _fair_ps) / _shares_est, 1) if _shares_est > 0 else None
                     except Exception:
-                        pass
+                        _log_exc('ps_valuation_loss_making', symbol)
 
                     val_signal = {
                         "label":         sig_label,
@@ -1852,9 +1859,11 @@ def stock_analysis():
                         "confidence":    confidence,
                         "current_price": cur_price,
                         "ps_ratio":      _ps_ratio,
+                        "fair_ps":       _fair_ps,
                         "pre_profit":    True,
                     }
         except Exception:
+            _log_exc('valuation_signal', symbol)
             val_signal = None
 
         # Compute long_verdict now that val_signal is available
@@ -1888,6 +1897,7 @@ def stock_analysis():
             "long_term_verdict":   long_verdict,
         }
     except Exception:
+        _log_exc('combined_score', symbol)
         result["combined"] = {"score": 50, "grade": "C"}
 
     # ── Forecast ──────────────────────────────────────────────────────

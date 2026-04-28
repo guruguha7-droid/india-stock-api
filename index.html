@@ -585,7 +585,8 @@ async function pfAnalyse() {
     const fromDate = document.getElementById('pf-from-date')?.value || '';
     const beatCtrl = new AbortController();
     setTimeout(() => beatCtrl.abort(), 25000);
-    fetch(`${API}/portfolio-vs-nifty?symbols=${encodeURIComponent(syms)}&from=${fromDate}`, { signal: beatCtrl.signal })
+    const holdingsParam = window._pfHoldings.map(h => `${h.sym}:${h.qty}:${h.avg}`).join(',');
+    fetch(`${API}/portfolio-vs-nifty?holdings=${encodeURIComponent(holdingsParam)}&from=${fromDate}`, { signal: beatCtrl.signal })
       .then(r => r.json()).then(d => { window._lastBeatNiftyData = d; pfRenderBeatsNifty(d, window._pfHoldings); })
       .catch(() => {
         const d = document.getElementById('pf-beat-nifty');
@@ -637,11 +638,11 @@ function pfRenderBeatsNifty(data, holdings) {
   }).join('');
 
   div.innerHTML = `<div class="pf-card">
-    <div class="pf-card-title">📈 BEAT NIFTY TRACKER <span style="font-weight:400;color:var(--text3)">since ${fromDate}</span></div>
+    <div class="pf-card-title">📈 BEAT NIFTY TRACKER ${data.mode === 'cost_basis' ? '<span style="font-weight:400;color:var(--text3)">vs Nifty since ' + fromDate + '</span>' : '<span style="font-weight:400;color:var(--text3)">since ' + fromDate + '</span>'}</div>
     <div style="font-size:13px;color:var(--text1);margin-bottom:14px;line-height:1.6">${verdict}</div>
     <div style="display:flex;gap:20px;margin-bottom:16px;flex-wrap:wrap">
       <div>
-        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">YOUR PORTFOLIO</div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">YOUR PORTFOLIO ${data.mode === 'cost_basis' ? '(vs cost)' : ''}</div>
         <div style="font-size:22px;font-weight:800;font-family:var(--font-head);color:${prColor}">${pr != null ? (pr >= 0 ? '+' : '') + pr.toFixed(1) + '%' : '—'}</div>
       </div>
       <div>
@@ -1213,7 +1214,7 @@ async function doSearch() {
         quote:         pick(res.quote,         prev.quote,         v => v?.price),
         ml:            pick(res.ml,            prev.ml,            v => v?.ml_score != null),
         fundamentals:  pick(res.fundamentals,  prev.fundamentals,  v => v?.investment_score != null),
-        valuation:     pick(res.valuation,     prev.valuation,     v => v?.pe_ratio != null),
+        valuation:     pick(res.valuation,     prev.valuation,     v => v?.pe_ratio != null || v?.eps != null || v?.dividend_yield != null),
         sentiment:     pick(res.sentiment,     prev.sentiment,     v => v?.sentiment_label),
         macro:         pick(res.macro,         prev.macro,         v => v?.macro_score !== 0),
         combined:      pick(res.combined,      prev.combined,      v => v?.score != null),
@@ -1305,16 +1306,17 @@ function renderResult(sym, quote, ml, fund, valuation, sentiment, macro, combine
   const isUp       = change !== '—' && parseFloat(change) >= 0;
 
   // Valuation data — from valuation object
-  const pe         = valuation?.pe_ratio   ? parseFloat(valuation.pe_ratio).toFixed(1)   : '—';
+  const pe = valuation?.pe_ratio  ? parseFloat(valuation.pe_ratio).toFixed(1)
+           : valuation?.eps != null && quote?.price && parseFloat(valuation.eps) !== 0
+           ? (parseFloat(quote.price) / parseFloat(valuation.eps)).toFixed(1)
+           : '—';
   const pm         = valuation?.profit_margin ? (valuation.profit_margin * 100).toFixed(1) + '%' : '—';
   const rg         = valuation?.revenue_growth ? (valuation.revenue_growth * 100).toFixed(1) + '%' : '—';
   const divYield = (() => {
     const raw = valuation?.dividend_yield;
-    if (raw == null) return '—';
+    if (raw == null) return '0%';
     const v = parseFloat(raw);
-    if (isNaN(v) || v === 0) return '—';
-    // yfinance sometimes sends fraction (0.0175), sometimes percentage (1.75)
-    // If > 1, it's already a percentage; if <= 1, multiply by 100
+    if (isNaN(v) || v === 0) return '0%';
     const pct = v > 1 ? v : v * 100;
     return pct.toFixed(2) + '%';
   })();
@@ -1447,6 +1449,9 @@ window.showGoldenCrossInfo = function(isGolden) {
 
         <!-- Beginner verdict card -->
         <div class="verdict-card" id="verdict-card" style="${!combined?.verdict ? 'display:none' : ''}">
+          ${combined?.valuation_signal?.label && combined.valuation_signal.label !== 'Fairly Valued Quality' ? `
+          <div style="font-size:10px;font-family:var(--font-mono);letter-spacing:1px;padding:4px 10px;border-radius:12px;display:inline-block;margin-bottom:8px;background:${combined.valuation_signal.color === 'green' ? 'rgba(0,200,100,0.12)' : combined.valuation_signal.color === 'red' ? 'rgba(255,80,80,0.12)' : 'rgba(255,180,0,0.12)'};color:${combined.valuation_signal.color === 'green' ? 'var(--green)' : combined.valuation_signal.color === 'red' ? 'var(--red)' : 'var(--gold)'};border:1px solid ${combined.valuation_signal.color === 'green' ? 'rgba(0,200,100,0.25)' : combined.valuation_signal.color === 'red' ? 'rgba(255,80,80,0.25)' : 'rgba(255,180,0,0.25)'}">${combined.valuation_signal.label.toUpperCase()}</div>
+          ` : ''}
           <div class="verdict-word ${combined?.verdict_color || 'gold'}">${combined?.verdict || '—'}</div>
           <div class="verdict-reason">${combined?.reason || 'Analysing...'}</div>
           <div class="verdict-score">Score <span>${combined?.score ?? (combined?.score_10 != null ? combined.score_10 * 10 : '—')}</span>/100</div>
@@ -1726,12 +1731,12 @@ window.showGoldenCrossInfo = function(isGolden) {
                 <div class="fund-item">
                   <div class="fund-label">Graham Fair Value</div>
                   <div class="fund-val" style="color:var(--gold)">${fmtPrice(vs.fair_value)}</div>
-                  <div class="fund-trend trend-neu">EPS × Fair P/E (${vs.fair_pe})</div>
+                  <div class="fund-trend trend-neu">${vs.pre_profit ? `Sales × P/S (${vs.fair_ps ?? '—'})` : `EPS × Fair P/E (${vs.fair_pe})`}</div>
                 </div>
                 <div class="fund-item">
-                  <div class="fund-label">Current P/E</div>
-                  <div class="fund-val">${vs.current_pe != null ? vs.current_pe.toFixed(1) : '—'}</div>
-                  <div class="fund-trend trend-neu">fair P/E: ${vs.fair_pe}</div>
+                  <div class="fund-label">${vs.pre_profit ? 'Current P/S' : 'Current P/E'}</div>
+                  <div class="fund-val">${vs.pre_profit ? (vs.ps_ratio != null ? vs.ps_ratio.toFixed(1) : '—') : (vs.current_pe != null ? vs.current_pe.toFixed(1) : '—')}</div>
+                  <div class="fund-trend trend-neu">${vs.pre_profit ? `fair P/S: ${vs.fair_ps ?? '—'}` : `fair P/E: ${vs.fair_pe}`}</div>
                 </div>
                 <div class="fund-item">
                   <div class="fund-label">Confidence</div>
