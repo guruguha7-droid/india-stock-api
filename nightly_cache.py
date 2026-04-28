@@ -116,6 +116,26 @@ def load_screener():
     return df.set_index('symbol').to_dict(orient='index')
 
 
+def _bool_or_default(v, default=0.5):
+    """Mirror of ml_train._bool_or_default — must stay in sync.
+    Returns 1.0 / 0.0 / default; correctly handles NaN (which Python coerces
+    to True via bool())."""
+    import pandas as _pd
+    if v is None:
+        return default
+    if isinstance(v, float) and _pd.isna(v):
+        return default
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in ('', 'nan', 'none'):
+            return default
+        if s in ('true', '1', 'yes', 'y', 't'):
+            return 1.0
+        if s in ('false', '0', 'no', 'n', 'f'):
+            return 0.0
+    return 1.0 if bool(v) else 0.0
+
+
 def compute_ml_features(symbol, sw, nw, fund):
     """Compute all 31 ML features from price arrays + fundamentals."""
     cp = float(sw[-1])
@@ -184,8 +204,8 @@ def compute_ml_features(symbol, sw, nw, fund):
         'roce_trend_5y':    float(fund.get('roce_trend_5y')    or 0.0),
         'promoter_pct':     float(fund.get('promoter_pct')     or 45.0),
         'fii_pct':          float(fund.get('fii_pct')          or 15.0),
-        'fcf_positive_3y':  float(bool(fund.get('fcf_positive_3y'))),
-        'debt_reducing':    float(bool(fund.get('debt_reducing'))),
+        'fcf_positive_3y':  _bool_or_default(fund.get('fcf_positive_3y')),
+        'debt_reducing':    _bool_or_default(fund.get('debt_reducing')),
         'screener_de':      float(fund.get('screener_de')       or 50.0),
         'pe_ratio':         pe_ratio,
         'pb_ratio':         _pb_for_ml,
@@ -345,6 +365,21 @@ def build_cache():
     screener = load_screener()
     print(f"  Loaded {len(screener)} stocks")
 
+    # Auto-extend NSE_STOCKS with any CSV symbols not already present.
+    # SYMBOL_CSV_MAP maps NSE→CSV form; build reverse to know which CSV syms
+    # are already covered under a different NSE name (e.g. LTIM covered by LTM).
+    _csv_to_nse = {v: k for k, v in SYMBOL_CSV_MAP.items()}
+    _nse_set = set(NSE_STOCKS)
+    universe = list(NSE_STOCKS)
+    for csv_sym in screener.keys():
+        # Skip if already covered by an NSE symbol (direct or via SYMBOL_CSV_MAP)
+        if csv_sym in _nse_set:
+            continue
+        if csv_sym in _csv_to_nse and _csv_to_nse[csv_sym] in _nse_set:
+            continue
+        universe.append(csv_sym)
+        print(f"  + Extending universe from CSV: {csv_sym}")
+
     # Download Nifty
     print("\nDownloading Nifty benchmark...")
     nifty_df = yf.download("^NSEI", period="2y", interval="1d",
@@ -361,10 +396,10 @@ def build_cache():
         'stocks':   {}
     }
 
-    print(f"\nProcessing {len(NSE_STOCKS)} stocks...")
+    print(f"\nProcessing {len(universe)} stocks...")
     ok, failed = 0, []
 
-    for i, sym in enumerate(NSE_STOCKS, 1):
+    for i, sym in enumerate(universe, 1):
         try:
             csv_sym = SYMBOL_CSV_MAP.get(sym, sym)
             fund    = screener.get(csv_sym, screener.get(sym, {}))
