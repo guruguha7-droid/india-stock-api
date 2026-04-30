@@ -13,7 +13,7 @@ NSE_STOCKS = [
     # ── Nifty 50 ──────────────────────────────────────────────
     "HDFCBANK", "ICICIBANK", "KOTAKBANK", "AXISBANK", "SBIN",
     "BAJFINANCE", "BAJAJFINSV", "SHRIRAMFIN",
-    "TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "LTIM",
+    "TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "LTM",
     "RELIANCE", "ONGC", "BPCL", "IOC", "POWERGRID", "NTPC",
     "ADANIPORTS", "ADANIENT", "TATAPOWER",
     "HINDUNILVR", "ITC", "NESTLEIND", "BRITANNIA", "TATACONSUM",

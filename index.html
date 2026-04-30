@@ -505,7 +505,7 @@ function pfAddHolding() {
     'M AND M':'M&M','MAHINDRA':'M&M','POLY MEDICURE':'POLYMED','POLYMEDICURE':'POLYMED',
     'GRAVITA INDIA':'GRAVITA','GRAVITAINDIA':'GRAVITA','PARAS DEFENCE':'PARAS',
     'PARASDEFENCE':'PARAS',
-    'TECHNO ELECTRIC':'TECHNOELEC','HDFC BANK':'HDFCBANK','ICICI BANK':'ICICIBANK',
+    'TECHNO ELECTRIC':'TECHNOE','TECHNOELEC':'TECHNOE','DYNAMIC CABLES':'DYCL','DYNAMICCABLES':'DYCL','HDFC BANK':'HDFCBANK','ICICI BANK':'ICICIBANK',
     'STATE BANK':'SBIN','KOTAK BANK':'KOTAKBANK','AXIS BANK':'AXISBANK',
   };
   const sym = SYM_MAP[raw] || raw.replace(/\s+/g, '');
@@ -1009,6 +1009,7 @@ const STOCKS = [
   // Defence
   ['HAL','Hindustan Aeronautics Ltd','Defence'],['BEL','Bharat Electronics Ltd','Defence'],
   ['BEML','BEML Ltd','Defence'],['MAZDOCK','Mazagon Dock Shipbuilders','Defence'],
+  ['TECHNOE','Techno Electric & Engineering','Power Infrastructure'],['DYCL','Dynamic Cables Ltd','Cables'],
   ['COCHINSHIP','Cochin Shipyard Ltd','Defence'],['MIDHANI','Mishra Dhatu Nigam','Defence'],
   ['DATAPATTNS','Data Patterns India','Defence'],['PARAS','Paras Defence & Space','Defence'],
   // Large Cap — Missing
@@ -1213,7 +1214,7 @@ async function doSearch() {
       window._lastAnalysis = {
         quote:         pick(res.quote,         prev.quote,         v => v?.price),
         ml:            pick(res.ml,            prev.ml,            v => v?.ml_score != null),
-        fundamentals:  pick(res.fundamentals,  prev.fundamentals,  v => v?.investment_score != null),
+        fundamentals:  pick(res.fundamentals,  prev.fundamentals,  v => v && (v.investment_score != null || v.eps_latest != null || v.sales_latest_cr != null)),
         valuation:     pick(res.valuation,     prev.valuation,     v => v?.pe_ratio != null || v?.eps != null || v?.dividend_yield != null),
         sentiment:     pick(res.sentiment,     prev.sentiment,     v => v?.sentiment_label),
         macro:         pick(res.macro,         prev.macro,         v => v?.macro_score !== 0),

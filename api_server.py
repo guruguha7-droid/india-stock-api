@@ -543,10 +543,14 @@ def debug_valuation():
 
 @app.route("/health")
 def health():
+    nc = get_nightly_cache() or {}
+    nc_stocks = nc.get('stocks', {}) if isinstance(nc, dict) else {}
     return jsonify({
         "status": "ok",
         "service": "India Stock API",
-        "cached_symbols": len(cache),
+        "request_cache_size": len(cache),
+        "nightly_cache_size": len(nc_stocks),
+        "nightly_cache_built_at": nc.get('built_at') if isinstance(nc, dict) else None,
         "timestamp": datetime.now().isoformat()
     })
 
@@ -3258,13 +3262,15 @@ def rebuild_cache():
     if secret != os.environ.get("CACHE_SECRET", "graham2024"):
         return jsonify({"error": "unauthorized"}), 401
     def _rebuild():
+        import traceback
         try:
             import nightly_cache
             print("  [rebuild] Starting nightly cache rebuild...", flush=True)
             nightly_cache.build_cache()
             print("  [rebuild] Cache rebuild complete.", flush=True)
-        except Exception as e:
-            print(f"  [rebuild] Error: {e}", flush=True)
+        except Exception:
+            print("  [rebuild] FATAL — full traceback follows:", flush=True)
+            traceback.print_exc()
     threading.Thread(target=_rebuild, daemon=True).start()
     return jsonify({"status": "ok", "message": "Cache rebuild started in background"})
 

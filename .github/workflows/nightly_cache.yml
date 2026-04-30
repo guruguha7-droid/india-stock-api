@@ -15,3 +15,9 @@ jobs:
             --max-time 30 \
             --retry 3 \
             --retry-delay 10
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Nightly cache rebuild failed at $(date)"
+          curl -s -X POST "https://india-stock-api.onrender.com/health" || true

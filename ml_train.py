@@ -149,6 +149,26 @@ FUND_DEFAULTS = {
 }
 
 
+# ── Boolean-with-missing helper ──────────────────────────────────────────────
+def _bool_or_default(v, default=0.5):
+    """Convert a CSV cell to 1.0 / 0.0 / default, correctly handling NaN.
+    Python's bool(NaN) is True, which silently mislabelled stocks with missing
+    boolean fields as positive during training. This helper fixes that."""
+    if v is None:
+        return default
+    if isinstance(v, float) and pd.isna(v):
+        return default
+    if isinstance(v, str):
+        s = v.strip().lower()
+        if s in ('', 'nan', 'none'):
+            return default
+        if s in ('true', '1', 'yes', 'y', 't'):
+            return 1.0
+        if s in ('false', '0', 'no', 'n', 'f'):
+            return 0.0
+    return 1.0 if bool(v) else 0.0
+
+
 # ── Step 1: Download price data ───────────────────────────────────────────────
 def download_data():
     print(f"\nDownloading {PERIOD} of NSE data from Yahoo Finance...")
@@ -188,23 +208,64 @@ def download_data():
     return all_prices
 
 
-# ── Step 1b: Download valuation ratios ────────────────────────────────────────
-def download_valuation():
-    print("\nDownloading valuation ratios (PE, PB)...")
+# ── Step 1b: Compute valuation ratios from CSV (matches inference formula) ───
+def download_valuation(all_prices):
+    """Compute PE and PB per stock from screener_fundamentals.csv + latest price.
+    Uses the SAME formula as nightly_cache.compute_ml_features and api_server,
+    eliminating train/serve definition skew on pb_ratio."""
+    print("\nComputing valuation ratios (PE, PB) from CSV...")
+
+    csv_path = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
+    if not os.path.exists(csv_path):
+        print("  WARNING: screener_fundamentals.csv not found — using defaults")
+        return {}
+
+    df = pd.read_csv(csv_path)
+    df = df[df['status'] == 'ok']
+
+    SYMBOL_CSV_MAP = {'LTM': 'LTIM'}
     val_dict = {}
-    for sym in NSE_STOCKS:
-        name = sym.replace('.NS', '')
+    ok = 0
+    fb = 0
+    for _, row in df.iterrows():
+        sym = row['symbol']
+        for nse_sym, csv_sym in SYMBOL_CSV_MAP.items():
+            if sym == csv_sym:
+                sym = nse_sym
+                break
+
+        prices = all_prices.get(sym)
+        if prices is None:
+            continue
         try:
-            import time
-            info = yf.Ticker(sym).info
-            pe = float(info.get('trailingPE') or info.get('forwardPE') or 22.0)
-            pb = float(info.get('priceToBook') or 3.0)
-            val_dict[name] = {'pe_ratio': pe, 'pb_ratio': pb}
-            print(f"  OK {name} — PE:{pe:.1f} PB:{pb:.1f}")
-            time.sleep(0.3)
+            cp = float(prices.iloc[-1] if hasattr(prices, 'iloc') else prices[-1])
         except Exception:
-            val_dict[name] = {'pe_ratio': 22.0, 'pb_ratio': 3.0}
-            print(f"  FAIL {name} — using defaults")
+            continue
+
+        try:
+            eps       = float(row.get('eps_latest')       or 0)
+            nw_cr     = float(row.get('networth_cr')      or 0)
+            profit_cr = float(row.get('profit_latest_cr') or 0)
+
+            pe = round(cp / eps, 2) if eps > 0 else FUND_DEFAULTS['pe_ratio']
+
+            if nw_cr > 0 and profit_cr > 0 and eps > 0:
+                shares = (profit_cr * 1e7) / eps
+                pb = round((cp * shares) / (nw_cr * 1e7), 2)
+                ok += 1
+            else:
+                pb = FUND_DEFAULTS['pb_ratio']
+                fb += 1
+
+            val_dict[sym] = {'pe_ratio': pe, 'pb_ratio': pb}
+        except Exception:
+            val_dict[sym] = {
+                'pe_ratio': FUND_DEFAULTS['pe_ratio'],
+                'pb_ratio': FUND_DEFAULTS['pb_ratio'],
+            }
+            fb += 1
+
+    print(f"  Computed PB from CSV for {ok} stocks; {fb} fell back to default 3.0")
     return val_dict
 
 
@@ -243,8 +304,8 @@ def load_fundamentals():
             'roce_trend_5y':    float(row.get('roce_trend_5y')   or 0.0),
             'promoter_pct':     float(row.get('promoter_pct')    or FUND_DEFAULTS['promoter_pct']),
             'fii_pct':          float(row.get('fii_pct')         or FUND_DEFAULTS['fii_pct']),
-            'fcf_positive_3y':  float(bool(row.get('fcf_positive_3y'))),
-            'debt_reducing':    float(bool(row.get('debt_reducing'))),
+            'fcf_positive_3y':  _bool_or_default(row.get('fcf_positive_3y')),
+            'debt_reducing':    _bool_or_default(row.get('debt_reducing')),
             'screener_de':      float(row.get('screener_de')     or FUND_DEFAULTS['screener_de']),
         }
 
@@ -567,7 +628,7 @@ if __name__ == "__main__":
 
     prices    = download_data()
     fund_dict = load_fundamentals()
-    val_dict  = download_valuation()
+    val_dict  = download_valuation(prices)
     df        = engineer_features(prices, fund_dict, val_dict)
 
     if len(df) < 100:
