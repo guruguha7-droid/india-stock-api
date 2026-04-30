@@ -25,6 +25,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger('graham')
+logger.setLevel(logging.INFO)  # debug valuation issues
 
 def _log_exc(where, sym=None):
     """Log a swallowed exception with traceback. Use in hot paths where pass would hide bugs."""
@@ -1714,6 +1715,7 @@ def stock_analysis():
                     )
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
+                    logger.info(f"[valuation_debug] {symbol}: eps={eps_latest}, base_pe={base_pe}, growth={reliable_growth}, qm={quality_mult}, fair_pe={fair_pe}, fair_value={fair_value}")
 
                     if scr_raw >= 75:   mos = 0.10
                     elif scr_raw >= 60: mos = 0.15
