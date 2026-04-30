@@ -1632,12 +1632,28 @@ def stock_analysis():
             _row     = _sdf[_sdf['symbol'] == _csv_sym]
             _r       = _row.iloc[0].to_dict() if not _row.empty else {}
 
+            # NaN-safe float: pandas blank fields are float('nan'), truthy, so
+            # `float(nan or default)` returns nan — this helper fixes that.
+            def _fval(key, default=0.0, _d=_r):
+                v = _d.get(key)
+                if v is None: return default
+                try:
+                    f = float(v)
+                    return default if math.isnan(f) else f
+                except (TypeError, ValueError):
+                    return default
+
             eps_from_valuation = result.get("valuation", {}).get("eps")
-            eps_latest_raw = float(eps_from_valuation or _r.get('eps_latest') or 0)
-            eps_cagr_raw   = float(_r.get('eps_cagr_5y') or 8)
-            _opm_lat_v     = float(_r.get('opm_latest_pct') or 0)
-            _opm_avg_v     = float(_r.get('opm_avg_5y')     or _opm_lat_v)
-            _prof_cagr_10  = float(_r.get('profit_cagr_10y') or eps_cagr_raw)
+            _eps_csv       = _fval('eps_latest', 0.0)
+            eps_latest_raw = float(eps_from_valuation or 0) if (
+                eps_from_valuation is not None and not (
+                    isinstance(eps_from_valuation, float) and math.isnan(eps_from_valuation)
+                )
+            ) else _eps_csv
+            eps_cagr_raw   = _fval('eps_cagr_5y',    8.0)
+            _opm_lat_v     = _fval('opm_latest_pct', 0.0)
+            _opm_avg_v     = _fval('opm_avg_5y',     _opm_lat_v)
+            _prof_cagr_10  = _fval('profit_cagr_10y', eps_cagr_raw)
 
             # ── Cyclicality detection ──────────────────────────────────
             _sec_v     = str(result.get('quote', {}).get('industry', '') or '').lower()
@@ -1656,8 +1672,8 @@ def stock_analysis():
             else:
                 eps_latest = eps_latest_raw
                 eps_cagr   = eps_cagr_raw
-            roce_l      = float(_r.get('roce_latest_pct') or 10)
-            roce_a      = float(_r.get('roce_avg_5y')  or roce_l)
+            roce_l      = _fval('roce_latest_pct', 10.0)
+            roce_a      = _fval('roce_avg_5y',     roce_l)
             fcf_ok      = bool(_r.get('fcf_positive_3y'))
             debt_red    = bool(_r.get('debt_reducing'))
             cur_pe      = float(result.get('valuation', {}).get('pe_ratio') or 0)
@@ -1693,15 +1709,15 @@ def stock_analysis():
                         base_pe = min(base_pe, 15)
 
                     quality_mult = 1.0
-                    roce_l2  = float(_r.get('roce_latest_pct') or 10)
-                    roce_a2  = float(_r.get('roce_avg_5y') or roce_l2)
+                    roce_l2  = _fval('roce_latest_pct', 10.0)
+                    roce_a2  = _fval('roce_avg_5y',     roce_l2)
                     if roce_l2 > roce_a2 + 3:   quality_mult += 0.10
                     if bool(_r.get('fcf_positive_3y')): quality_mult += 0.08
                     if bool(_r.get('debt_reducing')):    quality_mult += 0.07
-                    if float(_r.get('promoter_pct') or 0) > 55: quality_mult += 0.05
+                    if _fval('promoter_pct', 0.0) > 55: quality_mult += 0.05
                     quality_mult = min(quality_mult, 1.35)
 
-                    opm_trend = float(_r.get('opm_trend_5y') or 0)
+                    opm_trend = _fval('opm_trend_5y', 0.0)
                     reliable_growth = min(float(eps_cagr or 8.0), 25)
                     if opm_trend < -3:
                         reliable_growth = min(reliable_growth, 15)
@@ -1784,10 +1800,10 @@ def stock_analysis():
 
                 else:
                     # ── Loss-making company ───────────────────────────────
-                    _sales_cagr  = float(_r.get('sales_cagr_5y')    or 0)
-                    _prof_gr_1y  = float(_r.get('profit_growth_1y') or 0)
-                    _prof_cagr5  = float(_r.get('profit_cagr_5y')   or -999)
-                    _roce_loss   = float(_r.get('roce_latest_pct')  or 0)
+                    _sales_cagr  = _fval('sales_cagr_5y',    0.0)
+                    _prof_gr_1y  = _fval('profit_growth_1y', 0.0)
+                    _prof_cagr5  = _fval('profit_cagr_5y',   -999.0)
+                    _roce_loss   = _fval('roce_latest_pct',  0.0)
 
                     _is_turnaround = _prof_gr_1y > 30 and _sales_cagr > 5
                     _is_pre_profit = _sales_cagr > 20 and _roce_loss > -20
