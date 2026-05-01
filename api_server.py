@@ -1784,6 +1784,35 @@ def stock_analysis():
                         sig_color = "red"
                         sig_desc  = "Weak fundamentals and expensive — avoid"
 
+                    # ── Project value 1Y forward (fundamentals-only, price held flat) ──
+                    fwd_value_signal = None
+                    try:
+                        # Profit growth: prefer forecast, fall back to eps_growth_1y, then eps_cagr
+                        _fwd_growth = (result.get('forecast', {}).get('1y', {}).get('profit_growth_pct')
+                                       or float(_r.get('eps_growth_1y') or 0)
+                                       or eps_cagr)
+                        _fwd_growth = float(_fwd_growth) / 100.0  # to fraction
+                        _fwd_eps    = eps_latest * (1 + _fwd_growth)
+                        _fwd_fair   = round(_fwd_eps * fair_pe, 1)
+                        _fwd_pct    = round((cur_price - _fwd_fair) / _fwd_fair * 100, 1) if _fwd_fair > 0 else None
+
+                        if _fwd_pct is not None:
+                            if   _fwd_pct < -15: _fwd_label, _fwd_color = "Undervalued", "green"
+                            elif _fwd_pct < -5:  _fwd_label, _fwd_color = "Slightly Undervalued", "green"
+                            elif _fwd_pct <= 5:  _fwd_label, _fwd_color = "Fairly Valued", "gold"
+                            elif _fwd_pct <= 15: _fwd_label, _fwd_color = "Slightly Overvalued", "gold"
+                            else:                _fwd_label, _fwd_color = "Overvalued", "red"
+                            fwd_value_signal = {
+                                "label":         _fwd_label,
+                                "color":         _fwd_color,
+                                "pct_vs_fair":   _fwd_pct,
+                                "projected_eps": round(_fwd_eps, 2),
+                                "projected_fair_value": _fwd_fair,
+                                "growth_used_pct": round(_fwd_growth * 100, 1),
+                            }
+                    except Exception:
+                        _log_exc('forward_value_signal', symbol)
+
                     val_signal = {
                         "label":         sig_label,
                         "color":         sig_color,
@@ -1796,6 +1825,7 @@ def stock_analysis():
                         "buy_zone_high": buy_zone_high,
                         "confidence":    confidence,
                         "current_price": cur_price,
+                        "forward_1y":    fwd_value_signal,
                     }
 
                 else:

@@ -1456,18 +1456,27 @@ window.showGoldenCrossInfo = function(isGolden) {
           <div class="verdict-word ${combined?.verdict_color || 'gold'}">${combined?.verdict || '—'}</div>
           <div class="verdict-reason">${combined?.reason || 'Analysing...'}</div>
           <div class="verdict-score">Score <span>${combined?.score ?? (combined?.score_10 != null ? combined.score_10 * 10 : '—')}</span>/100</div>
-          ${combined?.short_term_verdict && combined?.long_term_verdict ? `
+          ${combined?.valuation_signal?.label ? `
           <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center">
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
-              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">1Y OUTLOOK</div>
-              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${['BUY','STRONG BUY','MILD BUY'].includes(combined.short_term_verdict)?'var(--green)':['SELL','MILD SELL'].includes(combined.short_term_verdict)?'var(--red)':'var(--gold)'}">${combined.short_term_verdict}</div>
-              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">ML signal</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">VALUE NOW</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:var(--${combined.valuation_signal.color})">${(() => {
+                const p = combined.valuation_signal.pct_vs_fair;
+                if (p == null) return '—';
+                if (p < -15) return 'UNDERVALUED';
+                if (p < -5)  return 'SLIGHTLY UNDER';
+                if (p <= 5)  return 'FAIRLY VALUED';
+                if (p <= 15) return 'SLIGHTLY OVER';
+                return 'OVERVALUED';
+              })()}</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">${combined.valuation_signal.pct_vs_fair != null ? (combined.valuation_signal.pct_vs_fair >= 0 ? '+' : '') + combined.valuation_signal.pct_vs_fair.toFixed(1) + '% vs fair' : 'no data'}</div>
             </div>
+            ${combined.valuation_signal.forward_1y ? `
             <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 14px;text-align:center;border:1px solid rgba(255,255,255,0.08)">
-              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">1-2Y OUTLOOK</div>
-              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:${['BUY','STRONG BUY','MILD BUY'].includes(combined.long_term_verdict)?'var(--green)':['SELL','MILD SELL'].includes(combined.long_term_verdict)?'var(--red)':'var(--gold)'}">${combined.long_term_verdict}</div>
-              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">Graham valuation</div>
-            </div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-bottom:3px">VALUE 1Y LATER</div>
+              <div style="font-size:13px;font-weight:700;font-family:var(--font-head);color:var(--${combined.valuation_signal.forward_1y.color})">${combined.valuation_signal.forward_1y.label.toUpperCase()}</div>
+              <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono)">${(combined.valuation_signal.forward_1y.pct_vs_fair >= 0 ? '+' : '') + combined.valuation_signal.forward_1y.pct_vs_fair.toFixed(1) + '% if held flat'}</div>
+            </div>` : ''}
           </div>` : ''}
 
           <div class="verdict-pills">
