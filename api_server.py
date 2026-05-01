@@ -1779,10 +1779,14 @@ def stock_analysis():
                         sig_label = "Value Trap Risk"
                         sig_color = "red"
                         sig_desc  = "Cheap valuation but weak fundamentals — be cautious"
-                    else:
+                    elif is_expensive:
                         sig_label = "Overpriced Weak Business"
                         sig_color = "red"
                         sig_desc  = "Weak fundamentals and expensive — avoid"
+                    else:
+                        sig_label = "Fairly Valued, Weak Business"
+                        sig_color = "gold"
+                        sig_desc  = "Average business at a fair price — limited edge either way"
 
                     # ── Project value 1Y forward (fundamentals-only, price held flat) ──
                     fwd_value_signal = None
