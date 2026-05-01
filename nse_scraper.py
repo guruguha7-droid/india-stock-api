@@ -195,8 +195,9 @@ def get_indices() -> dict:
 
         # Sensex — try NSE allIndices first, then yfinance fallback
         try:
+            _sensex_keys = {'S&P BSE SENSEX', 'SENSEX', 'BSE SENSEX'}
             for item in data.get('data', []):
-                if item.get('index') == 'S&P BSE SENSEX':
+                if item.get('index') in _sensex_keys:
                     indices['SENSEX'] = {
                         'price':      item.get('last'),
                         'change':     item.get('change'),
@@ -209,27 +210,17 @@ def get_indices() -> dict:
         if 'SENSEX' not in indices:
             try:
                 import yfinance as _yf
-                bse = _yf.download("^BSESN", period="1d", interval="5m",
-                                   auto_adjust=True, progress=False)
-                if bse is not None and len(bse) >= 1:
-                    if hasattr(bse.columns, 'levels'):
-                        bse.columns = bse.columns.get_level_values(0)
-                    close_vals = bse['Close'].squeeze()
-                    price = float(close_vals.iloc[-1])
-                    # Use previous day close for change calculation
-                    prev_bse = _yf.download("^BSESN", period="5d", interval="1d",
-                                            auto_adjust=True, progress=False)
-                    if hasattr(prev_bse.columns, 'levels'):
-                        prev_bse.columns = prev_bse.columns.get_level_values(0)
-                    prev = float(prev_bse['Close'].squeeze().iloc[-2]) if prev_bse is not None and len(prev_bse) >= 2 else price
-                    if price > 1000:
-                        chg  = round(price - prev, 2)
-                        chgp = round((chg / prev) * 100, 2) if prev > 0 else 0.0
-                        indices['SENSEX'] = {
-                            'price':      round(price, 2),
-                            'change':     chg,
-                            'change_pct': chgp,
-                        }
+                _fi = _yf.Ticker("^BSESN").fast_info
+                price = float(_fi.last_price or 0)
+                prev  = float(_fi.previous_close or price)
+                if price > 1000:
+                    chg  = round(price - prev, 2)
+                    chgp = round((chg / prev) * 100, 2) if prev > 0 else 0.0
+                    indices['SENSEX'] = {
+                        'price':      round(price, 2),
+                        'change':     chg,
+                        'change_pct': chgp,
+                    }
             except Exception:
                 pass
 
