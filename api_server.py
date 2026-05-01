@@ -2658,62 +2658,82 @@ def portfolio_xray():
     def _fetch(sym):
         try:
             stock = {}
-            # Price from NSE
             q = nse_quote(sym)
             stock['price']  = q.get('price')
             stock['sector'] = q.get('industry', '—')
 
-            # From nightly cache if available
+            # NaN-safe CSV float reader — pandas blank fields are float('nan'),
+            # truthy in Python, so `float(nan or default)` returns nan not default.
+            def _fv(row, key, default=0.0):
+                v = row.get(key)
+                if v is None: return default
+                try:
+                    f = float(v)
+                    return default if math.isnan(f) else f
+                except (TypeError, ValueError):
+                    return default
+
+            # ML score from nightly cache (independent of CSV processing)
+            ml_score = 50.0
             nc = get_nightly_cache()
             if nc and sym in nc.get('stocks', {}):
-                cached = nc['stocks'][sym]
-                ml     = cached.get('ml', {})
-                val    = cached.get('valuation', {})
-                stock['ml_score']       = ml.get('ml_score')
-                stock['verdict']        = ml.get('prediction','—').replace('OUTPERFORM','BUY').replace('UNDERPERFORM','HOLD')
-                stock['combined_score'] = ml.get('ml_score')  # use ml as proxy if no combined
-                # Valuation signal from screener CSV
-                try:
-                    sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__),'screener_fundamentals.csv'))
-                    csv_sym = {'LTM':'LTIM'}.get(sym, sym)
-                    row     = sdf[sdf['symbol']==csv_sym]
-                    if not row.empty:
-                        r          = row.iloc[0].to_dict()
-                        scr_score  = float(r.get('investment_score') or 50)
-                        stock['combined_score'] = round(ml.get('ml_score',50)*0.5 + scr_score*0.5, 1)
-                        stock['verdict']        = 'BUY' if stock['combined_score']>=65 else 'HOLD' if stock['combined_score']>=50 else 'SELL'
-                        eps_l = float(r.get('eps_latest') or 0) or None
-                        if eps_l and stock['price'] and float(stock['price']) > 0:
-                            eps_cagr = float(r.get('eps_cagr_5y') or 8)
-                            rbi_rate = RBI_REPO_RATE; rate_adj = 4.4/rbi_rate
-                            base_pe  = 22
-                            SECTOR_PE= {'IT':28,'Technology':28,'FMCG':35,'Pharma':30,'Banking':15,'Finance':18,'Metals':10,'Energy':12,'Defence':30}
-                            for k,v in SECTOR_PE.items():
-                                if k.lower() in str(stock.get('sector','')).lower():
-                                    base_pe=v; break
-                            qm = 1.0
-                            if float(r.get('roce_latest_pct') or 10)>float(r.get('roce_avg_5y') or 10)+3: qm+=0.10
-                            if bool(r.get('fcf_positive_3y')): qm+=0.08
-                            if bool(r.get('debt_reducing')):   qm+=0.07
-                            qm = min(qm, 1.35)
-                            fair_pe  = round(min((base_pe+1.5*min(eps_cagr,25))*rate_adj*qm, 55),1)
-                            fair_val = round(eps_l * fair_pe, 0)
-                            cur_p    = float(stock['price'])
-                            pct_fair = round((cur_p - fair_val)/fair_val*100,1) if fair_val>0 else 0
-                            mos      = 0.10 if scr_score>=75 else 0.15 if scr_score>=60 else 0.25
-                            stock['fair_value']   = fair_val
-                            stock['val_signal']   = ('Undervalued Quality' if scr_score>=60 and cur_p<fair_val*0.90
-                                                     else 'Overvalued Quality' if scr_score>=60 and cur_p>fair_val*1.15
-                                                     else 'Fairly Valued' if scr_score>=60
-                                                     else 'Value Trap Risk' if cur_p<fair_val*0.90
-                                                     else 'Overpriced')
-                            stock['val_signal_color'] = ('green' if 'Undervalued' in stock['val_signal']
-                                                         else 'red' if 'Trap' in stock['val_signal'] or 'Overpriced' in stock['val_signal']
-                                                         else 'gold')
-                except Exception:
-                    pass
-            result['stocks'][sym] = {k:v for k,v in stock.items()
-                                      if v is not None and not (isinstance(v,float) and math.isnan(v))}
+                cached   = nc['stocks'][sym]
+                ml       = cached.get('ml', {})
+                ml_score = float(ml.get('ml_score') or 50)
+                stock['ml_score'] = ml_score
+
+            # Fundamentals + fair value from CSV — runs for ALL symbols
+            try:
+                sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+                csv_sym = {'LTM': 'LTIM'}.get(sym, sym)
+                row     = sdf[sdf['symbol'] == csv_sym]
+                if not row.empty:
+                    r         = row.iloc[0].to_dict()
+                    scr_score = _fv(r, 'investment_score', 50.0)
+                    combined  = round(ml_score * 0.5 + scr_score * 0.5, 1)
+                    stock['combined_score'] = combined
+                    stock['verdict'] = ('BUY' if combined >= 65
+                                        else 'HOLD' if combined >= 50
+                                        else 'SELL')
+
+                    eps_l = _fv(r, 'eps_latest', 0.0)
+                    cur_p = float(str(stock.get('price') or '0').replace(',', '')) or 0.0
+                    if eps_l > 0 and cur_p > 0:
+                        eps_cagr = _fv(r, 'eps_cagr_5y', 8.0)
+                        rate_adj = 4.4 / RBI_REPO_RATE
+                        base_pe  = 22
+                        _SECTOR_PE = {'IT':28,'Technology':28,'FMCG':35,'Pharma':30,
+                                      'Banking':15,'Finance':18,'Metals':10,'Energy':12,
+                                      'Power':14,'Infrastructure':18,'Defence':30}
+                        for k, v in _SECTOR_PE.items():
+                            if k.lower() in str(stock.get('sector', '')).lower():
+                                base_pe = v; break
+                        qm = 1.0
+                        if _fv(r, 'roce_latest_pct', 10) > _fv(r, 'roce_avg_5y', 10) + 3: qm += 0.10
+                        if bool(r.get('fcf_positive_3y')): qm += 0.08
+                        if bool(r.get('debt_reducing')):   qm += 0.07
+                        qm = min(qm, 1.35)
+                        fair_pe  = round(min((base_pe + 1.5 * min(eps_cagr, 25)) * rate_adj * qm, 55), 1)
+                        fair_val = round(eps_l * fair_pe, 0)
+                        if fair_val > 0 and not math.isnan(fair_val):
+                            stock['fair_value'] = fair_val
+                            stock['val_signal'] = (
+                                'Undervalued Quality' if scr_score >= 60 and cur_p < fair_val * 0.90
+                                else 'Overvalued Quality' if scr_score >= 60 and cur_p > fair_val * 1.15
+                                else 'Fairly Valued' if scr_score >= 60
+                                else 'Value Trap Risk' if cur_p < fair_val * 0.90
+                                else 'Overpriced'
+                            )
+                            stock['val_signal_color'] = (
+                                'green' if 'Undervalued' in stock['val_signal']
+                                else 'red' if 'Trap' in stock['val_signal'] or 'Overpriced' in stock['val_signal']
+                                else 'gold'
+                            )
+            except Exception:
+                pass
+
+            result['stocks'][sym] = {k: v for k, v in stock.items()
+                                     if v is not None and not (isinstance(v, float) and math.isnan(v))}
         except Exception as e:
             result['stocks'][sym] = {'error': str(e)}
 
