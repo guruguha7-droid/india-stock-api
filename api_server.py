@@ -2038,27 +2038,24 @@ def stock_analysis():
 
         # ── Sanity overrides: refuse buy verdicts that contradict the data ──
         if val_signal:
-            _vs_label   = val_signal.get('label', '')
-            _vs_pct     = val_signal.get('pct_vs_fair') or 0
-            _ml_target  = (result.get('forecast', {}).get('1y', {}) or {}).get('price_target')
-            _cur_price  = val_signal.get('current_price') or 0
+            _vs_label = val_signal.get('label', '') or ''
+            _vs_pct   = val_signal.get('pct_vs_fair') or 0
 
-            # Override 1: Overvalued + ML expects no upside → cap at HOLD
+            # Override 1: Any "Overvalued" label → cap at HOLD
+            # If the model itself labeled the stock overvalued, the verdict shouldn't be BUY.
             if 'Overvalued' in _vs_label and verdict in ('MILD BUY', 'BUY', 'STRONG BUY'):
-                _ml_upside = ((_ml_target - _cur_price) / _cur_price * 100) if (_ml_target and _cur_price) else None
-                if _ml_upside is not None and _ml_upside < 5:
-                    verdict, verdict_color = 'HOLD', 'gold'
-                    reason = 'Overvalued — wait for better entry'
+                verdict, verdict_color = 'HOLD', 'gold'
+                reason = 'Overvalued — wait for better entry'
 
-            # Override 2: Severely overvalued (>30% above fair) → never above MILD BUY
-            if _vs_pct > 30 and verdict in ('BUY', 'STRONG BUY'):
-                verdict, verdict_color = 'MILD BUY', 'green'
-                reason = (reason or '') + ' (capped: significantly above fair value)'
+            # Override 2: Any "Overpriced" label (weak business + expensive) → never above HOLD
+            if 'Overpriced' in _vs_label and verdict in ('MILD BUY', 'BUY', 'STRONG BUY'):
+                verdict, verdict_color = 'HOLD', 'gold'
+                reason = 'Overpriced weak business — avoid'
 
-            # Override 3: Strong undervaluation should never end up as SELL/MILD SELL
+            # Override 3: Strong undervaluation should never end up SELL
             if _vs_pct < -25 and verdict in ('SELL', 'MILD SELL'):
                 verdict, verdict_color = 'HOLD', 'gold'
-                reason = (reason or '') + ' (lifted: deeply undervalued)'
+                reason = 'Significantly undervalued — wait but don\'t sell'
 
         result["combined"] = {
             "score":               combined,
