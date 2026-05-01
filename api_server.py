@@ -51,6 +51,91 @@ DISK_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ── Market constants — update manually when RBI changes rates ────────────────
 RBI_REPO_RATE = 6.5   # Current RBI repo rate — update when changed
 
+# ── Structural tailwinds ──────────────────────────────────────────────────────
+# Multi-year demand drivers that historical CAGR doesn't fully capture.
+# Format: 'SYMBOL': (theme_name, fair_value_multiplier)
+# Multipliers: 1.10 = +10% boost, 1.20 = +20% boost. Conservative by design.
+# Edit freely — these are editorial calls, not objective truths.
+STRUCTURAL_TAILWINDS = {
+    # ── Power & Grid Capex (T&D buildout, data center power demand) ──
+    'TECHNOE':    ('Power transmission & data center buildout',    1.18),
+    'POWERGRID':  ('Inter-state transmission capex cycle',          1.10),
+    'SIEMENS':    ('Industrial automation & grid modernization',    1.12),
+    'ABB':        ('Industrial automation & grid modernization',    1.12),
+    'CUMMINSIND': ('Data center backup power & industrial gensets', 1.12),
+    'DYCL':       ('Cables for power infra & data centers',         1.10),
+
+    # ── Defence indigenization (Atmanirbhar push, multi-decade order books) ──
+    'MAZDOCK':    ('Defence indigenization — naval shipbuilding',   1.18),
+    'COCHINSHIP': ('Defence indigenization — naval shipbuilding',   1.15),
+    'HAL':        ('Defence indigenization — aerospace',            1.15),
+    'BEL':        ('Defence indigenization — electronics',          1.12),
+    'BEML':       ('Defence indigenization — heavy equipment',      1.10),
+    'PARAS':      ('Defence indigenization — precision systems',    1.12),
+    'DATAPATTNS': ('Defence electronics & ATE systems',             1.15),
+
+    # ── Renewable & clean energy ──
+    'ADANIGREEN': ('Renewable energy capacity expansion',           1.12),
+    'TATAPOWER':  ('Renewable transition + EV charging network',    1.10),
+    'NTPC':       ('Renewable transition (140GW target)',           1.08),
+    'ADANIPOWER': ('Power demand growth from data centers',         1.08),
+
+    # ── Premium auto / EV transition ──
+    'TVSMOTOR':   ('EV transition + premium 2W demand',             1.10),
+    'EICHERMOT':  ('Premium 2W (Royal Enfield) global expansion',   1.10),
+    'M&M':        ('SUV mix shift + EV launches',                   1.12),
+    'BAJAJ-AUTO': ('EV transition (Chetak) + 3W exports',           1.08),
+
+    # ── Specialty pharma / CDMO (China+1, biosimilars) ──
+    'DRREDDY':    ('US generics + biosimilars launches',            1.08),
+    'CIPLA':      ('US specialty + India branded growth',           1.08),
+    'SUNPHARMA':  ('Specialty pharma (Ilumya, Cequa)',              1.08),
+    'DIVISLAB':   ('CDMO scale + custom synthesis',                 1.10),
+    'LAURUSLABS': ('CDMO + biologics expansion',                    1.10),
+    'GLENMARK':   ('Innovative R&D pipeline (oncology)',            1.08),
+
+    # ── Tech / digital transformation ──
+    'LTTS':       ('ER&D services + digital engineering',           1.12),
+    'PERSISTENT': ('Cloud migration + AI services',                 1.12),
+    'TATAELXSI':  ('Auto + media tech engineering',                 1.12),
+    'COFORGE':    ('Travel/BFSI digital transformation',            1.08),
+    'LTIM':       ('Cloud + analytics services',                    1.08),
+
+    # ── Telecom / 5G / digital infra ──
+    'BHARTIARTL': ('5G monetization + Africa growth',               1.10),
+    'RELIANCE':   ('Jio 5G + new energy + retail scale',            1.08),
+
+    # ── Capital goods / engineering (capex cycle, China+1) ──
+    'LT':         ('Domestic + Middle East infra orders',           1.10),
+    'SCHAEFFLER': ('Auto components + industrial bearings',         1.08),
+    'TIINDIA':    ('Diversified engineering + EV components',       1.10),
+
+    # ── Premium consumption (Titan, jewelry formalization) ──
+    'TITAN':      ('Premium jewelry formalization + retail scale',  1.10),
+
+    # ── Hospitality (post-COVID structural recovery) ──
+    'INDHOTEL':   ('Premium hospitality + asset-light expansion',   1.10),
+    'CHALET':     ('Premium hospitality recovery',                  1.08),
+    'LEMONTREE':  ('Mid-segment hospitality expansion',             1.08),
+
+    # ── Internet / fintech (gradual profitability) ──
+    'PAYTM':      ('Path to profitability + payment infrastructure', 1.08),
+    'NYKAA':      ('Beauty premiumization + fashion vertical',      1.08),
+    'POLICYBZR':  ('Insurance digitization tailwind',               1.08),
+
+    # ── Steel / metals (capex + infra demand) ──
+    'TATASTEEL':  ('Domestic capex + Europe restructuring',         1.05),
+    'JSWSTEEL':   ('Domestic capacity expansion',                   1.05),
+
+    # ── Railway capex (PSU rerating, capex cycle) ──
+    'IRFC':       ('Railway capex financing growth',                1.08),
+
+    # ── Small finance banks (microfinance recovery + branch expansion) ──
+    'EQUITASBNK': ('SFB-to-Universal-Bank transition path',         1.08),
+    'UJJIVANSFB': ('SFB-to-Universal-Bank transition path',         1.08),
+    'CREDITACC':  ('Microfinance penetration in underbanked areas', 1.08),
+}
+
 def save_disk_cache(name: str, data):
     try:
         path = os.path.join(DISK_CACHE_DIR, f'_{name}_cache.json')
@@ -1731,6 +1816,13 @@ def stock_analysis():
                     )
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
+                    # Apply structural tailwind if any
+                    _tw = STRUCTURAL_TAILWINDS.get(symbol)
+                    if _tw:
+                        _tw_theme, _tw_mult = _tw
+                        fair_value = round(fair_value * _tw_mult, 1)
+                    else:
+                        _tw_theme, _tw_mult = None, 1.0
                     logger.info(f"[valuation_debug] {symbol}: eps={eps_latest}, base_pe={base_pe}, growth={reliable_growth}, qm={quality_mult}, fair_pe={fair_pe}, fair_value={fair_value}")
 
                     if scr_raw >= 75:   mos = 0.10
@@ -1804,7 +1896,7 @@ def stock_analysis():
                             _fwd_growth = 0  # bad recent year + no CAGR data → assume flat
                         _fwd_growth = _fwd_growth / 100.0  # to fraction
                         _fwd_eps    = eps_latest * (1 + _fwd_growth)
-                        _fwd_fair   = round(_fwd_eps * fair_pe, 1)
+                        _fwd_fair   = round(_fwd_eps * fair_pe * _tw_mult, 1)
                         _fwd_pct    = round((cur_price - _fwd_fair) / _fwd_fair * 100, 1) if _fwd_fair > 0 else None
 
                         if _fwd_pct is not None:
@@ -1835,8 +1927,10 @@ def stock_analysis():
                         "buy_zone_low":  buy_zone_low,
                         "buy_zone_high": buy_zone_high,
                         "confidence":    confidence,
-                        "current_price": cur_price,
-                        "forward_1y":    fwd_value_signal,
+                        "current_price":       cur_price,
+                        "forward_1y":          fwd_value_signal,
+                        "tailwind_theme":      _tw_theme,
+                        "tailwind_multiplier": _tw_mult,
                     }
 
                 else:
