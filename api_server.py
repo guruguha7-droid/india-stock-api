@@ -1791,11 +1791,18 @@ def stock_analysis():
                     # ── Project value 1Y forward (fundamentals-only, price held flat) ──
                     fwd_value_signal = None
                     try:
-                        # Profit growth: prefer forecast, fall back to eps_growth_1y, then eps_cagr
-                        _fwd_growth = (result.get('forecast', {}).get('1y', {}).get('profit_growth_pct')
-                                       or float(_r.get('eps_growth_1y') or 0)
-                                       or eps_cagr)
-                        _fwd_growth = float(_fwd_growth) / 100.0  # to fraction
+                        # Forecast isn't computed yet at this point in the pipeline,
+                        # so use CSV growth directly. Prefer 5Y CAGR (smoother) over 1Y (volatile),
+                        # but cap negatives at -5% so a single bad year doesn't dominate.
+                        _g_5y = float(_r.get('profit_cagr_5y') or _r.get('eps_cagr_5y') or 0)
+                        _g_1y = float(_r.get('profit_growth_1y') or _r.get('eps_growth_1y') or 0)
+                        if _g_5y > 0:
+                            _fwd_growth = _g_5y  # use smoothed multi-year CAGR
+                        elif _g_1y > -5:
+                            _fwd_growth = max(_g_1y, 0)  # use 1Y but floor at 0
+                        else:
+                            _fwd_growth = 0  # bad recent year + no CAGR data → assume flat
+                        _fwd_growth = _fwd_growth / 100.0  # to fraction
                         _fwd_eps    = eps_latest * (1 + _fwd_growth)
                         _fwd_fair   = round(_fwd_eps * fair_pe, 1)
                         _fwd_pct    = round((cur_price - _fwd_fair) / _fwd_fair * 100, 1) if _fwd_fair > 0 else None
