@@ -2661,9 +2661,10 @@ def portfolio_xray():
             q = nse_quote(sym)
             stock['price']  = q.get('price')
             stock['sector'] = q.get('industry', '—')
+            sector_str = str(stock['sector']).lower()
 
-            # NaN-safe CSV float reader — pandas blank fields are float('nan'),
-            # truthy in Python, so `float(nan or default)` returns nan not default.
+            # NaN-safe float reader — pandas blank → float('nan') which is truthy,
+            # so `float(nan or default)` returns nan, not default.
             def _fv(row, key, default=0.0):
                 v = row.get(key)
                 if v is None: return default
@@ -2673,54 +2674,140 @@ def portfolio_xray():
                 except (TypeError, ValueError):
                     return default
 
-            # ML score from nightly cache (independent of CSV processing)
-            ml_score = 50.0
+            def _fb(row, key):
+                v = row.get(key)
+                if v is None: return 0.5
+                if isinstance(v, float) and math.isnan(v): return 0.5
+                if isinstance(v, str):
+                    s = v.strip().lower()
+                    if s in ('', 'nan', 'none'): return 0.5
+                    return 1.0 if s in ('true','1','yes','y','t') else 0.0
+                return 1.0 if bool(v) else 0.0
+
+            # ML score + cached valuation from nightly cache
+            ml_score  = 50.0
+            cached_val = {}
             nc = get_nightly_cache()
             if nc and sym in nc.get('stocks', {}):
-                cached   = nc['stocks'][sym]
-                ml       = cached.get('ml', {})
-                ml_score = float(ml.get('ml_score') or 50)
+                cached    = nc['stocks'][sym]
+                ml        = cached.get('ml', {})
+                ml_score  = float(ml.get('ml_score') or 50)
+                cached_val = cached.get('valuation', {})
                 stock['ml_score'] = ml_score
 
-            # Fundamentals + fair value from CSV — runs for ALL symbols
+            # yfin_score from cached valuation (mirrors api_server STEP 2)
+            def _fvc(key, default=0.0):
+                return _fv(cached_val, key, default)
+            pe_v = _fvc('pe_ratio', 0.0)
+            pb_v = _fvc('pb_ratio', 3.0)
+            pm_v = _fvc('profit_margin', 0.0) * 100
+            rg_v = _fvc('revenue_growth', 0.0) * 100
+            yfin_score = 50.0
+            if pe_v > 0:
+                if pe_v < 15:   yfin_score += 15
+                elif pe_v < 22: yfin_score += 8
+                elif pe_v < 30: yfin_score += 3
+                elif pe_v < 45: yfin_score -= 8
+                else:           yfin_score -= 18
+            if pb_v > 0:
+                if pb_v < 1.5:  yfin_score += 8
+                elif pb_v < 3:  yfin_score += 3
+                elif pb_v < 6:  yfin_score -= 3
+                else:           yfin_score -= 8
+            if pm_v > 20: yfin_score += 8
+            elif pm_v > 10: yfin_score += 4
+            elif pm_v < 0:  yfin_score -= 10
+            if rg_v > 20: yfin_score += 5
+            elif rg_v > 10: yfin_score += 2
+            elif rg_v < 0:  yfin_score -= 5
+            yfin_score = max(0, min(100, yfin_score))
+
+            # Custom fundamental score from CSV (mirrors api_server STEP 1)
             try:
                 sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
                 csv_sym = {'LTM': 'LTIM'}.get(sym, sym)
                 row     = sdf[sdf['symbol'] == csv_sym]
                 if not row.empty:
-                    r         = row.iloc[0].to_dict()
-                    scr_score = _fv(r, 'investment_score', 50.0)
-                    combined  = round(ml_score * 0.5 + scr_score * 0.5, 1)
+                    r = row.iloc[0].to_dict()
+                    _is_bank = any(x in sector_str for x in ['bank','nbfc','financ','insurance'])
+                    _sc = _fv(r, 'sales_cagr_5y', 8.0);  _s1 = _fv(r, 'sales_growth_1y', 8.0)
+                    _pc = _fv(r, 'profit_cagr_5y', 8.0);  _p1 = _fv(r, 'profit_growth_1y', 8.0)
+                    _ec = _fv(r, 'eps_cagr_5y', 8.0)
+                    _ol = _fv(r, 'opm_latest_pct', 12.0); _oa = _fv(r, 'opm_avg_5y', 12.0)
+                    _rl = _fv(r, 'roce_latest_pct', 12.0);_ra = _fv(r, 'roce_avg_5y', 12.0)
+                    _pr = _fv(r, 'promoter_pct', 45.0)
+                    _de_raw = r.get('screener_de')
+                    _de = _fv(r, 'screener_de', None) if (_de_raw is not None and _de_raw != '') else None
+                    _fcf = _fb(r, 'fcf_positive_3y'); _dred = _fb(r, 'debt_reducing')
+                    # Growth (30 pts)
+                    g = 0
+                    g += 12 if _sc >= 25 else 8 if _sc >= 15 else 4 if _sc >= 8 else 0
+                    g += 10 if _pc >= 25 else 7 if _pc >= 15 else 4 if _pc >= 8 else 0
+                    g += 5  if _s1 >= 20 else 3 if _s1 >= 10 else 0
+                    g += 3  if _p1 >= 20 else 2 if _p1 >= 10 else 0
+                    # Profitability (25 pts)
+                    p = 0
+                    if not _is_bank:
+                        p += 10 if _ol >= 25 else 7 if _ol >= 18 else 4 if _ol >= 10 else 2 if _ol >= 5 else 0
+                        od = _ol - _oa
+                        p += 5 if od > 3 else 2 if od > 0 else (-2 if od < -3 else 0)
+                    p += 10 if _rl >= 25 else 7 if _rl >= 18 else 4 if _rl >= 12 else 2 if _rl >= 8 else 0
+                    # Health (25 pts)
+                    h = 8  # neutral default
+                    if not _is_bank and _de is not None:
+                        h = 12 if _de < 0.1 else 8 if _de < 0.3 else 4 if _de < 0.8 else 0
+                    h += 8 if _fcf >= 0.75 else 4 if _fcf >= 0.5 else 0
+                    h += 5 if _dred >= 0.75 else 2 if _dred >= 0.5 else 0
+                    # Management (20 pts)
+                    m = 0
+                    m += 10 if _pr >= 65 else 6 if _pr >= 50 else 3 if _pr >= 35 else 0
+                    rd = _rl - _ra
+                    m += 6 if rd > 5 else 4 if rd > 2 else 2 if rd > 0 else 0
+                    m += 4 if _ec > _sc + 5 else 2 if _ec > _sc else 0
+                    custom_score = min(max(min(g, 30) + min(max(p,0), 25) + min(h, 25) + min(m, 20), 0), 100)
+
+                    # Combined score — same weights as stock_analysis
+                    combined = round(ml_score * 0.25 + custom_score * 0.45 + yfin_score * 0.30, 1)
                     stock['combined_score'] = combined
-                    stock['verdict'] = ('BUY' if combined >= 65
-                                        else 'HOLD' if combined >= 50
+                    stock['verdict'] = ('BUY'  if combined >= 68
+                                        else 'MILD BUY' if combined >= 58
+                                        else 'HOLD' if combined >= 48
                                         else 'SELL')
 
-                    eps_l = _fv(r, 'eps_latest', 0.0)
+                    # Fair value — use cached eps (same source as stock_analysis)
+                    eps_l = _fvc('eps', 0.0) or _fv(r, 'eps_latest', 0.0)
                     cur_p = float(str(stock.get('price') or '0').replace(',', '')) or 0.0
                     if eps_l > 0 and cur_p > 0:
                         eps_cagr = _fv(r, 'eps_cagr_5y', 8.0)
                         rate_adj = 4.4 / RBI_REPO_RATE
                         base_pe  = 22
-                        _SECTOR_PE = {'IT':28,'Technology':28,'FMCG':35,'Pharma':30,
-                                      'Banking':15,'Finance':18,'Metals':10,'Energy':12,
-                                      'Power':14,'Infrastructure':18,'Defence':30}
-                        for k, v in _SECTOR_PE.items():
-                            if k.lower() in str(stock.get('sector', '')).lower():
+                        _XSP = {'IT':28,'Technology':28,'Software':28,'FMCG':35,
+                                 'Consumer':32,'Pharma':30,'Healthcare':30,
+                                 'Banking':15,'Finance':18,'NBFC':18,
+                                 'Metals':10,'Steel':10,'Energy':12,
+                                 'Power':14,'Infrastructure':18,'Defence':30}
+                        for k, v in _XSP.items():
+                            if k.lower() in sector_str:
                                 base_pe = v; break
+                        if any(x in sector_str for x in ['bank','nbfc','financ','insurance']):
+                            base_pe = min(base_pe, 15)
                         qm = 1.0
-                        if _fv(r, 'roce_latest_pct', 10) > _fv(r, 'roce_avg_5y', 10) + 3: qm += 0.10
-                        if bool(r.get('fcf_positive_3y')): qm += 0.08
-                        if bool(r.get('debt_reducing')):   qm += 0.07
+                        if _rl > _ra + 3:      qm += 0.10
+                        if _fcf >= 0.75:       qm += 0.08
+                        if _dred >= 0.75:      qm += 0.07
+                        if _pr > 55:           qm += 0.05
                         qm = min(qm, 1.35)
-                        fair_pe  = round(min((base_pe + 1.5 * min(eps_cagr, 25)) * rate_adj * qm, 55), 1)
+                        _fp_cap = 70 if any(x in sector_str for x in
+                                    ['it','software','technolog','defence','shipbuild',
+                                     'pharma','health','fmcg','consumer']) else 55
+                        fair_pe  = round(min((base_pe + 1.5 * min(eps_cagr, 25)) * rate_adj * qm, _fp_cap), 1)
                         fair_val = round(eps_l * fair_pe, 0)
                         if fair_val > 0 and not math.isnan(fair_val):
                             stock['fair_value'] = fair_val
                             stock['val_signal'] = (
-                                'Undervalued Quality' if scr_score >= 60 and cur_p < fair_val * 0.90
-                                else 'Overvalued Quality' if scr_score >= 60 and cur_p > fair_val * 1.15
-                                else 'Fairly Valued' if scr_score >= 60
+                                'Undervalued Quality' if custom_score >= 60 and cur_p < fair_val * 0.90
+                                else 'Overvalued Quality' if custom_score >= 60 and cur_p > fair_val * 1.15
+                                else 'Fairly Valued' if custom_score >= 60
                                 else 'Value Trap Risk' if cur_p < fair_val * 0.90
                                 else 'Overpriced'
                             )
