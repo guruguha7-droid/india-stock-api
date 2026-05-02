@@ -7,3 +7,4 @@ scikit-learn==1.8.0
 joblib
 xgboost>=1.7.0
 reportlab>=4.0.0
+pytz>=2024.1

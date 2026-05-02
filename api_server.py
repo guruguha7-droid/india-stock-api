@@ -793,10 +793,113 @@ def stock_analysis():
 
     # ── Run all data fetches in parallel ─────────────────────────────
     def fetch_quote():
+        # Multi-layer quote fallback to survive NSE rate-limiting/blocks.
+        # Layer 1: live NSE (real-time, preferred)
+        # Layer 2: yfinance (15-min delayed, almost never blocks)
+        # Layer 3: nightly cache (yesterday's close, marked stale)
+        # Layer 4: empty dict (final fallback — frontend shows dashes)
+
+        # ── Layer 1: live NSE with hard timeout ──
         try:
-            result["quote"] = nse_quote(symbol)
-        except Exception:
-            result["quote"] = {}
+            import concurrent.futures as _cf
+            with _cf.ThreadPoolExecutor(max_workers=1) as _ex:
+                _fut = _ex.submit(nse_quote, symbol)
+                _q = _fut.result(timeout=8)
+            if _q and _q.get('price') is not None:
+                _q['source'] = 'NSE'
+                _q['delay']  = 'real-time'
+                result["quote"] = _q
+                return
+        except Exception as e:
+            logger.warning(f"fetch_quote NSE failed for {symbol}: {e}")
+
+        # ── Layer 2: yfinance fallback (15-min delayed) ──
+        try:
+            import yfinance as _yf
+            t = _yf.Ticker(f"{symbol}.NS")
+            info = t.info or {}
+            price = info.get("currentPrice") or info.get("regularMarketPrice")
+            prev  = info.get("previousClose") or info.get("regularMarketPreviousClose")
+            if price:
+                w_high = info.get("fiftyTwoWeekHigh")
+                w_low  = info.get("fiftyTwoWeekLow")
+                pos52  = None
+                if w_high and w_low and w_high != w_low:
+                    pos52 = round((price - w_low) / (w_high - w_low) * 100, 1)
+                mc = info.get("marketCap")
+                mc_str = None
+                if mc:
+                    mc_cr = mc / 1e7
+                    if mc_cr >= 1e5: mc_str = f"₹{mc_cr/1e5:.2f}L Cr"
+                    elif mc_cr >= 1e3: mc_str = f"₹{mc_cr/1e3:.2f}T Cr"
+                    else: mc_str = f"₹{mc_cr:.0f} Cr"
+                chg     = round(price - prev, 2) if prev else None
+                chg_pct = round(chg / prev * 100, 2) if prev and chg else None
+                result["quote"] = {
+                    'symbol':       symbol,
+                    'company_name': info.get('longName') or info.get('shortName') or symbol,
+                    'industry':     info.get('industry', ''),
+                    'price':        round(float(price), 2),
+                    'change':       chg,
+                    'change_pct':   chg_pct,
+                    'prev_close':   round(float(prev), 2) if prev else None,
+                    'open':         info.get('open'),
+                    'high':         info.get('dayHigh'),
+                    'low':          info.get('dayLow'),
+                    'week52_high':  round(float(w_high), 2) if w_high else None,
+                    'week52_low':   round(float(w_low),  2) if w_low  else None,
+                    'pos52_pct':    pos52,
+                    'market_cap':   mc_str,
+                    'source':       'yfinance',
+                    'delay':        '15-min delayed',
+                }
+                logger.info(f"fetch_quote {symbol}: served from yfinance fallback")
+                return
+        except Exception as e:
+            logger.warning(f"fetch_quote yfinance failed for {symbol}: {e}")
+
+        # ── Layer 3: nightly cache (only when markets are closed) ──
+        # During market hours, stale cache would mislead users into thinking the
+        # frozen yesterday's price is current. Better to return empty and let the
+        # frontend show "Price unavailable" honestly.
+        try:
+            from datetime import datetime as _dt
+            now_ist = _dt.now()  # Render is on UTC; convert to IST
+            try:
+                import pytz
+                now_ist = _dt.now(pytz.timezone('Asia/Kolkata'))
+            except Exception:
+                pass
+            is_weekday      = now_ist.weekday() < 5
+            mins            = now_ist.hour * 60 + now_ist.minute
+            is_market_hours = is_weekday and 9*60+15 <= mins <= 15*60+30
+
+            if is_market_hours:
+                logger.error(f"fetch_quote {symbol}: NSE+yfinance both failed during market hours; refusing stale fallback")
+                result["quote"] = {
+                    "symbol": symbol,
+                    "error":  "Live price feed temporarily unavailable. Please retry in a moment.",
+                    "source": "unavailable",
+                }
+                return
+
+            # Markets closed — yesterday's close IS the right answer
+            nc = get_nightly_cache()
+            cached = nc.get('stocks', {}).get(symbol, {}) if nc else {}
+            cached_quote = cached.get('quote') or {}
+            if cached_quote.get('price'):
+                cached_quote = dict(cached_quote)
+                cached_quote['source'] = 'cache'
+                cached_quote['delay']  = 'last close (markets closed)'
+                result["quote"] = cached_quote
+                logger.info(f"fetch_quote {symbol}: served last close (markets closed)")
+                return
+        except Exception as e:
+            logger.warning(f"fetch_quote cache fallback failed for {symbol}: {e}")
+
+        # ── Layer 4: nothing worked, return empty so frontend shows dashes ──
+        logger.error(f"fetch_quote {symbol}: ALL fallbacks failed")
+        result["quote"] = {}
 
     def fetch_ml():
         # ── Try nightly cache first ───────────────────────────────────
