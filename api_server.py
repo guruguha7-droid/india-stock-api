@@ -749,7 +749,10 @@ def quick_quote():
 
     def fetch_sent():
         try:
-            from news_sentiment import get_sentiment_score
+            try:
+                from news_classifier import get_sentiment_score
+            except Exception:
+                from news_sentiment import get_sentiment_score
             result["sentiment"] = get_sentiment_score(symbol)
         except Exception:
             result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
@@ -780,7 +783,10 @@ def stock_analysis():
 
     import math
     import threading
-    from news_sentiment import get_sentiment_score
+    try:
+        from news_classifier import get_sentiment_score
+    except Exception:
+        from news_sentiment import get_sentiment_score
     from macro_sentiment import apply_macro_to_stock
 
     result = {"symbol": symbol, "status": "ok"}
@@ -3239,7 +3245,10 @@ def generate_report_endpoint():
 
         def _sent():
             try:
-                from news_sentiment import get_sentiment_score
+                try:
+                    from news_classifier import get_sentiment_score
+                except Exception:
+                    from news_sentiment import get_sentiment_score
                 data["sentiment"]=get_sentiment_score(symbol)
             except Exception: data["sentiment"]={"sentiment_score":0,"sentiment_label":"neutral"}
 
