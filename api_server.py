@@ -1230,7 +1230,10 @@ def stock_analysis():
 
     def fetch_sentiment():
         try:
-            from news_sentiment import get_sentiment_score
+            try:
+                from news_classifier import get_sentiment_score
+            except Exception:
+                from news_sentiment import get_sentiment_score
             from ml_screener import _cache
             # Try disk cache first (6h TTL)
             disk_sent = load_disk_cache(f'sent_{symbol}', max_age_hours=6)
