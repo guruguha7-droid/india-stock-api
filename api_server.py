@@ -51,6 +51,13 @@ DISK_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ── Market constants — update manually when RBI changes rates ────────────────
 RBI_REPO_RATE = 6.5   # Current RBI repo rate — update when changed
 
+# CSV schema — used to validate screener_fundamentals.csv on load
+CSV_EXPECTED_COLS = 36
+CSV_REQUIRED_FIELDS = [
+    'symbol', 'sales_latest_cr', 'profit_latest_cr', 'eps_latest',
+    'roce_latest_pct', 'opm_latest_pct', 'sales_cagr_5y', 'promoter_pct',
+]
+
 # ── Structural tailwinds ──────────────────────────────────────────────────────
 # Multi-year demand drivers that historical CAGR doesn't fully capture.
 # Format: 'SYMBOL': (theme_name, fair_value_multiplier)
@@ -973,9 +980,25 @@ def stock_analysis():
             import pandas as pd
             path = os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv')
             if not os.path.exists(path):
+                logger.error(f"CSV not found at {path}")
                 result["fundamentals"] = {}
                 return
-            sdf = pd.read_csv(path)
+            # Try strict parse first — if a row has wrong column count, on_bad_lines='warn'
+            # logs the offending row and skips it instead of crashing the whole file
+            try:
+                sdf = pd.read_csv(path, on_bad_lines='warn')
+            except Exception as parse_err:
+                logger.error(f"CSV parse failed even with on_bad_lines='warn': {parse_err}")
+                result["fundamentals"] = {}
+                return
+            # Validate column count — if header doesn't match expected, refuse to proceed
+            if len(sdf.columns) != CSV_EXPECTED_COLS:
+                logger.error(f"CSV has {len(sdf.columns)} columns, expected {CSV_EXPECTED_COLS}. "
+                             f"Schema may have changed: {list(sdf.columns)}")
+                result["fundamentals"] = {}
+                return
+            # Per-row validation: count how many critical fields are populated for THIS symbol
+            # If too few, log it but still return what we have (degraded score better than no score)
             # Some symbols stored differently in CSV (e.g. VBL → VBLLTD)
             SYMBOL_CSV_MAP = {
                 'LTM': 'LTIM',
@@ -984,6 +1007,11 @@ def stock_analysis():
             row = sdf[sdf['symbol'] == csv_sym]
             if not row.empty:
                 r = row.iloc[0].to_dict()
+                # Log degraded data — a row missing many critical fields produces a bad score
+                _missing = [f for f in CSV_REQUIRED_FIELDS if pd.isna(r.get(f)) and f != 'symbol']
+                if len(_missing) >= 4:
+                    logger.warning(f"{csv_sym}: {len(_missing)}/7 critical fields missing "
+                                   f"({', '.join(_missing)}) — score will use defaults")
                 result["fundamentals"] = {
                     # Core metrics
                     "roce":              r.get('roce_latest_pct'),
