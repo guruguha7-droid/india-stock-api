@@ -1851,14 +1851,20 @@ def stock_analysis():
                     if cur_pe <= 0:      confidence -= 10
                     confidence = max(20, min(90, confidence))
 
-                    is_quality   = scr_raw >= 60
-                    is_expensive = cur_price > fair_value * 1.15
-                    is_cheap     = cur_price < fair_value * 0.90
+                    is_quality        = scr_raw >= 60
+                    _pct_over         = (cur_price - fair_value) / fair_value * 100 if fair_value > 0 else 0
+                    is_severely_over  = _pct_over > 40   # >40% above fair = red even for quality
+                    is_expensive      = _pct_over > 15
+                    is_cheap          = _pct_over < -10
 
                     if is_quality and is_cheap:
                         sig_label = "Undervalued Quality"
                         sig_color = "green"
                         sig_desc  = "Strong business trading below fair value — opportunity"
+                    elif is_quality and is_severely_over:
+                        sig_label = "Severely Overvalued Quality"
+                        sig_color = "red"
+                        sig_desc  = "Great business but extremely expensive — wait for significant correction"
                     elif is_quality and is_expensive:
                         sig_label = "Overvalued Quality"
                         sig_color = "gold"
@@ -1900,10 +1906,14 @@ def stock_analysis():
                         _fwd_pct    = round((cur_price - _fwd_fair) / _fwd_fair * 100, 1) if _fwd_fair > 0 else None
 
                         if _fwd_pct is not None:
+                            # Quality businesses get gold (not red) up to +40%; severely over → red regardless
+                            _is_quality_biz = 'Quality' in (sig_label or '') and 'Severely' not in (sig_label or '')
                             if   _fwd_pct < -15: _fwd_label, _fwd_color = "Undervalued", "green"
                             elif _fwd_pct < -5:  _fwd_label, _fwd_color = "Slightly Undervalued", "green"
                             elif _fwd_pct <= 5:  _fwd_label, _fwd_color = "Fairly Valued", "gold"
                             elif _fwd_pct <= 15: _fwd_label, _fwd_color = "Slightly Overvalued", "gold"
+                            elif _fwd_pct <= 40 and _is_quality_biz:
+                                                 _fwd_label, _fwd_color = "Overvalued", "gold"
                             else:                _fwd_label, _fwd_color = "Overvalued", "red"
                             fwd_value_signal = {
                                 "label":         _fwd_label,
