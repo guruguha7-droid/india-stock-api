@@ -1241,16 +1241,17 @@ def stock_analysis():
             except Exception:
                 from news_sentiment import get_sentiment_score
             from ml_screener import _cache
-            # Try disk cache first (6h TTL)
-            disk_sent = load_disk_cache(f'sent_{symbol}', max_age_hours=6)
+            # Try disk cache first (6h TTL) — v2 key invalidates pre-Gemini entries
+            disk_sent = load_disk_cache(f'sent_v2_{symbol}', max_age_hours=6)
             if disk_sent:
                 result["sentiment"] = disk_sent
                 return
+            logger.info(f"[fetch_sentiment] {symbol}: calling {get_sentiment_score.__module__}.get_sentiment_score")
             sent = get_sentiment_score(symbol)
 
             sent['fetched_at'] = datetime.now().isoformat()
 
-            cached_sent = _cache.get(f'sent_{symbol}', {})
+            cached_sent = _cache.get(f'sent_v2_{symbol}', {})
             if cached_sent.get('data') and cached_sent.get('ts'):
                 age_hours = (time.time() - cached_sent['ts']) / 3600
                 if age_hours > 24:
@@ -1264,8 +1265,8 @@ def stock_analysis():
                     )
                     sent['dampened'] = True
 
-            _cache[f'sent_{symbol}'] = {'data': sent, 'ts': time.time()}
-            save_disk_cache(f'sent_{symbol}', sent)
+            _cache[f'sent_v2_{symbol}'] = {'data': sent, 'ts': time.time()}
+            save_disk_cache(f'sent_v2_{symbol}', sent)
             result["sentiment"] = sent
         except Exception:
             result["sentiment"] = {"sentiment_score": 0, "sentiment_label": "neutral"}
