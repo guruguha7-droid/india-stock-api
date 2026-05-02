@@ -1749,7 +1749,13 @@ window.showGoldenCrossInfo = function(isGolden) {
                 </div>
                 <div class="fund-item">
                   <div class="fund-label">${vs.pre_profit ? 'Current P/S' : 'Current P/E'}</div>
-                  <div class="fund-val">${vs.pre_profit ? (vs.ps_ratio != null ? vs.ps_ratio.toFixed(1) : '—') : (vs.current_pe != null ? vs.current_pe.toFixed(1) : '—')}</div>
+                  <div class="fund-val">${vs.pre_profit ? (vs.ps_ratio != null ? vs.ps_ratio.toFixed(1) : '—') : (() => {
+                    if (vs.current_pe != null) return vs.current_pe.toFixed(1);
+                    // Fallback: compute from current price / EPS if API didn't supply it
+                    const eps = fund?.eps_latest;
+                    if (eps && eps > 0 && quote?.price) return (parseFloat(quote.price) / parseFloat(eps)).toFixed(1);
+                    return '—';
+                  })()}</div>
                   <div class="fund-trend trend-neu">${vs.pre_profit ? `fair P/S: ${vs.fair_ps ?? '—'}` : `fair P/E: ${vs.fair_pe}`}</div>
                 </div>
                 <div class="fund-item">
