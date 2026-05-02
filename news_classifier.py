@@ -301,13 +301,31 @@ def get_sentiment_score(symbol: str, headlines: list = None) -> dict:
     """
     if headlines is None:
         try:
-            from news_sentiment import get_news_headlines
-            headlines = get_news_headlines(symbol)
-        except Exception:
+            from news_sentiment import get_news
+            raw_headlines = get_news(symbol)
+            # get_news may return list of strings or list of dicts; normalize to strings
+            headlines = []
+            for item in raw_headlines or []:
+                if isinstance(item, str):
+                    headlines.append(item)
+                elif isinstance(item, dict):
+                    headlines.append(item.get('title') or item.get('headline') or str(item))
+                else:
+                    headlines.append(str(item))
+            logger.info(f"news_classifier: fetched {len(headlines)} headlines for {symbol}")
+        except Exception as e:
+            logger.warning(f"news_classifier: get_news failed for {symbol}: {e}; falling back to original scorer")
             try:
-                # Fall back to original scorer entirely
                 from news_sentiment import get_sentiment_score as orig
                 return orig(symbol)
             except Exception:
                 return {'symbol': symbol, 'sentiment_score': 0, 'sentiment_label': 'neutral'}
+
+    if not headlines:
+        return {
+            'symbol': symbol, 'sentiment_score': 0, 'sentiment_label': 'neutral',
+            'positive_count': 0, 'negative_count': 0, 'neutral_count': 0,
+            'total_articles': 0, 'top_headlines': [], 'classifications': [],
+        }
+
     return classify_headlines(symbol, headlines, mode='sentiment')
