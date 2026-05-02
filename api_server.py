@@ -805,6 +805,22 @@ def stock_analysis():
         except Exception:
             _log_exc('fetch_ml.cache_lookup', symbol)
 
+        # ── Cache miss: fail-fast unless explicitly opted-in ──────────
+        # Live yfinance fetch can take 60-120s on Render free tier.
+        # Default behavior: return a clean "not available" so the user gets a fast response.
+        # User can pass &compute_ml=1 to force the slow path.
+        _force_ml = request.args.get('compute_ml', '').lower() in ('1', 'true', 'yes')
+        if not _force_ml:
+            result["ml"] = {
+                "ml_score":    None,
+                "prediction":  "NOT_CACHED",
+                "accuracy":    None,
+                "available":   False,
+                "message":     "ML predictions not available — stock is not in the nightly cache. "
+                               "Add ?compute_ml=1 to compute live (slow, 30-90s).",
+            }
+            return
+
         # ── Fallback: compute live ────────────────────────────────────
         try:
             import joblib

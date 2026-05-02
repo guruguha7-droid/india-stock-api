@@ -1213,7 +1213,7 @@ async function doSearch() {
 
       window._lastAnalysis = {
         quote:         pick(res.quote,         prev.quote,         v => v?.price),
-        ml:            pick(res.ml,            prev.ml,            v => v?.ml_score != null),
+        ml:            pick(res.ml,            prev.ml,            v => v?.ml_score != null || v?.prediction === 'NOT_CACHED'),
         fundamentals:  pick(res.fundamentals,  prev.fundamentals,  v => v && (v.investment_score != null || v.eps_latest != null || v.sales_latest_cr != null)),
         valuation:     pick(res.valuation,     prev.valuation,     v => v?.pe_ratio != null || v?.eps != null || v?.dividend_yield != null),
         sentiment:     pick(res.sentiment,     prev.sentiment,     v => v?.sentiment_label),
@@ -1224,9 +1224,9 @@ async function doSearch() {
       };
 
       const d = window._lastAnalysis;
-      const allReady = d.ml?.ml_score != null
-                    && d.fundamentals?.investment_score != null
-                    && d.forecast?.['1y']?.price_target != null;
+      const allReady = (d.ml?.ml_score != null || d.ml?.prediction === 'NOT_CACHED')
+                    && (d.fundamentals?.investment_score != null || d.fundamentals?.eps_latest != null)
+                    && (d.forecast?.['1y']?.price_target != null || d.combined?.score != null);
 
       if (allReady || attempts >= maxAttempts) {
         renderResult(sym, d.quote, d.ml, d.fundamentals, d.valuation,
@@ -1744,8 +1744,8 @@ window.showGoldenCrossInfo = function(isGolden) {
             <div class="fund-grid" style="margin-top:14px">
               <div class="fund-item">
                 <div class="fund-label">ML Prediction</div>
-                <div class="fund-val" style="color:${ml?.prediction==='OUTPERFORM'?'var(--green)':'var(--red)'}">${ml?.prediction || '—'}</div>
-                <div class="fund-trend trend-neu">vs Nifty next 1 year</div>
+                <div class="fund-val" style="color:${ml?.prediction==='OUTPERFORM'?'var(--green)':ml?.prediction==='NOT_CACHED'?'var(--text3)':'var(--red)'}">${ml?.prediction === 'NOT_CACHED' ? 'Not cached' : (ml?.prediction || '—')}</div>
+                <div class="fund-trend trend-neu">${ml?.prediction === 'NOT_CACHED' ? 'Add ?compute_ml=1 to URL for live (slow)' : 'vs Nifty next 1 year'}</div>
               </div>
               <div class="fund-item">
                 <div class="fund-label">Fundamental Score</div>
