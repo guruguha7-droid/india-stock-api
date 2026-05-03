@@ -2297,7 +2297,15 @@ def stock_analysis():
         roce_avg    = float(fund.get("roce_avg_5y") or roce_latest)
         ocf         = fund.get("ocf_latest_cr")
         fcf_ok      = str(fund.get("fcf_positive_3y", "")).lower() == 'true'
-        debt_red    = str(fund.get("debt_reducing",    "")).lower() == 'true'
+        # Trust live chart_insights.debt over stale CSV flag
+        _ci_debt = (result.get('chart_insights') or {}).get('debt') or {}
+        _ci_trend = str(_ci_debt.get('trend', '')).lower()
+        if 'sharp increase' in _ci_trend or 'increase' in _ci_trend:
+            debt_red = False  # debt rising — override stale CSV
+        elif 'sharp reduction' in _ci_trend or 'reduction' in _ci_trend:
+            debt_red = True   # debt falling — confirm
+        else:
+            debt_red = str(fund.get("debt_reducing", "")).lower() == 'true'  # fall back to CSV
         promoter    = float(fund.get("promoter_pct") or 40)
 
         # ── RSI & momentum from ML ─────────────────────────────────────
@@ -2487,8 +2495,28 @@ def stock_analysis():
             if roce_mult > 1.05:     ups.append("Improving ROCE")
             elif roce_mult < 0.95:   downs.append("Declining ROCE")
             if capex_mult > 1.05:    ups.append("Strong FCF/Capex")
-            if debt_red is True:     ups.append("Debt reducing")
-            elif debt_red is False:  downs.append("Debt not reducing")
+            # Cross-validate CSV debt_reducing flag against live chart_insights.
+            # CSV is a stale snapshot; chart_insights is computed from live yearly data.
+            # If they disagree, trust chart_insights.
+            _ci_debt = (result.get('chart_insights') or {}).get('debt') or {}
+            _ci_trend = str(_ci_debt.get('trend', '')).lower()
+            _ci_change = _ci_debt.get('change_pct')
+
+            if 'sharp increase' in _ci_trend or 'increase' in _ci_trend:
+                # Live data says debt is rising → ignore stale CSV flag
+                if _ci_change is not None and _ci_change > 50:
+                    downs.append("Debt rising sharply")
+                elif _ci_change is not None and _ci_change > 10:
+                    downs.append("Debt rising")
+                else:
+                    downs.append("Debt rising")
+            elif 'sharp reduction' in _ci_trend or 'reduction' in _ci_trend:
+                ups.append("Debt reducing")
+            elif debt_red is True:
+                # No clear chart signal, fall back to CSV flag
+                ups.append("Debt reducing")
+            elif debt_red is False:
+                downs.append("Debt not reducing")
             if promo_mult > 1.02:    ups.append("High promoter stake")
             elif promo_mult < 0.97:  downs.append("Low promoter stake")
             if news_mult_1y > 1.04:  ups.append("Positive news")
