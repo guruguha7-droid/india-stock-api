@@ -1923,7 +1923,31 @@ def stock_analysis():
                                 .replace(',', '')) or None
 
             if cur_price:
-                if eps_latest > 0:
+                # ── Insurance / Life / Reinsurance: skip Graham valuation ─────
+                # These have actuarial (embedded value) accounting, not classical EPS.
+                # Standard EPS × Fair P/E doesn't apply. Be honest about the limit.
+                _industry_str = str(result.get('quote', {}).get('industry', '')).lower()
+                _is_insurance = any(k in _industry_str for k in
+                                    ['insurance', 'life ins', 'reinsurance', 'general ins'])
+                if _is_insurance:
+                    val_signal = {
+                        "label":         "Valuation N/A",
+                        "color":         "gold",
+                        "description":   "Insurance/financial company — Graham fair value doesn't apply (uses actuarial accounting)",
+                        "fair_value":    None,
+                        "fair_pe":       None,
+                        "current_pe":    cur_pe if cur_pe > 0 else None,
+                        "pct_vs_fair":   None,
+                        "buy_zone_low":  None,
+                        "buy_zone_high": None,
+                        "confidence":    0,
+                        "current_price": cur_price,
+                        "forward_1y":    None,
+                        "tailwind_theme":      None,
+                        "tailwind_multiplier": 1.0,
+                        "skip_reason":   "insurance",
+                    }
+                elif eps_latest > 0:
                     # ── Normal profitable company ─────────────────────────
                     rbi_rate = RBI_REPO_RATE
                     rate_adj = 4.4 / rbi_rate
@@ -2204,7 +2228,7 @@ def stock_analysis():
             verdict, verdict_color = 'BUY', 'green'
 
         # ── Sanity overrides: refuse buy verdicts that contradict the data ──
-        if val_signal:
+        if val_signal and not val_signal.get('skip_reason'):
             _vs_label = val_signal.get('label', '') or ''
             _vs_pct   = val_signal.get('pct_vs_fair') or 0
 
