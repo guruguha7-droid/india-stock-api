@@ -31,6 +31,11 @@ def _log_exc(where, sym=None):
     """Log a swallowed exception with traceback. Use in hot paths where pass would hide bugs."""
     suffix = f" [{sym}]" if sym else ""
     logger.exception(f"swallowed in {where}{suffix}")
+
+def _is_insurance_proxy(industry_str: str) -> bool:
+    """Banks ≠ insurance. Don't apply bank scoring to insurance/reinsurance."""
+    s = (industry_str or '').lower()
+    return any(k in s for k in ['insurance', 'life ins', 'reinsurance', 'general ins'])
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from scraper import scrape_stock, NSE_STOCKS
@@ -1464,8 +1469,91 @@ def stock_analysis():
         _opm_lat  = max(_opm_lat, -100.0)
         _opm_avg  = max(_opm_avg, -100.0)
 
-        # ── Category 1: Growth Quality (0–100) ────────────────────────
-        g = 50
+        # ══════════════════════════════════════════════════════════════
+        # BANK-SPECIFIC SCORING PATH
+        # Banks have fundamentally different financials than industrials:
+        # - OPM is broken (no COGS), use ROE/ROCE only
+        # - Debt isn't applicable (banks ARE the debt business)
+        # - Promoter % is misleading (HDFCBANK = 0% is healthy, not bad)
+        # - Replace D/E and FCF logic with capital adequacy proxies
+        # ══════════════════════════════════════════════════════════════
+        if _is_bank and not _is_insurance_proxy(_sec_str):
+            # ── Bank Growth Quality (40% weight) ──
+            g = 50
+            if _prof_cagr5 > 25:      g += 25
+            elif _prof_cagr5 > 18:    g += 18
+            elif _prof_cagr5 > 12:    g += 12
+            elif _prof_cagr5 > 6:     g += 5
+            elif _prof_cagr5 > 0:     g += 0
+            else:                     g -= 15
+            if _sales_cagr5 > 18:     g += 10
+            elif _sales_cagr5 > 12:   g += 6
+            elif _sales_cagr5 > 6:    g += 2
+            elif _sales_cagr5 < 0:    g -= 8
+            # 10Y consistency check
+            if _prof_cagr10 > 0 and _prof_cagr5 > _prof_cagr10 * 0.7:
+                g += 5  # sustained profitability across cycles
+            g = max(0, min(100, g))
+
+            # ── Bank Profitability via ROCE (35% weight) ──
+            # Banks: ROCE/ROE typically 10-18% is healthy, >20% is exceptional
+            p = 50
+            if _roce_lat >= 20:       p += 28
+            elif _roce_lat >= 16:     p += 20
+            elif _roce_lat >= 12:     p += 12
+            elif _roce_lat >= 8:      p += 4
+            elif _roce_lat >= 4:      p -= 5
+            else:                     p -= 20  # <4% ROCE is a problem bank
+            # ROCE trend
+            if _roce_trend > 0.5:     p += 8
+            elif _roce_trend < -1.0:  p -= 8
+            # 5Y avg consistency
+            if _roce_avg >= 12:       p += 5
+            elif _roce_avg < 8:       p -= 5
+            p = max(0, min(100, p))
+
+            # ── Bank "Financial Health" via networth + size (15% weight) ──
+            # Replace D/E logic. Use networth as size/stability proxy.
+            h = 50
+            _nw = _f('networth_cr', 0)
+            if _nw >= 200000:         h += 25  # Tier 1 (HDFC, ICICI, SBIN)
+            elif _nw >= 100000:       h += 18  # Tier 2 (KOTAK, AXIS)
+            elif _nw >= 50000:        h += 12  # Tier 3 (FEDERAL, IDFC)
+            elif _nw >= 10000:        h += 5   # Mid-tier
+            elif _nw > 0:             h -= 0   # Small bank — no extra credit
+            else:                     h -= 10  # Missing networth = data quality issue
+            # Profit consistency: 5Y CAGR shows the bank has navigated cycles
+            if _prof_cagr5 > 15 and _prof_cagr10 > 10:
+                h += 10  # multi-cycle profitable growth
+            h = max(0, min(100, h))
+
+            # ── Bank Management Quality (10% weight) ──
+            # Promoter % is misleading for banks. Use institutional holdings instead.
+            m = 50
+            _inst_hold = _fii + _dii
+            if _inst_hold >= 50:      m += 20  # Strong institutional confidence
+            elif _inst_hold >= 35:    m += 12
+            elif _inst_hold >= 20:    m += 5
+            elif _inst_hold > 0:      m += 0
+            else:                     m -= 5
+            # Government-owned PSU banks: high promoter is actually fine here
+            # (it means government ownership, not concentrated private control)
+            if _promoter >= 50:
+                m += 5  # PSU bank — government as anchor
+            # Dividend payout: stable banks usually pay dividends
+            if _div_payout > 15 and _div_payout < 60:
+                m += 5  # healthy payout band
+            elif _div_payout > 80:
+                m -= 5  # paying out too much, not retaining for growth
+            m = max(0, min(100, m))
+
+            # Bank-specific weighted score
+            scr_raw = round(g * 0.40 + p * 0.35 + h * 0.15 + m * 0.10, 1)
+
+        else:
+            # ── Generic (non-bank) scoring path follows ────────────────
+            # Category 1: Growth Quality (0–100)
+            g = 50
 
         if _sales_cagr5 > 25:    g += 18
         elif _sales_cagr5 > 18:  g += 12
@@ -1577,13 +1665,14 @@ def stock_analysis():
 
         m = max(0, min(100, m))
 
-        # ── Weighted final score ───────────────────────────────────────
-        scr_raw = round(
-            g * 0.30 +   # Growth Quality
-            p * 0.25 +   # Profitability & Capital Efficiency
-            h * 0.25 +   # Financial Health
-            m * 0.20,    # Management Quality
-            1)
+        # ── Weighted final score (non-bank path; banks computed scr_raw above) ──
+        if not (_is_bank and not _is_insurance_proxy(_sec_str)):
+            scr_raw = round(
+                g * 0.30 +   # Growth Quality
+                p * 0.25 +   # Profitability & Capital Efficiency
+                h * 0.25 +   # Financial Health
+                m * 0.20,    # Management Quality
+                1)
 
         pe = result.get("valuation", {}).get("pe_ratio") or 20
 
