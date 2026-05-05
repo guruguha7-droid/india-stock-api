@@ -83,20 +83,53 @@ def _save_cache():
 
 
 def _hash_headline(text: str) -> str:
-    """Stable hash for cache key."""
-    return hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
+    """Stable hash for cache key. Prefix is bumped on prompt schema changes
+    to invalidate stale classifications."""
+    return 'v3_' + hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
 
 
 def _fallback_score(headline: str) -> dict:
     """Keyword-based fallback when Gemini is unavailable."""
+    h_lower = headline.lower()
+
+    # Filter out pure price-action headlines that the keyword scorer would mis-rank.
+    # These describe price moves, not business changes.
+    _price_keywords = [
+        'falls', 'fall ', 'plunge', 'plunges', 'crashes', '52-week low', '52 week low',
+        'block deal', 'oversold', 'support', 'resistance', 'breakdown', 'breaks below',
+        'hit a low', 'tanks', 'drops', 'slips', 'declines', 'down ', 'lower',
+        'rallies', 'jumps', 'soars', 'rises', 'gain', 'up ', 'higher', 'surges',
+        '52-week high', '52 week high', 'all-time high', 'all-time low',
+        'profit-booking', 'profit booking', 'oversold bounce',
+    ]
+    _macro_keywords = [
+        'nifty', 'sensex', 'fii outflow', 'fii inflow', 'market falls', 'market rises',
+        'bank nifty', 'sectoral', 'index falls', 'index rises',
+    ]
+    _noise_keywords = [
+        'should you buy', 'how to trade', 'trade spotlight', 'stocks to watch',
+        'buzzing shares', 'top picks', 'expert view', 'target price',
+    ]
+
+    if any(k in h_lower for k in _noise_keywords):
+        return {'score': 0, 'category': 'noise',
+                'reason': 'keyword fallback: detected as noise'}
+    if any(k in h_lower for k in _macro_keywords):
+        return {'score': 0, 'category': 'macro_spillover',
+                'reason': 'keyword fallback: detected as macro spillover'}
+    if any(k in h_lower for k in _price_keywords):
+        return {'score': 0, 'category': 'price_action',
+                'reason': 'keyword fallback: detected as price action only'}
+
+    # If none of the above filters match, defer to the original keyword scorer
     try:
         from news_sentiment import score_headline
         score = score_headline(headline)
     except Exception:
         score = 0
     return {
-        'score':    score,           # -3..+3
-        'category': 'unclassified',  # filled when Gemini works
+        'score':    max(-2, min(2, score)),  # cap fallback at ±2 (less confident than Gemini)
+        'category': 'unclassified',
         'reason':   'keyword fallback (Gemini unavailable)',
     }
 
@@ -111,17 +144,25 @@ def _build_prompt(headlines_with_symbols: list) -> str:
 
 CATEGORIES (pick one):
 - structural: long-term thesis news (multi-year contracts, capacity expansion, sector tailwind validation, regulatory wins). Affects the company's intrinsic value.
-- earnings: quarterly/annual results, guidance changes, profit/revenue updates. Short-term significance.
+- earnings: quarterly/annual results, guidance changes, profit/revenue updates, NPA disclosures, asset quality. Short-term significance.
 - regulatory: SEBI notices, compliance issues, tax disputes, government policy changes. Can be material.
-- corporate: management changes, M&A, dividends, buybacks, splits, IPOs.
-- noise: generic trading columns ("how to trade", "buzzing stocks"), market-wide moves where the company is mentioned only because it moved with the index, advice columns, "should you buy" articles. Should be IGNORED in scoring.
-- macro_spillover: macro/sector news where this specific company is incidental ("Nifty falls, X among losers"). Apply to macro layer, not company.
+- corporate: management changes, M&A, dividends, buybacks, splits, IPOs, block deals where the deal itself is news.
+- price_action: headlines describing price moves WITHOUT explaining a business cause — "stock falls X%", "hits 52W low", "shares plunge", "block deal of X shares", "stock under pressure", "support broken at Y", "bearish technical setup", "RSI oversold". These are short-term market mechanics, NOT business news. ALWAYS score 0 — price moves are an outcome, not a cause.
+- noise: generic trading columns ("how to trade X", "buzzing stocks", "should you buy X"), advice columns, retail tip-sheets, target-price-only updates from analysts. ALWAYS score 0.
+- macro_spillover: macro/sector news where this specific company is incidental ("Nifty falls, X among losers", "RBI policy weighs on banks", "FII outflows hit financials"). Company is mentioned only as an example of broader move. ALWAYS score 0 — these are macro, not company-specific.
+
+CRITICAL DISTINCTION:
+- "HDFC Bank Q2 NPAs rise to 2.1%" → earnings, score -2 (real business deterioration)
+- "HDFC Bank falls 3% on profit-booking" → price_action, score 0 (just a price move)
+- "HDFC Bank wins ₹500cr GST contract" → structural, score +3 (real business news)
+- "HDFC Bank stock hits 52-week low" → price_action, score 0 (price not cause)
+- "HDFC Bank RBI fines for KYC violations" → regulatory, score -2 (real consequence)
 
 SENTIMENT (integer -3 to +3):
 - +3: very positive (major contract win, blockbuster earnings, regulatory approval)
 - +2: positive (good results, positive guidance)
 - +1: mildly positive (small positive, analyst upgrade)
--  0: neutral or noise (even negative noise should be 0 — it's noise)
+-  0: neutral or noise/price_action/macro_spillover (ALWAYS 0 for these categories)
 - -1: mildly negative (analyst downgrade, minor concern)
 - -2: negative (missed earnings, regulatory probe started)
 - -3: very negative (fraud allegation, major contract loss, going-concern doubt)
@@ -241,8 +282,10 @@ def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') ->
         cat = r.get('category', 'noise')
         sc  = float(r.get('score') or 0)
 
-        if cat in ('noise', 'macro_spillover'):
-            weight = 0
+        # Enforce zero-weight for categories that must never affect company sentiment
+        if cat in ('noise', 'macro_spillover', 'price_action'):
+            sc = 0.0  # clamp score too — don't trust Gemini to always return 0
+            weight = 0  # short-term price moves and macro noise don't reflect business
         elif cat == 'structural':
             weight = 2.0  # thesis-relevant news weighted higher
         else:
