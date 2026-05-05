@@ -96,11 +96,14 @@ def _fallback_score(headline: str) -> dict:
     # These describe price moves, not business changes.
     _price_keywords = [
         'falls', 'fall ', 'plunge', 'plunges', 'crashes', '52-week low', '52 week low',
-        'block deal', 'oversold', 'support', 'resistance', 'breakdown', 'breaks below',
-        'hit a low', 'tanks', 'drops', 'slips', 'declines', 'down ', 'lower',
+        'block deal', 'block trade', 'bulk deal', 'bulk trade',
+        'oversold', 'support', 'resistance', 'breakdown', 'breaks below',
+        'hit a low', 'tanks', 'drops', 'slips', 'declines', 'decline ', 'declined',
+        'down ', 'lower', 'dip', 'dips ', '% dip', 'after dip',
         'rallies', 'jumps', 'soars', 'rises', 'gain', 'up ', 'higher', 'surges',
         '52-week high', '52 week high', 'all-time high', 'all-time low',
         'profit-booking', 'profit booking', 'oversold bounce',
+        'recovers', 'rebounds', 'bounce', 'bounced',
     ]
     _macro_keywords = [
         'nifty', 'sensex', 'fii outflow', 'fii inflow', 'market falls', 'market rises',
@@ -121,16 +124,14 @@ def _fallback_score(headline: str) -> dict:
         return {'score': 0, 'category': 'price_action',
                 'reason': 'keyword fallback: detected as price action only'}
 
-    # If none of the above filters match, defer to the original keyword scorer
-    try:
-        from news_sentiment import score_headline
-        score = score_headline(headline)
-    except Exception:
-        score = 0
+    # If none of the above filters match, default to neutral.
+    # The keyword scorer is too aggressive on bank/finance headlines:
+    # "screams buy after 25% dip" → it sees 'dip' and scores negative when actual sentiment is +2.
+    # When in doubt, return 0. Better to under-react than to misread.
     return {
-        'score':    max(-2, min(2, score)),  # cap fallback at ±2 (less confident than Gemini)
+        'score':    0,
         'category': 'unclassified',
-        'reason':   'keyword fallback (Gemini unavailable)',
+        'reason':   'keyword fallback (Gemini unavailable) — defaulting to neutral',
     }
 
 
@@ -261,8 +262,17 @@ def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') ->
                     cache[h_hash] = {'result': result, 'ts': now}
                     _cache_dirty = True
         except Exception as e:
-            logger.warning(f"Gemini batch failed for {symbol}: {e}; falling back to keywords")
-            # Fall back per-headline to keyword scoring
+            # Log structured error so we can spot quota issues, model deprecation, etc.
+            err_type = type(e).__name__
+            err_msg  = str(e)[:200]
+            logger.error(f"[Gemini ERROR] {symbol} | {err_type}: {err_msg}")
+            # Detect specific failure modes and log louder so they're greppable in Render logs
+            if '429' in err_msg or 'quota' in err_msg.lower() or 'rate' in err_msg.lower():
+                logger.error(f"[Gemini RATE LIMIT] {symbol} — falling back. Free tier reset at midnight Pacific.")
+            elif '404' in err_msg or 'not found' in err_msg.lower():
+                logger.error(f"[Gemini MODEL DEPRECATED] {symbol} — model {GEMINI_MODEL} returned 404. Update GEMINI_MODEL.")
+            elif '401' in err_msg or '403' in err_msg or 'unauthorized' in err_msg.lower() or 'permission' in err_msg.lower():
+                logger.error(f"[Gemini AUTH FAILED] {symbol} — check GEMINI_API_KEY env var on Render.")
             for (orig_i, sym, h, h_hash) in to_classify:
                 cached_results[orig_i] = _fallback_score(h)
 
