@@ -178,7 +178,8 @@ JSON:"""
 
 
 def _call_gemini(headlines_with_symbols: list) -> list:
-    """Send a batch to Gemini and parse the response. Returns list of dicts."""
+    """Send a batch to Gemini and parse the response. Returns list of dicts.
+    Retries once on timeout (Render's outbound is slower than local)."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY not set")
 
@@ -193,16 +194,31 @@ def _call_gemini(headlines_with_symbols: list) -> list:
             "responseMimeType": "application/json",
         }
     }
-    r = requests.post(url, json=payload, timeout=15)
-    r.raise_for_status()
-    data = r.json()
-    text = data['candidates'][0]['content']['parts'][0]['text']
-    parsed = json.loads(text)
-    if not isinstance(parsed, list):
-        raise ValueError(f"Gemini returned non-list: {type(parsed)}")
-    if len(parsed) != len(headlines_with_symbols):
-        raise ValueError(f"Gemini returned {len(parsed)} items, expected {len(headlines_with_symbols)}")
-    return parsed
+
+    last_err = None
+    for attempt in (1, 2):
+        try:
+            r = requests.post(url, json=payload, timeout=45)
+            r.raise_for_status()
+            data = r.json()
+            text = data['candidates'][0]['content']['parts'][0]['text']
+            parsed = json.loads(text)
+            if not isinstance(parsed, list):
+                raise ValueError(f"Gemini returned non-list: {type(parsed)}")
+            if len(parsed) != len(headlines_with_symbols):
+                raise ValueError(f"Gemini returned {len(parsed)} items, expected {len(headlines_with_symbols)}")
+            return parsed
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last_err = e
+            if attempt == 1:
+                logger.warning(f"Gemini timeout on attempt 1, retrying once...")
+                continue
+            raise
+        except Exception:
+            raise  # non-network errors fail immediately
+
+    if last_err:
+        raise last_err
 
 
 def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') -> dict:
@@ -266,6 +282,85 @@ def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') ->
             err_type = type(e).__name__
             err_msg  = str(e)[:200]
             logger.error(f"[Gemini ERROR] {symbol} | {err_type}: {err_msg}")
+
+            # If timeout, try again with smaller batches (5 headlines instead of 10)
+            # Smaller payloads = faster Gemini response = lower timeout risk
+            if 'timeout' in err_type.lower() or 'timeout' in err_msg.lower():
+                logger.info(f"[Gemini RECOVER] {symbol}: retrying with smaller batches")
+                try:
+                    half = len(to_classify) // 2 + 1
+                    batch1 = [(t[1], t[2]) for t in to_classify[:half]]
+                    batch2 = [(t[1], t[2]) for t in to_classify[half:]] if to_classify[half:] else []
+                    results1 = _call_gemini(batch1) if batch1 else []
+                    results2 = _call_gemini(batch2) if batch2 else []
+                    for (orig_i, sym, h, h_hash), result in zip(to_classify, results1 + results2):
+                        if not isinstance(result, dict):
+                            result = _fallback_score(h)
+                        else:
+                            score_v = result.get('score', 0)
+                            try:
+                                result['score'] = max(-3, min(3, int(score_v)))
+                            except Exception:
+                                result['score'] = 0
+                            result.setdefault('category', 'noise')
+                            result.setdefault('reason', '')
+                        cached_results[orig_i] = result
+                        with _cache_lock:
+                            cache[h_hash] = {'result': result, 'ts': now}
+                            _cache_dirty = True
+                    logger.info(f"[Gemini RECOVER] {symbol}: smaller-batch retry succeeded")
+                    _save_cache()
+                    # Skip the keyword fallback below since recovery worked
+                    weighted_sum = 0.0; weight_total = 0.0
+                    pos_n = neg_n = neu_n = 0
+                    classifications = []
+                    for i, h in enumerate(headlines):
+                        r = cached_results.get(i, {'score': 0, 'category': 'noise', 'reason': ''})
+                        cat = r.get('category', 'noise')
+                        sc  = float(r.get('score') or 0)
+                        if cat in ('noise', 'macro_spillover', 'price_action'):
+                            weight = 0
+                        elif cat == 'structural':
+                            weight = 2.0
+                        else:
+                            weight = 1.0
+                        if weight > 0:
+                            weighted_sum += sc * weight
+                            weight_total += weight
+                        if   sc >  0: pos_n += 1
+                        elif sc <  0: neg_n += 1
+                        else:         neu_n += 1
+                        classifications.append({
+                            'headline': h, 'category': cat,
+                            'score': sc, 'reason': r.get('reason', ''),
+                        })
+                    if weight_total > 0:
+                        agg_score = round((weighted_sum / weight_total) * 10, 1)
+                    else:
+                        agg_score = 0.0
+                    label = 'positive' if agg_score > 8 else 'negative' if agg_score < -8 else 'neutral'
+                    top = sorted(classifications, key=lambda c: -abs(c['score']))[:3]
+                    top_headlines = [{
+                        'title':     c['headline'],
+                        'sentiment': 'positive' if c['score'] > 0 else 'negative' if c['score'] < 0 else 'neutral',
+                        'score':     c['score'],
+                    } for c in top]
+                    return {
+                        'symbol':           symbol,
+                        'sentiment_score':  agg_score,
+                        'sentiment_label':  label,
+                        'positive_count':   pos_n,
+                        'negative_count':   neg_n,
+                        'neutral_count':    neu_n,
+                        'total_articles':   len(headlines),
+                        'top_headlines':    top_headlines,
+                        'classifications':  classifications,
+                        'fetched_at':       __import__('datetime').datetime.now().isoformat(),
+                    }
+                except Exception as e2:
+                    logger.warning(f"[Gemini RECOVER FAIL] {symbol}: smaller-batch also failed: {e2}")
+                    # fall through to keyword fallback below
+
             # Detect specific failure modes and log louder so they're greppable in Render logs
             if '429' in err_msg or 'quota' in err_msg.lower() or 'rate' in err_msg.lower():
                 logger.error(f"[Gemini RATE LIMIT] {symbol} — falling back. Free tier reset at midnight Pacific.")
