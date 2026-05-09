@@ -3108,191 +3108,110 @@ def portfolio_vs_nifty():
     return jsonify(result)
 
 
-# ── Portfolio X-Ray ───────────────────────────────────────────────────────────
+# ── Portfolio X-Ray (refactored: calls /stock-analysis per holding) ──────────
 @app.route("/portfolio-xray")
 def portfolio_xray():
+    """
+    Returns the same data shape the frontend expects, but sources every field
+    from /stock-analysis instead of duplicating scoring logic. Single source
+    of truth — all scoring/labeling/tier improvements automatically apply.
+    """
     raw = request.args.get("symbols", "")
     if not raw:
         return jsonify({"error": "symbols required"}), 400
     symbols = [s.strip().upper() for s in raw.split(",") if s.strip()][:20]
 
-    import math, pandas as pd, threading
+    import threading
     result = {"stocks": {}}
+    result_lock = threading.Lock()
 
-    def _fetch(sym):
+    def _fetch_one(sym):
+        """Reuse /stock-analysis logic via the test client — same scoring path
+        every other endpoint uses, no duplication."""
         try:
-            stock = {}
-            q = nse_quote(sym)
-            stock['price']  = q.get('price')
-            stock['sector'] = q.get('industry', '—')
-            sector_str = str(stock['sector']).lower()
+            with app.test_client() as client:
+                resp = client.get(f'/stock-analysis?symbol={sym}')
+                if resp.status_code != 200:
+                    with result_lock:
+                        result['stocks'][sym] = {'error': f'HTTP {resp.status_code}'}
+                    return
+                data = resp.get_json() or {}
 
-            # NaN-safe float reader — pandas blank → float('nan') which is truthy,
-            # so `float(nan or default)` returns nan, not default.
-            def _fv(row, key, default=0.0):
-                v = row.get(key)
-                if v is None: return default
-                try:
-                    f = float(v)
-                    return default if math.isnan(f) else f
-                except (TypeError, ValueError):
-                    return default
+            # Map /stock-analysis response → portfolio-xray's flat schema
+            quote    = data.get('quote') or {}
+            combined = data.get('combined') or {}
+            ml       = data.get('ml') or {}
+            fund     = data.get('fundamentals') or {}
+            val_sig  = combined.get('valuation_signal') or {}
+            forecast = data.get('forecast') or {}
+            sentiment = data.get('sentiment') or {}
 
-            def _fb(row, key):
-                v = row.get(key)
-                if v is None: return 0.5
-                if isinstance(v, float) and math.isnan(v): return 0.5
-                if isinstance(v, str):
-                    s = v.strip().lower()
-                    if s in ('', 'nan', 'none'): return 0.5
-                    return 1.0 if s in ('true','1','yes','y','t') else 0.0
-                return 1.0 if bool(v) else 0.0
+            stock = {
+                'price':           quote.get('price'),
+                'sector':          quote.get('industry') or '—',
+                'change_pct':      quote.get('change_pct'),
+                'company_name':    quote.get('company_name'),
 
-            # ML score + cached valuation from nightly cache
-            ml_score  = 50.0
-            cached_val = {}
-            nc = get_nightly_cache()
-            if nc and sym in nc.get('stocks', {}):
-                cached    = nc['stocks'][sym]
-                ml        = cached.get('ml', {})
-                ml_score  = float(ml.get('ml_score') or 50)
-                cached_val = cached.get('valuation', {})
-                stock['ml_score'] = ml_score
+                # Scoring
+                'combined_score':  combined.get('score'),
+                'grade':           combined.get('grade'),
+                'verdict':         combined.get('verdict'),
+                'verdict_color':   combined.get('verdict_color'),
+                'risk':            combined.get('risk'),
+                'risk_color':      combined.get('risk_color'),
+                'reason':          combined.get('reason'),
 
-            # yfin_score from cached valuation (mirrors api_server STEP 2)
-            def _fvc(key, default=0.0):
-                return _fv(cached_val, key, default)
-            pe_v = _fvc('pe_ratio', 0.0)
-            pb_v = _fvc('pb_ratio', 3.0)
-            pm_v = _fvc('profit_margin', 0.0) * 100
-            rg_v = _fvc('revenue_growth', 0.0) * 100
-            yfin_score = 50.0
-            if pe_v > 0:
-                if pe_v < 15:   yfin_score += 15
-                elif pe_v < 22: yfin_score += 8
-                elif pe_v < 30: yfin_score += 3
-                elif pe_v < 45: yfin_score -= 8
-                else:           yfin_score -= 18
-            if pb_v > 0:
-                if pb_v < 1.5:  yfin_score += 8
-                elif pb_v < 3:  yfin_score += 3
-                elif pb_v < 6:  yfin_score -= 3
-                else:           yfin_score -= 8
-            if pm_v > 20: yfin_score += 8
-            elif pm_v > 10: yfin_score += 4
-            elif pm_v < 0:  yfin_score -= 10
-            if rg_v > 20: yfin_score += 5
-            elif rg_v > 10: yfin_score += 2
-            elif rg_v < 0:  yfin_score -= 5
-            yfin_score = max(0, min(100, yfin_score))
+                # Component scores (Pro view)
+                'ml_score':        ml.get('ml_score'),
+                'screener_score':  combined.get('screener_score'),
+                'sent_score':      combined.get('sent_score'),
+                'macro_score':     combined.get('macro_score'),
+                'yfin_score':      combined.get('yfin_score'),
 
-            # Custom fundamental score from CSV (mirrors api_server STEP 1)
-            try:
-                sdf     = pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
-                csv_sym = {'LTM': 'LTIM'}.get(sym, sym)
-                row     = sdf[sdf['symbol'] == csv_sym]
-                if not row.empty:
-                    r = row.iloc[0].to_dict()
-                    _is_bank = any(x in sector_str for x in ['bank','nbfc','financ','insurance'])
-                    _sc = _fv(r, 'sales_cagr_5y', 8.0);  _s1 = _fv(r, 'sales_growth_1y', 8.0)
-                    _pc = _fv(r, 'profit_cagr_5y', 8.0);  _p1 = _fv(r, 'profit_growth_1y', 8.0)
-                    _ec = _fv(r, 'eps_cagr_5y', 8.0)
-                    _ol = _fv(r, 'opm_latest_pct', 12.0); _oa = _fv(r, 'opm_avg_5y', 12.0)
-                    _rl = _fv(r, 'roce_latest_pct', 12.0);_ra = _fv(r, 'roce_avg_5y', 12.0)
-                    _pr = _fv(r, 'promoter_pct', 45.0)
-                    _de_raw = r.get('screener_de')
-                    _de = _fv(r, 'screener_de', None) if (_de_raw is not None and _de_raw != '') else None
-                    _fcf = _fb(r, 'fcf_positive_3y'); _dred = _fb(r, 'debt_reducing')
-                    # Growth (30 pts)
-                    g = 0
-                    g += 12 if _sc >= 25 else 8 if _sc >= 15 else 4 if _sc >= 8 else 0
-                    g += 10 if _pc >= 25 else 7 if _pc >= 15 else 4 if _pc >= 8 else 0
-                    g += 5  if _s1 >= 20 else 3 if _s1 >= 10 else 0
-                    g += 3  if _p1 >= 20 else 2 if _p1 >= 10 else 0
-                    # Profitability (25 pts)
-                    p = 0
-                    if not _is_bank:
-                        p += 10 if _ol >= 25 else 7 if _ol >= 18 else 4 if _ol >= 10 else 2 if _ol >= 5 else 0
-                        od = _ol - _oa
-                        p += 5 if od > 3 else 2 if od > 0 else (-2 if od < -3 else 0)
-                    p += 10 if _rl >= 25 else 7 if _rl >= 18 else 4 if _rl >= 12 else 2 if _rl >= 8 else 0
-                    # Health (25 pts)
-                    h = 8  # neutral default
-                    if not _is_bank and _de is not None:
-                        h = 12 if _de < 0.1 else 8 if _de < 0.3 else 4 if _de < 0.8 else 0
-                    h += 8 if _fcf >= 0.75 else 4 if _fcf >= 0.5 else 0
-                    h += 5 if _dred >= 0.75 else 2 if _dred >= 0.5 else 0
-                    # Management (20 pts)
-                    m = 0
-                    m += 10 if _pr >= 65 else 6 if _pr >= 50 else 3 if _pr >= 35 else 0
-                    rd = _rl - _ra
-                    m += 6 if rd > 5 else 4 if rd > 2 else 2 if rd > 0 else 0
-                    m += 4 if _ec > _sc + 5 else 2 if _ec > _sc else 0
-                    custom_score = min(max(min(g, 30) + min(max(p,0), 25) + min(h, 25) + min(m, 20), 0), 100)
+                # Valuation signal — flatten for legacy consumers
+                'val_signal':       val_sig.get('label'),
+                'val_signal_color': val_sig.get('color'),
+                'fair_value':       val_sig.get('fair_value'),
+                'fair_pe':          val_sig.get('fair_pe'),
+                'pct_vs_fair':      val_sig.get('pct_vs_fair'),
+                'tailwind_theme':   val_sig.get('tailwind_theme'),
 
-                    # Combined score — same weights as stock_analysis
-                    combined = round(ml_score * 0.25 + custom_score * 0.45 + yfin_score * 0.30, 1)
-                    stock['combined_score'] = combined
-                    stock['verdict'] = ('BUY'  if combined >= 68
-                                        else 'MILD BUY' if combined >= 58
-                                        else 'HOLD' if combined >= 48
-                                        else 'SELL')
+                # Fundamentals snapshot
+                'roce':             fund.get('roce_latest_pct'),
+                'eps_latest':       fund.get('eps_latest'),
+                'profit_growth_1y': fund.get('profit_growth_1y'),
 
-                    # Fair value — use cached eps (same source as stock_analysis)
-                    eps_l = _fvc('eps', 0.0) or _fv(r, 'eps_latest', 0.0)
-                    cur_p = float(str(stock.get('price') or '0').replace(',', '')) or 0.0
-                    if eps_l > 0 and cur_p > 0:
-                        eps_cagr = _fv(r, 'eps_cagr_5y', 8.0)
-                        rate_adj = 4.4 / RBI_REPO_RATE
-                        base_pe  = 22
-                        _XSP = {'IT':28,'Technology':28,'Software':28,'FMCG':35,
-                                 'Consumer':32,'Pharma':30,'Healthcare':30,
-                                 'Banking':15,'Finance':18,'NBFC':18,
-                                 'Metals':10,'Steel':10,'Energy':12,
-                                 'Power':14,'Infrastructure':18,'Defence':30}
-                        for k, v in _XSP.items():
-                            if k.lower() in sector_str:
-                                base_pe = v; break
-                        if any(x in sector_str for x in ['bank','nbfc','financ','insurance']):
-                            base_pe = min(base_pe, 15)
-                        qm = 1.0
-                        if _rl > _ra + 3:      qm += 0.10
-                        if _fcf >= 0.75:       qm += 0.08
-                        if _dred >= 0.75:      qm += 0.07
-                        if _pr > 55:           qm += 0.05
-                        qm = min(qm, 1.35)
-                        _fp_cap = 70 if any(x in sector_str for x in
-                                    ['it','software','technolog','defence','shipbuild',
-                                     'pharma','health','fmcg','consumer']) else 55
-                        fair_pe  = round(min((base_pe + 1.5 * min(eps_cagr, 25)) * rate_adj * qm, _fp_cap), 1)
-                        fair_val = round(eps_l * fair_pe, 0)
-                        if fair_val > 0 and not math.isnan(fair_val):
-                            stock['fair_value'] = fair_val
-                            stock['val_signal'] = (
-                                'Undervalued Quality' if custom_score >= 60 and cur_p < fair_val * 0.90
-                                else 'Overvalued Quality' if custom_score >= 60 and cur_p > fair_val * 1.15
-                                else 'Fairly Valued' if custom_score >= 60
-                                else 'Value Trap Risk' if cur_p < fair_val * 0.90
-                                else 'Overpriced'
-                            )
-                            stock['val_signal_color'] = (
-                                'green' if 'Undervalued' in stock['val_signal']
-                                else 'red' if 'Trap' in stock['val_signal'] or 'Overpriced' in stock['val_signal']
-                                else 'gold'
-                            )
-            except Exception:
-                pass
+                # Forecast targets (Pro view)
+                'price_target_1y':  (forecast.get('1y') or {}).get('price_target'),
+                'price_target_3y':  (forecast.get('3y') or {}).get('price_target'),
+                'price_target_5y':  (forecast.get('5y') or {}).get('price_target'),
 
-            result['stocks'][sym] = {k: v for k, v in stock.items()
-                                     if v is not None and not (isinstance(v, float) and math.isnan(v))}
+                # Sentiment summary
+                'sentiment_score':  sentiment.get('sentiment_score'),
+                'sentiment_label':  sentiment.get('sentiment_label'),
+
+                # Quote freshness — surface fallback state to UI
+                'quote_source':     quote.get('source'),
+                'quote_delay':      quote.get('delay'),
+            }
+
+            # Drop None values so the response is compact
+            stock = {k: v for k, v in stock.items() if v is not None}
+
+            with result_lock:
+                result['stocks'][sym] = stock
+
         except Exception as e:
-            result['stocks'][sym] = {'error': str(e)}
+            _log_exc(f'portfolio_xray._fetch_one({sym})', sym)
+            with result_lock:
+                result['stocks'][sym] = {'error': str(e)}
 
-    threads = [threading.Thread(target=_fetch, args=(sym,)) for sym in symbols]
+    # Parallel fetch — overall response time bounded by slowest single stock (~5-8s)
+    threads = [threading.Thread(target=_fetch_one, args=(sym,)) for sym in symbols]
     for t in threads: t.start()
-    for t in threads: t.join(timeout=15)
+    for t in threads: t.join(timeout=45)
 
-    return jsonify({"status":"ok","stocks":result["stocks"]})
+    return jsonify({"status": "ok", "stocks": result["stocks"]})
 
 
 # ── PDF Report Generator ──────────────────────────────────────────────────────
