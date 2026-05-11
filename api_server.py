@@ -32,6 +32,14 @@ def _log_exc(where, sym=None):
     suffix = f" [{sym}]" if sym else ""
     logger.exception(f"swallowed in {where}{suffix}")
 
+def _try_get_thesis_health(symbol):
+    """Wrapper that returns None if thesis_multiplier isn't importable."""
+    try:
+        from thesis_multiplier import get_thesis_health
+        return get_thesis_health(symbol)
+    except Exception:
+        return None
+
 def _is_insurance_proxy(industry_str: str) -> bool:
     """Banks ≠ insurance. Don't apply bank scoring to insurance/reinsurance."""
     s = (industry_str or '').lower()
@@ -2086,13 +2094,16 @@ def stock_analysis():
                     )
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
-                    # Apply structural tailwind if any
-                    _tw = STRUCTURAL_TAILWINDS.get(symbol)
-                    if _tw:
-                        _tw_theme, _tw_mult = _tw
+                    # Apply structural tailwind — blended hardcoded + data-driven
+                    try:
+                        from thesis_multiplier import get_thesis_multiplier
+                        _tw_theme, _tw_mult = get_thesis_multiplier(symbol, STRUCTURAL_TAILWINDS)
+                    except Exception:
+                        _tw = STRUCTURAL_TAILWINDS.get(symbol)
+                        _tw_theme, _tw_mult = (_tw[0], _tw[1]) if _tw else (None, 1.0)
+
+                    if _tw_mult != 1.0:
                         fair_value = round(fair_value * _tw_mult, 1)
-                    else:
-                        _tw_theme, _tw_mult = None, 1.0
                     logger.info(f"[valuation_debug] {symbol}: eps={eps_latest}, base_pe={base_pe}, growth={reliable_growth}, qm={quality_mult}, fair_pe={fair_pe}, fair_value={fair_value}")
 
                     if scr_raw >= 75:   mos = 0.10
@@ -2211,6 +2222,7 @@ def stock_analysis():
                         "forward_1y":          fwd_value_signal,
                         "tailwind_theme":      _tw_theme,
                         "tailwind_multiplier": _tw_mult,
+                        "thesis_health":       (lambda: _try_get_thesis_health(symbol))(),
                     }
 
                 else:
