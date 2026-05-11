@@ -345,6 +345,13 @@ def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') ->
                         'sentiment': 'positive' if c['score'] > 0 else 'negative' if c['score'] < 0 else 'neutral',
                         'score':     c['score'],
                     } for c in top]
+                    # Module B: log structural events from recovery path too
+                    try:
+                        from thesis_store import log_classifications_batch
+                        log_classifications_batch(symbol, classifications)
+                    except Exception as _e:
+                        logger.warning(f"thesis_store log failed for {symbol}: {_e}")
+
                     return {
                         'symbol':           symbol,
                         'sentiment_score':  agg_score,
@@ -427,6 +434,14 @@ def classify_headlines(symbol: str, headlines: list, mode: str = 'sentiment') ->
         'sentiment': 'positive' if c['score'] > 0 else 'negative' if c['score'] < 0 else 'neutral',
         'score':     c['score'],
     } for c in top]
+
+    # ── Module B: log structural events for future thesis-tracking ──
+    # Fire-and-forget — never let logging failures break sentiment.
+    try:
+        from thesis_store import log_classifications_batch
+        log_classifications_batch(symbol, classifications)
+    except Exception as _e:
+        logger.warning(f"thesis_store log failed for {symbol}: {_e}")
 
     return {
         'symbol':           symbol,
