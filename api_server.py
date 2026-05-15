@@ -65,7 +65,7 @@ DISK_CACHE_DIR = os.path.dirname(os.path.abspath(__file__))
 RBI_REPO_RATE = 6.5   # Current RBI repo rate — update when changed
 
 # CSV schema — used to validate screener_fundamentals.csv on load
-CSV_EXPECTED_COLS = 36
+CSV_EXPECTED_COLS = 37
 CSV_REQUIRED_FIELDS = [
     'symbol', 'sales_latest_cr', 'profit_latest_cr', 'eps_latest',
     'roce_latest_pct', 'opm_latest_pct', 'sales_cagr_5y', 'promoter_pct',
