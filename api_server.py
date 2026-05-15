@@ -2095,14 +2095,26 @@ def stock_analysis():
                     fair_pe    = round(fair_pe, 1)
                     fair_value = round(eps_latest * fair_pe, 1)
                     # Apply structural tailwind — blended hardcoded + data-driven
+                    # Hardened: ANY failure here falls back to the hardcoded dict.
+                    _tw_theme, _tw_mult = None, 1.0
                     try:
                         from thesis_multiplier import get_thesis_multiplier
-                        _tw_theme, _tw_mult = get_thesis_multiplier(symbol, STRUCTURAL_TAILWINDS)
-                    except Exception:
+                        _tw_result = get_thesis_multiplier(symbol, STRUCTURAL_TAILWINDS)
+                        if _tw_result and isinstance(_tw_result, tuple) and len(_tw_result) == 2:
+                            _tw_theme, _tw_mult = _tw_result
+                    except Exception as _e:
+                        _log_exc('thesis_multiplier', symbol)
                         _tw = STRUCTURAL_TAILWINDS.get(symbol)
-                        _tw_theme, _tw_mult = (_tw[0], _tw[1]) if _tw else (None, 1.0)
+                        if _tw:
+                            _tw_theme, _tw_mult = _tw[0], _tw[1]
 
-                    if _tw_mult != 1.0:
+                    # Defensive: enforce sane numeric multiplier
+                    try:
+                        _tw_mult = float(_tw_mult) if _tw_mult is not None else 1.0
+                    except Exception:
+                        _tw_mult = 1.0
+
+                    if _tw_mult != 1.0 and fair_value:
                         fair_value = round(fair_value * _tw_mult, 1)
                     logger.info(f"[valuation_debug] {symbol}: eps={eps_latest}, base_pe={base_pe}, growth={reliable_growth}, qm={quality_mult}, fair_pe={fair_pe}, fair_value={fair_value}")
 
@@ -2207,6 +2219,15 @@ def stock_analysis():
                     except Exception:
                         _log_exc('forward_value_signal', symbol)
 
+                    # Pre-compute thesis_health BEFORE the dict so a failure here
+                    # doesn't crash the entire val_signal construction.
+                    _safe_thesis_health = None
+                    try:
+                        from thesis_multiplier import get_thesis_health
+                        _safe_thesis_health = get_thesis_health(symbol)
+                    except Exception:
+                        _safe_thesis_health = None
+
                     val_signal = {
                         "label":         sig_label,
                         "color":         sig_color,
@@ -2222,7 +2243,7 @@ def stock_analysis():
                         "forward_1y":          fwd_value_signal,
                         "tailwind_theme":      _tw_theme,
                         "tailwind_multiplier": _tw_mult,
-                        "thesis_health":       (lambda: _try_get_thesis_health(symbol))(),
+                        "thesis_health":       _safe_thesis_health,
                     }
 
                 else:
