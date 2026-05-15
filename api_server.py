@@ -1648,7 +1648,9 @@ def stock_analysis():
 
         h = max(0, min(100, h))
 
-        # ── Category 4: Management Quality (0–100) ────────────────────
+        # ── Category 4: Management Quality 2.0 (0–100) ────────────────────
+        # Signals: promoter ownership, institutional holding, pledged shares,
+        # cash quality (CFO/NP), dividend consistency
         m = 50
 
         _is_mnc = _promoter == 0 and _fii > 25
@@ -1667,9 +1669,34 @@ def stock_analysis():
         elif _inst_total > 20:    m += 2
         elif _inst_total < 10:    m -= 5
 
-        if 20 <= _div_payout <= 60:   m += 6
-        elif _div_payout > 100:        m -= 8
-        elif _div_payout == 0:         m -= 2
+        # ── NEW: Pledged shares (red flag if >30%, severe if >50%) ──
+        _pledged = _f('pledged_pct', None)
+        if _pledged is not None:
+            if _pledged >= 50:       m -= 25
+            elif _pledged >= 30:     m -= 15
+            elif _pledged >= 15:     m -= 7
+            elif _pledged >= 5:      m -= 2
+
+        # ── NEW: Cash quality (CFO/NP ratio) ──
+        # Reported profit must convert to actual cash; persistent divergence = red flag
+        _ocf  = _f('ocf_latest_cr', None)
+        _prof = _f('profit_latest_cr', None)
+        if _ocf is not None and _prof is not None and _prof > 0:
+            _cash_ratio = _ocf / _prof
+            if _cash_ratio >= 1.1:        m += 8   # cash exceeds profit = quality earnings
+            elif _cash_ratio >= 0.85:     m += 4
+            elif _cash_ratio >= 0.65:     m += 0
+            elif _cash_ratio >= 0.40:     m -= 5
+            elif _cash_ratio >= 0:        m -= 10  # significant divergence
+            else:                          m -= 15  # negative OCF with positive profit
+
+        # ── ENHANCED: Dividend consistency ──
+        if 20 <= _div_payout <= 60:        m += 8   # was +6
+        elif 5 < _div_payout < 20:         m += 3   # nominal but present
+        elif _div_payout > 100:            m -= 10  # unsustainable
+        elif _div_payout == 0 and _prof and _prof > 100:
+            m -= 4  # large profitable company hoarding cash
+        elif _div_payout == 0:             m -= 2
 
         m = max(0, min(100, m))
 
