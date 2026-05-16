@@ -85,7 +85,7 @@ def _save_cache():
 def _hash_headline(text: str) -> str:
     """Stable hash for cache key. Prefix is bumped on prompt schema changes
     to invalidate stale classifications."""
-    return 'v4_' + hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
+    return 'v5_' + hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
 
 
 def _fallback_score(headline: str) -> dict:
