@@ -1179,6 +1179,7 @@ def stock_analysis():
                     "debt_growth_1y":    r.get('debt_growth_1y'),
                     "screener_de":       r.get('screener_de'),
                     "networth_cr":       r.get('networth_cr'),
+                    "pledged_pct":       r.get('pledged_pct'),
                     # Ownership
                     "promoter_pct":      r.get('promoter_pct'),
                     "fii_pct":           r.get('fii_pct'),
@@ -3416,6 +3417,7 @@ def generate_report_endpoint():
                         "debt_growth_1y":     r.get('debt_growth_1y'),
                         "screener_de":        r.get('screener_de'),
                         "networth_cr":        r.get('networth_cr'),
+                        "pledged_pct":        r.get('pledged_pct'),
                         "promoter_pct":       r.get('promoter_pct'),
                         "fii_pct":            r.get('fii_pct'),
                         "dii_pct":            r.get('dii_pct'),
