@@ -85,7 +85,7 @@ def _save_cache():
 def _hash_headline(text: str) -> str:
     """Stable hash for cache key. Prefix is bumped on prompt schema changes
     to invalidate stale classifications."""
-    return 'v3_' + hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
+    return 'v4_' + hashlib.sha256(text.strip().lower().encode('utf-8')).hexdigest()[:16]
 
 
 def _fallback_score(headline: str) -> dict:
@@ -169,7 +169,33 @@ SENTIMENT (integer -3 to +3):
 - -3: very negative (fraud allegation, major contract loss, going-concern doubt)
 
 OUTPUT: Return ONLY a valid JSON array, one object per headline in input order, no commentary, no markdown.
-Format: [{{"category": "structural", "score": 3, "reason": "brief why"}}, ...]
+RESPONSE FORMAT (JSON array, one object per headline):
+[
+  {{
+    "headline": "...",
+    "category": "structural|earnings|regulatory|corporate|price_action|noise|macro_spillover",
+    "score": int(-3..+3),
+    "reason": "brief",
+    "customer_entity": "<company/entity name if headline names a contract counterparty, client, or revenue partner, else null>"
+  }},
+  ...
+]
+
+CUSTOMER ENTITY EXTRACTION RULES:
+- Extract a customer/counterparty name ONLY when the headline explicitly names them in connection with a contract, order, deal, or revenue relationship with the subject company.
+- Examples that DO extract:
+  - "Techno Electric wins ₹460 Cr IndiGrid contract" → customer_entity: "IndiGrid"
+  - "Mazagon Dock signs deal with Indian Navy for 7 destroyers" → customer_entity: "Indian Navy"
+  - "TCS bags multi-year contract with Singapore Airlines" → customer_entity: "Singapore Airlines"
+  - "DIXON to supply mobile components to Xiaomi India" → customer_entity: "Xiaomi"
+- Examples that do NOT extract (return null):
+  - "Techno Electric Q2 profit up 24%" → null (no customer named)
+  - "Stock falls 3% on profit-booking" → null (price action)
+  - "Adani Group's Carmichael coal mine clearance pending" → null (regulatory event, no buying counterparty)
+  - "Tata Motors among top picks" → null (analyst opinion, no transaction)
+- Use the customer's most recognizable short name (e.g. "Indian Navy" not "Government of India Defence Ministry Navy")
+- For multiple customers in one headline, pick the most prominent (only one entity per headline)
+- If unsure, return null. False extractions hurt more than missed ones.
 
 HEADLINES:
 {items}

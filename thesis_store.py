@@ -148,13 +148,23 @@ def log_event(symbol, classification, headline, thesis_tag=None):
                 'lifetime_structural_count': 0,
             }
         bucket = store[symbol]
+        # Customer entity (Module B step 5) — extracted by Gemini when headline names a counterparty
+        _customer = classification.get('customer_entity')
+        if _customer and isinstance(_customer, str):
+            _customer = _customer.strip()[:100]
+            if _customer.lower() in ('null', 'none', '', 'n/a'):
+                _customer = None
+        else:
+            _customer = None
+
         bucket['events'].append({
-            'ts':       _now_iso(),
-            'category': cat,
-            'score':    sc,
-            'headline': headline[:200],  # cap to avoid bloat
-            'reason':   (classification.get('reason') or '')[:200],
-            'thesis_tag': thesis_tag,
+            'ts':              _now_iso(),
+            'category':        cat,
+            'score':           sc,
+            'headline':        headline[:200],
+            'reason':          (classification.get('reason') or '')[:200],
+            'thesis_tag':      thesis_tag,
+            'customer_entity': _customer,
         })
         # Cap to MAX_EVENTS_PER_STOCK (FIFO)
         if len(bucket['events']) > MAX_EVENTS_PER_STOCK:
@@ -274,6 +284,55 @@ def health_check():
         'store_path':        STORE_PATH,
         'store_size_bytes':  size_bytes,
         'store_size_kb':     round(size_bytes / 1024, 1),
+    }
+
+
+def get_customers(symbol, days=365):
+    """
+    Aggregate customer mentions for a stock over a window.
+
+    Returns:
+      {
+        'symbol': str,
+        'window_days': int,
+        'unique_customers': int,
+        'top_customers': [(name, mention_count, last_seen_ts), ...],  # sorted by count desc
+        'all_mentions': [{'name': ..., 'ts': ..., 'headline': ...}, ...]
+      }
+    """
+    events = get_history(symbol, days=days)
+    customer_counts = {}
+    customer_last_seen = {}
+    all_mentions = []
+
+    for e in events:
+        c = e.get('customer_entity')
+        if not c:
+            continue
+        customer_counts[c] = customer_counts.get(c, 0) + 1
+        if c not in customer_last_seen or e.get('ts', '') > customer_last_seen[c]:
+            customer_last_seen[c] = e.get('ts', '')
+        all_mentions.append({
+            'name':     c,
+            'ts':       e.get('ts', ''),
+            'headline': e.get('headline', ''),
+        })
+
+    top = sorted(
+        customer_counts.items(),
+        key=lambda kv: (-kv[1], -_safe_ts(customer_last_seen.get(kv[0], ''))),
+    )
+    top_customers = [
+        (name, count, customer_last_seen.get(name, ''))
+        for name, count in top
+    ]
+
+    return {
+        'symbol':           symbol,
+        'window_days':      days,
+        'unique_customers': len(customer_counts),
+        'top_customers':    top_customers,
+        'all_mentions':     all_mentions,
     }
 
 
