@@ -216,7 +216,7 @@ def _call_gemini(headlines_with_symbols: list) -> list:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.1,
-            "maxOutputTokens": 2048,
+            "maxOutputTokens": 4096,
             "responseMimeType": "application/json",
         }
     }
@@ -228,7 +228,38 @@ def _call_gemini(headlines_with_symbols: list) -> list:
             r.raise_for_status()
             data = r.json()
             text = data['candidates'][0]['content']['parts'][0]['text']
-            parsed = json.loads(text)
+
+            # Lenient JSON parsing — Gemini occasionally returns malformed JSON
+            # (unescaped quotes in entity names, truncated output, trailing commas).
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError as je:
+                # Recovery 1: strip markdown fences if present
+                cleaned = text.strip()
+                if cleaned.startswith('```'):
+                    cleaned = cleaned.split('```', 2)[1]
+                    if cleaned.startswith('json'):
+                        cleaned = cleaned[4:]
+                    cleaned = cleaned.strip()
+                if cleaned.endswith('```'):
+                    cleaned = cleaned.rsplit('```', 1)[0].strip()
+                try:
+                    parsed = json.loads(cleaned)
+                except json.JSONDecodeError:
+                    # Recovery 2: salvage up to the last complete entry
+                    last_bracket = cleaned.rfind(']')
+                    if last_bracket > 0:
+                        salvaged = cleaned[:last_bracket+1]
+                        salvaged = salvaged.rstrip(',\n ').rstrip()
+                        if not salvaged.endswith(']'):
+                            salvaged += ']'
+                        try:
+                            parsed = json.loads(salvaged)
+                            logger.warning(f"Gemini JSON salvaged: kept {len(parsed)} of {len(headlines_with_symbols)}")
+                        except json.JSONDecodeError:
+                            raise je
+                    else:
+                        raise je
             if not isinstance(parsed, list):
                 raise ValueError(f"Gemini returned non-list: {type(parsed)}")
             if len(parsed) != len(headlines_with_symbols):
