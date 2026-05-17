@@ -230,6 +230,31 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
     if not nightly_cache or not nightly_cache.get('stocks'):
         return {'error': 'Nightly cache unavailable — try again in a moment'}
 
+    # Build approximate mcap lookup from CSV (networth_cr × pb_ratio proxy)
+    _csv_mcap = {}
+    if csv_data is not None:
+        try:
+            import pandas as _pd
+            _df = csv_data
+            for _, row in _df.iterrows():
+                sym = str(row.get('symbol') or row.iloc[0] or '').strip().upper()
+                if not sym:
+                    continue
+                try:
+                    nw = float(row.get('networth_cr') or 0)
+                    pb = float(row.get('pb') or row.get('price_to_book') or 0)
+                    if nw > 0 and pb > 0:
+                        _csv_mcap[sym] = nw * pb
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # Mcap filter thresholds (generous — just reject obvious size mismatches)
+    _mcap_min = {'large': 30000, 'mid': 3000, 'small': 0, 'any': 0}.get(
+        profile.get('min_market_cap', 'any'), 0
+    )
+
     candidates = []
     rejected = defaultdict(int)
 
@@ -239,35 +264,55 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
             rejected['force_excluded'] += 1
             continue
 
+        # Cheap mcap pre-filter using CSV approximation
+        if sym_u not in force_include and _mcap_min > 0:
+            approx_mcap = _csv_mcap.get(sym_u, 0)
+            if approx_mcap > 0 and approx_mcap < _mcap_min:
+                rejected['mcap_too_small'] += 1
+                continue
+
         ml = cached.get('ml') or {}
         ml_score = ml.get('ml_score') or 50
 
-        # Quick filter: ML score must be reasonable
-        if ml_score < profile['min_score'] - 15 and sym_u not in force_include:
-            rejected['low_ml'] += 1
-            continue
+        # Build a richer pre_rank using cache signals
+        pre_rank = float(ml_score)
+
+        # PEG adjustment: low PEG (value+growth) → boost; high PEG → trim
+        val = cached.get('valuation') or {}
+        pe  = val.get('pe') or val.get('current_pe') or 0
+        eg  = val.get('earnings_growth') or val.get('eg') or 0
+        if pe and eg and pe > 0 and eg > 0:
+            peg = pe / eg
+            if peg < 1.0:
+                pre_rank += 5
+            elif peg < 1.5:
+                pre_rank += 2
+            elif peg > 3.0:
+                pre_rank -= 3
+
+        # Revenue quality from chart_insights (if cached)
+        chart = cached.get('chart_insights') or {}
+        rev_q = (chart.get('revenue_quality') or '').lower()
+        if 'strong' in rev_q or 'accelerating' in rev_q:
+            pre_rank += 3
+        elif 'declining' in rev_q or 'weak' in rev_q:
+            pre_rank -= 3
 
         candidates.append({
-            'symbol': sym_u,
+            'symbol':       sym_u,
             'ml_score_fast': ml_score,
-            'forced': sym_u in force_include,
+            'pre_rank':     pre_rank,
+            'forced':       sym_u in force_include,
         })
 
     # Always include forced stocks even if filtered out above
     forced_present = set(c['symbol'] for c in candidates)
     for fs in force_include:
         if fs not in forced_present:
-            candidates.append({'symbol': fs, 'ml_score_fast': 50, 'forced': True})
+            candidates.append({'symbol': fs, 'ml_score_fast': 50, 'pre_rank': 50, 'forced': True})
 
-    # Pre-filter using cached combined_score to avoid analyzing stocks that won't survive
     target_count = profile['target_stocks']
-    pool_size = min(20, target_count * 2)  # 2x oversample for sector diversity
-
-    # Add combined_score from cache for better pre-ranking (where available)
-    for c in candidates:
-        cached = nightly_cache['stocks'].get(c['symbol'], {})
-        # Cache has 'ml' and 'valuation' but not full combined_score; use ml_score as proxy
-        c['pre_rank'] = c['ml_score_fast']
+    pool_size = min(25, target_count * 2 + 5)
 
     candidates.sort(key=lambda c: (not c['forced'], -c['pre_rank']))
     top_for_analysis = candidates[:pool_size]

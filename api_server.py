@@ -3205,6 +3205,12 @@ def portfolio_builder_endpoint():
 
         nightly_cache = get_nightly_cache()
 
+        try:
+            import pandas as _pd
+            csv_data = _pd.read_csv(os.path.join(os.path.dirname(__file__), 'screener_fundamentals.csv'))
+        except Exception:
+            csv_data = None
+
         result = build_portfolio(
             amount=amount, horizon=horizon,
             risk_appetite=risk_appetite, goal=goal,
@@ -3214,7 +3220,7 @@ def portfolio_builder_endpoint():
             exclude_high_pledge=exclude_high_pledge,
             min_market_cap=min_market_cap, min_score=min_score,
             force_include=force_include, force_exclude=force_exclude,
-            nightly_cache=nightly_cache, app=app,
+            nightly_cache=nightly_cache, app=app, csv_data=csv_data,
         )
 
         return jsonify(result)
