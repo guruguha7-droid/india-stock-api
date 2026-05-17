@@ -86,6 +86,162 @@ body{
 .idx-label{color:var(--text3);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px}
 .up{color:var(--green)}.dn{color:var(--red)}.neu{color:var(--text2)}
 
+/* Portfolio Builder styles */
+.pb-preset {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pb-preset:hover { background: rgba(255,255,255,0.08); color: var(--text1); }
+
+.pb-choice-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pb-choice {
+  flex: 1;
+  min-width: 110px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pb-choice:hover { background: rgba(255,255,255,0.08); }
+.pb-choice.active {
+  background: rgba(255,140,0,0.15);
+  border-color: var(--orange);
+  color: var(--orange);
+}
+
+.pb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+  padding: 6px 0;
+  cursor: pointer;
+}
+.pb-toggle input { accent-color: var(--orange); }
+
+.pb-summary-card {
+  background: linear-gradient(135deg, rgba(255,140,0,0.08), rgba(255,140,0,0.02));
+  border: 1px solid rgba(255,140,0,0.25);
+  border-radius: 10px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.pb-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.pb-summary-cell {
+  background: rgba(0,0,0,0.2);
+  padding: 10px 12px;
+  border-radius: 6px;
+}
+.pb-summary-cell-label {
+  font-size: 9px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.pb-summary-cell-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: var(--font-head);
+  color: var(--text1);
+}
+
+.pb-holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.pb-holdings-table th {
+  text-align: left;
+  padding: 10px 8px;
+  color: var(--text3);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.pb-holdings-table td {
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text2);
+}
+.pb-holdings-table tr:hover td { background: rgba(255,255,255,0.02); }
+.pb-symbol {
+  color: var(--orange);
+  font-weight: 600;
+  cursor: pointer;
+}
+.pb-symbol:hover { text-decoration: underline; }
+
+.pb-sector-bar {
+  display: flex;
+  height: 24px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+.pb-sector-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: white;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.pb-return-block {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0;
+}
+.pb-return-cell {
+  background: rgba(0,0,0,0.2);
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+}
+.pb-return-label {
+  font-size: 9px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pb-return-value {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-head);
+}
+
 /* ── Search ── */
 .search-section{margin-bottom:28px}
 .search-wrap{position:relative;display:flex;gap:10px;align-items:center}
@@ -334,6 +490,7 @@ body{
 <div class="pf-tabs" id="page-tabs">
   <button class="pf-tab active" id="tab-search" onclick="showTab('search')">🔍 Stock Analysis</button>
   <button class="pf-tab" id="tab-portfolio" onclick="showTab('portfolio')">📊 Portfolio X-Ray</button>
+  <button class="pf-tab" id="tab-builder" onclick="showTab('builder')">🛠 Portfolio Builder</button>
 </div>
 
 <!-- Search tab -->
@@ -417,16 +574,203 @@ body{
   </div>
 </div>
 
+<!-- Portfolio Builder tab -->
+<div id="pane-builder" class="pf-section">
+  <div style="max-width:900px;margin:0 auto">
+
+    <div class="pf-card">
+      <div class="pf-card-title">PORTFOLIO BUILDER</div>
+      <div style="font-size:11px;color:var(--text3);font-family:var(--font-mono);margin-bottom:18px">
+        Goal-based portfolio construction. Tell us your investment amount, horizon, risk appetite, and goal — we'll build a diversified 10-15 stock portfolio.
+      </div>
+
+      <!-- Amount -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">INVESTMENT AMOUNT (₹)</div>
+        <input type="number" id="pb-amount" class="pf-sym-input" placeholder="500000" value="500000" min="10000" style="width:100%;padding:10px 12px;font-size:14px"/>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="pb-preset" onclick="document.getElementById('pb-amount').value=100000">₹1L</button>
+          <button class="pb-preset" onclick="document.getElementById('pb-amount').value=500000">₹5L</button>
+          <button class="pb-preset" onclick="document.getElementById('pb-amount').value=1000000">₹10L</button>
+          <button class="pb-preset" onclick="document.getElementById('pb-amount').value=2500000">₹25L</button>
+          <button class="pb-preset" onclick="document.getElementById('pb-amount').value=5000000">₹50L</button>
+        </div>
+      </div>
+
+      <!-- Horizon -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">INVESTMENT HORIZON</div>
+        <div class="pb-choice-row">
+          <button class="pb-choice" data-group="horizon" data-value="1">1 Year</button>
+          <button class="pb-choice" data-group="horizon" data-value="3">3 Years</button>
+          <button class="pb-choice active" data-group="horizon" data-value="5">5 Years</button>
+          <button class="pb-choice" data-group="horizon" data-value="10">10 Years</button>
+        </div>
+      </div>
+
+      <!-- Risk Appetite -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">RISK APPETITE</div>
+        <div class="pb-choice-row">
+          <button class="pb-choice" data-group="risk" data-value="Conservative">Conservative</button>
+          <button class="pb-choice active" data-group="risk" data-value="Balanced">Balanced</button>
+          <button class="pb-choice" data-group="risk" data-value="Growth">Growth</button>
+          <button class="pb-choice" data-group="risk" data-value="Aggressive">Aggressive</button>
+        </div>
+      </div>
+
+      <!-- Goal -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:6px">PRIMARY GOAL</div>
+        <div class="pb-choice-row">
+          <button class="pb-choice" data-group="goal" data-value="Wealth preservation">Wealth Preservation</button>
+          <button class="pb-choice" data-group="goal" data-value="Steady income">Steady Income</button>
+          <button class="pb-choice active" data-group="goal" data-value="Capital growth">Capital Growth</button>
+          <button class="pb-choice" data-group="goal" data-value="Maximum returns">Maximum Returns</button>
+        </div>
+      </div>
+
+      <!-- Advanced filters -->
+      <details style="margin-bottom:16px">
+        <summary style="cursor:pointer;font-size:11px;color:var(--text2);font-family:var(--font-mono);padding:8px 0;user-select:none">⚙ Advanced filters</summary>
+        <div style="padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:8px">
+          <label class="pb-toggle"><input type="checkbox" id="pb-exclude-psu"> Exclude PSUs (government-owned)</label>
+          <label class="pb-toggle"><input type="checkbox" id="pb-exclude-high-debt"> Exclude high-debt stocks (D/E &gt; 1)</label>
+          <label class="pb-toggle"><input type="checkbox" id="pb-exclude-loss-makers" checked> Exclude loss-makers</label>
+          <label class="pb-toggle"><input type="checkbox" id="pb-exclude-high-pledge"> Exclude high promoter pledge (&gt; 30%)</label>
+
+          <div style="margin-top:12px">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">FORCE-INCLUDE STOCKS (comma-separated)</div>
+            <input type="text" id="pb-force-include" class="pf-sym-input" placeholder="e.g. RELIANCE,TCS" style="width:100%;padding:8px 12px;font-size:11px"/>
+          </div>
+
+          <div style="margin-top:8px">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">EXCLUDE STOCKS (comma-separated)</div>
+            <input type="text" id="pb-force-exclude" class="pf-sym-input" placeholder="e.g. ADANIENT,VEDL" style="width:100%;padding:8px 12px;font-size:11px"/>
+          </div>
+
+          <div style="margin-top:8px">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-bottom:4px">EXCLUDE SECTORS (comma-separated)</div>
+            <input type="text" id="pb-exclude-sectors" class="pf-sym-input" placeholder="e.g. bank,insurance,defence" style="width:100%;padding:8px 12px;font-size:11px"/>
+          </div>
+        </div>
+      </details>
+
+      <button class="pf-analyse-btn" id="pb-build-btn" onclick="pbBuild()">Build My Portfolio</button>
+    </div>
+
+    <!-- Results -->
+    <div id="pb-results" style="display:none;margin-top:24px"></div>
+  </div>
+</div>
+
 <div class="disc">⚠ Prices are real-time from NSE India. Educational use only — not financial advice. Consult a SEBI-registered advisor before investing.</div>
 
 <script>
 const API = 'https://india-stock-api.onrender.com';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRICE STREAMING ABSTRACTION
+// ─────────────────────────────────────────────────────────────────────────────
+// All live-price updates flow through subscribePriceUpdates() so the underlying
+// transport (polling vs WebSocket) is swappable without touching consumers.
+//
+// To swap to WebSocket later: replace the body of `_priceTransport_poll` with
+// `_priceTransport_websocket` and the rest of the app keeps working unchanged.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PRICE_REFRESH_MS = 5000;   // 5-second polling interval (Definition 3)
+const _priceSubscribers = {};    // symbol → Set of callbacks
+const _priceLastTick    = {};    // symbol → last quote object
+const _priceTimers      = {};    // symbol → setInterval handle
+
+// Current transport: REST polling every 5 seconds
+async function _priceTransport_poll(symbol) {
+  try {
+    const r = await fetch(`${API}/quote?symbol=${encodeURIComponent(symbol)}`, {cache: 'no-store'});
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) {
+    console.warn('[price] poll failed for', symbol, e);
+    return null;
+  }
+}
+
+// FUTURE: WebSocket transport. Implementation stub for tomorrow.
+// async function _priceTransport_websocket(symbol) { ... }
+
+async function _priceFetchAndDispatch(symbol) {
+  const q = await _priceTransport_poll(symbol);
+  if (!q || q.price == null) return;
+  _priceLastTick[symbol] = q;
+  const subs = _priceSubscribers[symbol];
+  if (subs) subs.forEach(cb => { try { cb(q); } catch (e) { console.error(e); } });
+}
+
+/**
+ * Subscribe to live price updates for a symbol.
+ * @param {string} symbol - e.g. 'TECHNOE'
+ * @param {function(quote)} callback - called every PRICE_REFRESH_MS with fresh quote
+ * @returns {function} unsubscribe function — call to stop receiving updates
+ *
+ * Usage:
+ *   const stop = subscribePriceUpdates('TECHNOE', q => {
+ *     document.getElementById('price').textContent = q.price;
+ *   });
+ *   // later: stop();
+ */
+function subscribePriceUpdates(symbol, callback) {
+  if (!symbol || typeof callback !== 'function') return () => {};
+
+  if (!_priceSubscribers[symbol]) _priceSubscribers[symbol] = new Set();
+  _priceSubscribers[symbol].add(callback);
+
+  // Deliver last known tick immediately if we have one (no waiting on first poll)
+  if (_priceLastTick[symbol]) {
+    try { callback(_priceLastTick[symbol]); } catch (e) {}
+  }
+
+  // Start polling for this symbol if not already
+  if (!_priceTimers[symbol]) {
+    _priceFetchAndDispatch(symbol);  // immediate first fetch
+    _priceTimers[symbol] = setInterval(() => _priceFetchAndDispatch(symbol), PRICE_REFRESH_MS);
+  }
+
+  // Return unsubscribe function
+  return function unsubscribe() {
+    const subs = _priceSubscribers[symbol];
+    if (subs) {
+      subs.delete(callback);
+      if (subs.size === 0) {
+        // No more subscribers for this symbol — stop polling to save bandwidth
+        clearInterval(_priceTimers[symbol]);
+        delete _priceTimers[symbol];
+        delete _priceSubscribers[symbol];
+      }
+    }
+  };
+}
+
+// Track currently-subscribed symbol so we can unsubscribe when user navigates away
+window._currentPriceSubscription = null;
+function setActivePriceSubscription(symbol, onUpdate) {
+  if (window._currentPriceSubscription) {
+    window._currentPriceSubscription();
+    window._currentPriceSubscription = null;
+  }
+  if (symbol && onUpdate) {
+    window._currentPriceSubscription = subscribePriceUpdates(symbol, onUpdate);
+  }
+}
+
 // ── Portfolio X-Ray ──────────────────────────────────────────────────────────
 function showTab(tab) {
-  document.getElementById('pane-search').classList.toggle('visible', tab === 'search');
-  document.getElementById('pane-portfolio').classList.toggle('visible', tab === 'portfolio');
-  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
-  document.getElementById('tab-portfolio').classList.toggle('active', tab === 'portfolio');
+  ['search', 'portfolio', 'builder'].forEach(t => {
+    const pane = document.getElementById('pane-' + t);
+    const btn  = document.getElementById('tab-' + t);
+    if (pane) pane.classList.toggle('visible', tab === t);
+    if (btn)  btn.classList.toggle('active', tab === t);
+  });
 }
 
 window._pfHoldings = [];
@@ -1448,6 +1792,16 @@ window.showGoldenCrossInfo = function(isGolden) {
           <span class="price-chg ${isUp ? 'up' : 'dn'}">${isUp ? '▲' : '▼'} ${change} (${changePct})</span>
         </div>
 
+        ${quote?.error ? `
+        <div style="margin-top:8px;padding:8px 14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.25);border-radius:8px;font-size:12px;color:var(--red);font-family:var(--font-mono)">
+          ⚠ ${quote.error}
+        </div>` : ''}
+
+        ${quote?.source && quote.source !== 'NSE' && !quote.error ? `
+        <div style="margin-top:8px;padding:6px 12px;background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.25);border-radius:8px;font-size:11px;color:var(--gold);font-family:var(--font-mono);display:inline-block">
+          ⓘ Price ${quote.delay || 'delayed'} — source: ${quote.source}
+        </div>` : ''}
+
         <!-- Beginner verdict card -->
         <div class="verdict-card" id="verdict-card" style="${!combined?.verdict ? 'display:none' : ''}">
           ${combined?.valuation_signal?.label && combined.valuation_signal.label !== 'Fairly Valued Quality' ? `
@@ -1796,21 +2150,27 @@ window.showGoldenCrossInfo = function(isGolden) {
     return day >= 1 && day <= 5 && mins >= 555 && mins <= 930;
   }
 
-  window._liveTicker = setInterval(async () => {
-    if (!isMarketOpen()) return;
-    try {
-      const r = await fetch(`${API}/quote?symbol=${encodeURIComponent(_rawSym)}`);
-      const j = await r.json();
-      const q = j?.data;
-      if (!q?.price) return;
+  // Clear the old 60s interval if it exists (legacy)
+  if (window._liveTicker) { clearInterval(window._liveTicker); window._liveTicker = null; }
 
-      const isUp = q.change >= 0;
-      priceEl.textContent = '₹' + Number(q.price).toLocaleString('en-IN', {maximumFractionDigits:2});
-      priceEl.className   = 'price-main ' + (isUp ? 'up' : 'dn');
-      chgEl.textContent   = (isUp ? '▲ ' : '▼ ') + Math.abs(q.change).toFixed(2) + ' (' + Math.abs(q.change_pct).toFixed(2) + '%)';
-      chgEl.className     = 'price-chg ' + (isUp ? 'up' : 'dn');
-    } catch(e) {}
-  }, 60000);
+  // Subscribe to live price updates via the abstraction layer.
+  // Today: REST polling every 5s. Tomorrow: swap to WebSocket inside subscribePriceUpdates.
+  setActivePriceSubscription(_rawSym, (q) => {
+    if (!q?.price || !isMarketOpen()) return;
+
+    const isUp = (q.change ?? 0) >= 0;
+    priceEl.textContent = '₹' + Number(q.price).toLocaleString('en-IN', {maximumFractionDigits:2});
+    priceEl.className   = 'price-main ' + (isUp ? 'up' : 'dn');
+    if (q.change != null && q.change_pct != null) {
+      chgEl.textContent = (isUp ? '▲ ' : '▼ ') + Math.abs(q.change).toFixed(2) + ' (' + Math.abs(q.change_pct).toFixed(2) + '%)';
+      chgEl.className   = 'price-chg ' + (isUp ? 'up' : 'dn');
+    }
+
+    // Subtle visual flash to show price updated (250ms fade)
+    priceEl.style.transition = 'background-color 0.25s';
+    priceEl.style.backgroundColor = isUp ? 'rgba(0,200,100,0.15)' : 'rgba(255,80,80,0.15)';
+    setTimeout(() => { priceEl.style.backgroundColor = 'transparent'; }, 250);
+  });
 }
 
 function downloadReport(sym) {
@@ -2346,6 +2706,141 @@ const SECTOR_PEERS_FE = {
   'ULTRACEMCO':['AMBUJACEM','ACC','GRASIM','JKCEMENT','RAMCOCEM'],
   'AMBUJACEM':['ULTRACEMCO','ACC','GRASIM','JKCEMENT','RAMCOCEM'],
   'GRASIM':['ULTRACEMCO','AMBUJACEM','ACC','LT','JKCEMENT'],
+
+  // ── Defence ──
+  'BEML':['HAL','BEL','MAZDOCK','COCHINSHIP','MIDHANI'],
+  'MAZDOCK':['HAL','BEL','COCHINSHIP','GRSE','BDL'],
+  'COCHINSHIP':['MAZDOCK','HAL','BEL','BEML','GRSE'],
+  'BDL':['HAL','BEL','MAZDOCK','PARAS','DATAPATTNS'],
+  'PARAS':['HAL','BEL','BDL','DATAPATTNS','MIDHANI'],
+  'DATAPATTNS':['PARAS','BDL','BEL','HAL','MIDHANI'],
+  'MIDHANI':['BEML','MAZDOCK','HAL','BEL','BDL'],
+  'GRSE':['MAZDOCK','COCHINSHIP','HAL','BEL','BEML'],
+
+  // ── Hospitality ──
+  'INDHOTEL':['LEMONTREE','CHALET','TAJGVK','EIHOTEL','MAHINDHOLI'],
+  'LEMONTREE':['INDHOTEL','CHALET','TAJGVK','EIHOTEL','MAHINDHOLI'],
+  'CHALET':['INDHOTEL','LEMONTREE','TAJGVK','EIHOTEL','MAHINDHOLI'],
+  'TAJGVK':['INDHOTEL','LEMONTREE','CHALET','EIHOTEL','MAHINDHOLI'],
+  'EIHOTEL':['INDHOTEL','LEMONTREE','CHALET','TAJGVK','MAHINDHOLI'],
+
+  // ── Small Finance Banks ──
+  'AUBANK':['EQUITASBNK','UJJIVANSFB','UTKARSHBNK','ESAFSFB','BANDHANBNK'],
+  'EQUITASBNK':['AUBANK','UJJIVANSFB','UTKARSHBNK','ESAFSFB','BANDHANBNK'],
+  'UJJIVANSFB':['EQUITASBNK','AUBANK','UTKARSHBNK','ESAFSFB','BANDHANBNK'],
+  'UTKARSHBNK':['EQUITASBNK','UJJIVANSFB','AUBANK','ESAFSFB','BANDHANBNK'],
+  'ESAFSFB':['EQUITASBNK','UJJIVANSFB','UTKARSHBNK','AUBANK','BANDHANBNK'],
+  'BANDHANBNK':['AUBANK','EQUITASBNK','UJJIVANSFB','RBLBANK','IDFCFIRSTB'],
+  'RBLBANK':['IDFCFIRSTB','FEDERALBNK','BANDHANBNK','AUBANK','EQUITASBNK'],
+
+  // ── Internet / Fintech ──
+  'PAYTM':['POLICYBZR','NYKAA','ZOMATO','CARTRADE','EASEMYTRIP'],
+  'POLICYBZR':['PAYTM','NYKAA','NAUKRI','ZOMATO','CARTRADE'],
+  'NYKAA':['ZOMATO','PAYTM','POLICYBZR','TRENT','CARTRADE'],
+  'ZOMATO':['NYKAA','PAYTM','POLICYBZR','TRENT','CARTRADE'],
+  'NAUKRI':['POLICYBZR','PAYTM','NYKAA','ZOMATO','CARTRADE'],
+  'CARTRADE':['ZOMATO','NYKAA','PAYTM','POLICYBZR','EASEMYTRIP'],
+  'EASEMYTRIP':['IRCTC','INDHOTEL','CARTRADE','PAYTM','NAUKRI'],
+  'IRCTC':['EASEMYTRIP','INDHOTEL','CONCOR','BLUEDART','DELHIVERY'],
+
+  // ── Specialty Chemicals & Agri ──
+  'NAVINFLUOR':['FLUOROCHEM','DEEPAKNTR','TATACHEM','PIIND','GNFC'],
+  'FLUOROCHEM':['NAVINFLUOR','DEEPAKNTR','TATACHEM','PIIND','GNFC'],
+  'DEEPAKNTR':['NAVINFLUOR','FLUOROCHEM','TATACHEM','GNFC','PIIND'],
+  'TATACHEM':['DEEPAKNTR','GNFC','COROMANDEL','UPL','CHAMBLFERT'],
+  'PIIND':['UPL','RALLIS','DHANUKA','COROMANDEL','PIIND'],
+  'COROMANDEL':['CHAMBLFERT','TATACHEM','GNFC','UPL','PIIND'],
+  'UPL':['PIIND','COROMANDEL','RALLIS','DHANUKA','TATACHEM'],
+  'CHAMBLFERT':['COROMANDEL','TATACHEM','GNFC','UPL','RALLIS'],
+
+  // ── Infrastructure / Capital Goods ──
+  'CUMMINSIND':['SIEMENS','ABB','THERMAX','BHEL','HAVELLS'],
+  'NCC':['HGINFRA','PNCINFRA','ASHOKA','IRB','KNRCON'],
+  'PNCINFRA':['NCC','HGINFRA','ASHOKA','IRB','KNRCON'],
+  'HGINFRA':['NCC','PNCINFRA','ASHOKA','IRB','KNRCON'],
+  'IRB':['NCC','HGINFRA','PNCINFRA','ASHOKA','KNRCON'],
+  'KNRCON':['NCC','HGINFRA','PNCINFRA','ASHOKA','IRB'],
+  'TECHNOE':['POWERGRID','SIEMENS','ABB','CUMMINSIND','HAVELLS'],
+  'DYCL':['POLYCAB','KEI','HAVELLS','FINOLEX','APAR'],
+
+  // ── Logistics ──
+  'DELHIVERY':['BLUEDART','CONCOR','ALLCARGO','MAHLOG','GICRE'],
+  'BLUEDART':['DELHIVERY','CONCOR','ALLCARGO','MAHLOG','TCI'],
+  'CONCOR':['BLUEDART','DELHIVERY','ALLCARGO','MAHLOG','GATI'],
+  'ALLCARGO':['CONCOR','BLUEDART','MAHLOG','DELHIVERY','GICRE'],
+  'MAHLOG':['ALLCARGO','CONCOR','BLUEDART','DELHIVERY','GATI'],
+
+  // ── Electronics Manufacturing ──
+  'DIXON':['AMBER','KAYNES','SYRMA','SONACOMS','PGEL'],
+  'AMBER':['DIXON','KAYNES','SYRMA','SONACOMS','VOLTAS'],
+  'KAYNES':['DIXON','AMBER','SYRMA','SONACOMS','PGEL'],
+  'SYRMA':['KAYNES','DIXON','AMBER','SONACOMS','PGEL'],
+  'SONACOMS':['KAYNES','SYRMA','DIXON','AMBER','BOSCHLTD'],
+  'PGEL':['DIXON','KAYNES','SYRMA','AMBER','APLAPOLLO'],
+
+  // ── Mid-cap Pharma / Healthcare ──
+  'LAURUSLABS':['DIVISLAB','SUNPHARMA','GLENMARK','GRANULES','IPCALAB'],
+  'GRANULES':['LAURUSLABS','GLENMARK','IPCALAB','ALKEM','DIVISLAB'],
+  'GLENMARK':['LAURUSLABS','GRANULES','IPCALAB','ALKEM','DRREDDY'],
+  'IPCALAB':['LAURUSLABS','GRANULES','GLENMARK','ALKEM','TORNTPHARM'],
+  'NATCOPHARM':['LAURUSLABS','GLENMARK','IPCALAB','GRANULES','ALKEM'],
+  'ABBOTINDIA':['SUNPHARMA','DRREDDY','CIPLA','GLAXO','PFIZER'],
+  'GLAND':['DIVISLAB','LAURUSLABS','GRANULES','SUVEN','SOLARA'],
+  'FORTIS':['MAXHEALTH','APOLLOHOSP','MEDANTA','RAINBOW','METROPOLIS'],
+  'MEDANTA':['MAXHEALTH','FORTIS','APOLLOHOSP','RAINBOW','METROPOLIS'],
+  'RAINBOW':['MEDANTA','FORTIS','MAXHEALTH','APOLLOHOSP','METROPOLIS'],
+  'KRSNAA':['METROPOLIS','RAINBOW','MEDANTA','FORTIS','MAXHEALTH'],
+  'METROPOLIS':['KRSNAA','RAINBOW','MEDANTA','FORTIS','APOLLOHOSP'],
+  'POLYMED':['LAURUSLABS','DIVISLAB','SUNPHARMA','GLAND','GRANULES'],
+
+  // ── Premium Consumer / Retail ──
+  'TRENT':['DMART','ABFRL','TITAN','NYKAA','HINDUNILVR'],
+  'DMART':['TRENT','TITAN','NESTLEIND','HINDUNILVR','ABFRL'],
+  'ABFRL':['TRENT','PAGEIND','RAYMOND','TITAN','DMART'],
+  'PGHH':['HINDUNILVR','NESTLEIND','MARICO','DABUR','COLPAL'],
+  'COLPAL':['HINDUNILVR','MARICO','DABUR','GODREJCP','EMAMILTD'],
+  'GODREJCP':['HINDUNILVR','MARICO','DABUR','COLPAL','EMAMILTD'],
+  'EMAMILTD':['MARICO','DABUR','COLPAL','GODREJCP','HINDUNILVR'],
+  'UBL':['VBL','RADICO','ITC','BRITANNIA','VSTIND'],
+  'RADICO':['UBL','VBL','ITC','VSTIND','GODFRYPHLP'],
+
+  // ── Energy / Power Utilities ──
+  'NHPC':['SJVN','NTPC','POWERGRID','ADANIGREEN','TATAPOWER'],
+  'SJVN':['NHPC','NTPC','POWERGRID','ADANIGREEN','TATAPOWER'],
+  'CESC':['NTPC','TATAPOWER','TORNTPOWER','ADANIPOWER','POWERGRID'],
+  'TORNTPOWER':['CESC','TATAPOWER','NTPC','ADANIPOWER','NHPC'],
+  'ADANIPOWER':['NTPC','TATAPOWER','TORNTPOWER','CESC','ADANIGREEN'],
+  'GAIL':['ONGC','RELIANCE','BPCL','IOC','HINDPETRO'],
+  'IOC':['BPCL','HINDPETRO','ONGC','GAIL','RELIANCE'],
+  'HINDPETRO':['BPCL','IOC','ONGC','GAIL','RELIANCE'],
+
+  // ── Insurance ──
+  'SBILIFE':['HDFCLIFE','ICICIGI','LICI','MAXLIFE','ICICIPRULI'],
+  'HDFCLIFE':['SBILIFE','ICICIGI','LICI','ICICIPRULI','MAXLIFE'],
+  'ICICIGI':['HDFCLIFE','SBILIFE','LICI','ICICIPRULI','NIACL'],
+  'LICI':['HDFCLIFE','SBILIFE','ICICIGI','ICICIPRULI','MAXLIFE'],
+  'NIACL':['ICICIGI','GICRE','SBILIFE','HDFCLIFE','LICI'],
+  'GICRE':['NIACL','ICICIGI','SBILIFE','HDFCLIFE','LICI'],
+
+  // ── Cement (additional) ──
+  'JKCEMENT':['ULTRACEMCO','AMBUJACEM','ACC','RAMCOCEM','GRASIM'],
+  'RAMCOCEM':['ULTRACEMCO','AMBUJACEM','ACC','JKCEMENT','GRASIM'],
+  'ACC':['ULTRACEMCO','AMBUJACEM','GRASIM','JKCEMENT','RAMCOCEM'],
+
+  // ── Real Estate (additional) ──
+  'OBEROIRLTY':['DLF','GODREJPROP','PRESTIGE','BRIGADE','SOBHA'],
+  'BRIGADE':['DLF','GODREJPROP','PRESTIGE','SOBHA','OBEROIRLTY'],
+  'SOBHA':['DLF','GODREJPROP','BRIGADE','PRESTIGE','OBEROIRLTY'],
+  'PHOENIXLTD':['DLF','OBEROIRLTY','GODREJPROP','PRESTIGE','BRIGADE'],
+
+  // ── Aviation / Travel ──
+  'INDIGO':['SPICEJET','EASEMYTRIP','IRCTC','INDHOTEL','LEMONTREE'],
+
+  // ── Others worth mapping ──
+  'IRFC':['RECLTD','PFC','BAJFINANCE','BAJAJFINSV','HDFCAMC'],
+  'RECLTD':['PFC','IRFC','BAJFINANCE','BAJAJFINSV','SBIN'],
+  'PFC':['RECLTD','IRFC','BAJFINANCE','BAJAJFINSV','SBIN'],
+  'HDFCAMC':['BAJFINANCE','BAJAJFINSV','CHOLAFIN','MUTHOOTFIN','SHRIRAMFIN'],
 };
 
 let _comparePeers  = [];
@@ -2584,6 +3079,225 @@ loadIndices();
     el.value = new Date(Date.now() - 90*864e5).toISOString().slice(0,10);
   }
 })();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PORTFOLIO BUILDER
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Toggle .active on choice buttons within a group
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.pb-choice');
+  if (!btn) return;
+  const group = btn.getAttribute('data-group');
+  if (!group) return;
+  document.querySelectorAll(`.pb-choice[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+function pbGetChoice(group) {
+  const sel = document.querySelector(`.pb-choice[data-group="${group}"].active`);
+  return sel ? sel.getAttribute('data-value') : null;
+}
+
+async function pbBuild() {
+  const btn = document.getElementById('pb-build-btn');
+  const results = document.getElementById('pb-results');
+
+  const amount = parseFloat(document.getElementById('pb-amount').value);
+  const horizon = parseInt(pbGetChoice('horizon'));
+  const risk = pbGetChoice('risk');
+  const goal = pbGetChoice('goal');
+
+  if (!amount || amount < 10000) {
+    results.style.display = 'block';
+    results.innerHTML = '<div style="color:var(--red);padding:14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.25);border-radius:8px">⚠ Minimum investment: ₹10,000</div>';
+    return;
+  }
+
+  const params = new URLSearchParams({
+    amount, horizon, risk_appetite: risk, goal,
+    exclude_psu:         document.getElementById('pb-exclude-psu').checked,
+    exclude_high_debt:   document.getElementById('pb-exclude-high-debt').checked,
+    exclude_loss_makers: document.getElementById('pb-exclude-loss-makers').checked,
+    exclude_high_pledge: document.getElementById('pb-exclude-high-pledge').checked,
+  });
+  const fi = document.getElementById('pb-force-include').value.trim();
+  const fe = document.getElementById('pb-force-exclude').value.trim();
+  const es = document.getElementById('pb-exclude-sectors').value.trim();
+  if (fi) params.set('force_include', fi);
+  if (fe) params.set('force_exclude', fe);
+  if (es) params.set('exclude_sectors', es);
+
+  btn.disabled = true;
+  btn.textContent = 'Building portfolio... (this takes 30-90 seconds)';
+  results.style.display = 'block';
+  results.innerHTML = `
+    <div style="text-align:center;padding:40px;color:var(--text2);font-family:var(--font-mono);font-size:12px">
+      <div style="margin-bottom:14px">⏳ Analysing your universe...</div>
+      <div style="font-size:10px;color:var(--text3)">Filtering 256 stocks → ranking finalists → optimising weights → diversifying by sector</div>
+    </div>`;
+
+  try {
+    const resp = await fetch(`${API}/portfolio-builder?${params.toString()}`);
+    const data = await resp.json();
+
+    if (data.error) {
+      results.innerHTML = `<div style="color:var(--red);padding:14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.25);border-radius:8px;font-family:var(--font-mono);font-size:12px">⚠ ${data.error}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Build My Portfolio';
+      return;
+    }
+
+    pbRender(data);
+  } catch (e) {
+    results.innerHTML = `<div style="color:var(--red);padding:14px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.25);border-radius:8px;font-family:var(--font-mono);font-size:12px">⚠ Build failed: ${e.message || e}. Try again in a moment.</div>`;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Build My Portfolio';
+}
+
+function pbRender(data) {
+  const results = document.getElementById('pb-results');
+  const h = data.holdings || [];
+  const s = data.portfolio_summary || {};
+  const er = data.expected_return || {};
+  const sb = data.sector_breakdown || {};
+
+  const fmt = n => Number(n || 0).toLocaleString('en-IN');
+  const sectorColors = ['#ff8c00','#1e90ff','#32cd32','#ff69b4','#ffd700','#9370db','#20b2aa','#ff6347','#7fffd4','#dda0dd','#87ceeb','#f0a830'];
+
+  // Sector bar segments
+  const sectorEntries = Object.entries(sb).sort((a,b)=>b[1].weight-a[1].weight);
+  const totalSectorWeight = sectorEntries.reduce((sum,[,v])=>sum+v.weight,0) || 1;
+  const sectorBar = sectorEntries.map(([sec, v], i) => {
+    const w = (v.weight / totalSectorWeight) * 100;
+    const label = w > 8 ? `${sec.split(' ')[0]} ${v.weight.toFixed(0)}%` : '';
+    return `<div class="pb-sector-seg" style="flex:${v.weight};background:${sectorColors[i % sectorColors.length]}" title="${sec}: ${v.weight.toFixed(1)}%">${label}</div>`;
+  }).join('');
+
+  const sectorList = sectorEntries.map(([sec, v], i) => `
+    <div style="display:flex;align-items:center;gap:8px;font-size:11px;font-family:var(--font-mono);color:var(--text2);padding:4px 0">
+      <div style="width:10px;height:10px;background:${sectorColors[i % sectorColors.length]};border-radius:2px"></div>
+      <div style="flex:1">${sec}</div>
+      <div>${v.count} stock${v.count>1?'s':''} · ${v.weight.toFixed(1)}% · ₹${fmt(v.inr)}</div>
+    </div>`).join('');
+
+  const holdingsRows = h.map(stock => {
+    const verdictColor = (stock.verdict||'').includes('BUY') ? 'var(--green)' :
+                        (stock.verdict||'').includes('SELL') ? 'var(--red)' : 'var(--gold)';
+    return `
+      <tr>
+        <td><span class="pb-symbol" onclick="goToStock('${stock.symbol}')">${stock.symbol}</span></td>
+        <td style="color:var(--text2)">${stock.company_name || ''}</td>
+        <td style="text-align:right">${stock.weight_pct.toFixed(1)}%</td>
+        <td style="text-align:right">₹${fmt(stock.actual_invested)}</td>
+        <td style="text-align:right">${stock.shares}</td>
+        <td style="text-align:right">₹${fmt(stock.price)}</td>
+        <td style="text-align:right;color:var(--orange);font-weight:600">${Math.min(100, Math.max(0, stock.combined_score)).toFixed(0)}</td>
+        <td style="color:${verdictColor};font-weight:600">${stock.verdict}</td>
+        <td style="font-size:10px;color:var(--text3)">${stock.reason_selected || ''}</td>
+      </tr>`;
+  }).join('');
+
+  results.innerHTML = `
+    <!-- Summary card -->
+    <div class="pb-summary-card">
+      <div style="font-size:14px;font-weight:600;font-family:var(--font-head);color:var(--text1);margin-bottom:4px">
+        ${s.total_stocks}-Stock ${data.profile} Portfolio
+      </div>
+      <div style="font-size:11px;color:var(--text2);font-family:var(--font-mono)">
+        ${data.goal} · ${data.horizon_y}-year horizon · Risk: ${s.portfolio_risk}
+      </div>
+      <div class="pb-summary-grid">
+        <div class="pb-summary-cell">
+          <div class="pb-summary-cell-label">Invested</div>
+          <div class="pb-summary-cell-value">₹${fmt(s.total_invested)}</div>
+        </div>
+        <div class="pb-summary-cell">
+          <div class="pb-summary-cell-label">Cash buffer</div>
+          <div class="pb-summary-cell-value">₹${fmt(s.cash_buffer)}</div>
+        </div>
+        <div class="pb-summary-cell">
+          <div class="pb-summary-cell-label">Sectors</div>
+          <div class="pb-summary-cell-value">${s.sector_count}</div>
+        </div>
+        <div class="pb-summary-cell">
+          <div class="pb-summary-cell-label">Avg score</div>
+          <div class="pb-summary-cell-value">${s.avg_score}/100</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Expected return -->
+    <div class="pf-card">
+      <div class="pf-card-title">EXPECTED RETURNS (${data.horizon_y}-year horizon)</div>
+      <div class="pb-return-block">
+        <div class="pb-return-cell">
+          <div class="pb-return-label">Bear case</div>
+          <div class="pb-return-value" style="color:var(--red)">${er.low_annual_pct}%/yr</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:4px">+${er.cumulative_low}% over ${data.horizon_y}y</div>
+        </div>
+        <div class="pb-return-cell" style="border:1px solid rgba(0,200,100,0.3)">
+          <div class="pb-return-label">Base case</div>
+          <div class="pb-return-value" style="color:var(--green)">${er.mid_annual_pct}%/yr</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:4px">+${er.cumulative_mid}% over ${data.horizon_y}y</div>
+        </div>
+        <div class="pb-return-cell">
+          <div class="pb-return-label">Bull case</div>
+          <div class="pb-return-value" style="color:var(--green)">${er.high_annual_pct}%/yr</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:4px">+${er.cumulative_high}% over ${data.horizon_y}y</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:8px">${er.note || ''}</div>
+    </div>
+
+    <!-- Sector diversification -->
+    <div class="pf-card">
+      <div class="pf-card-title">SECTOR DIVERSIFICATION</div>
+      <div class="pb-sector-bar">${sectorBar}</div>
+      <div style="margin-top:10px">${sectorList}</div>
+    </div>
+
+    <!-- Holdings table -->
+    <div class="pf-card">
+      <div class="pf-card-title">HOLDINGS (${h.length} stocks)</div>
+      <div style="overflow-x:auto">
+        <table class="pb-holdings-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th style="text-align:right">Weight</th>
+              <th style="text-align:right">Invested</th>
+              <th style="text-align:right">Shares</th>
+              <th style="text-align:right">Price</th>
+              <th style="text-align:right">Score</th>
+              <th>Verdict</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>${holdingsRows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);margin-top:10px">
+        💡 Click any symbol to view full stock analysis
+      </div>
+    </div>
+
+    <!-- Disclaimers -->
+    <div style="padding:14px;background:rgba(255,180,0,0.05);border:1px solid rgba(255,180,0,0.15);border-radius:8px;margin-top:14px">
+      <div style="font-size:10px;color:var(--gold);font-family:var(--font-mono);font-weight:600;margin-bottom:6px">⚠ IMPORTANT DISCLAIMERS</div>
+      ${(data.disclaimers || []).map(d => `<div style="font-size:10px;color:var(--text3);font-family:var(--font-mono);line-height:1.7">• ${d}</div>`).join('')}
+    </div>
+  `;
+}
+
+function goToStock(sym) {
+  showTab('search');
+  const inp = document.getElementById('search-input');
+  if (inp) inp.value = sym;
+  if (typeof doSearch === 'function') doSearch();
+}
 </script>
 <!-- ── Peer Comparison Modal ── -->
 <div id="compare-modal" style="display:none" class="modal-overlay" onclick="if(event.target===this)closeCompare()">
