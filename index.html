@@ -3211,11 +3211,11 @@ function pbRender(data) {
       <div class="pb-summary-grid">
         <div class="pb-summary-cell">
           <div class="pb-summary-cell-label">Invested</div>
-          <div class="pb-summary-cell-value">₹${fmt(s.total_invested)}</div>
+          <div class="pb-summary-cell-value">₹${fmt(s.total_invested + s.cash_buffer)}</div>
         </div>
         <div class="pb-summary-cell">
-          <div class="pb-summary-cell-label">Cash buffer</div>
-          <div class="pb-summary-cell-value">₹${fmt(s.cash_buffer)}</div>
+          <div class="pb-summary-cell-label">Unallocated</div>
+          <div class="pb-summary-cell-value">₹${fmt(s.leftover_unspent)}</div>
         </div>
         <div class="pb-summary-cell">
           <div class="pb-summary-cell-label">Sectors</div>

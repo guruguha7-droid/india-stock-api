@@ -221,8 +221,8 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
     if min_market_cap != 'any':
         profile['min_market_cap'] = min_market_cap
 
-    force_include  = [s.upper().strip() for s in (force_include or []) if s]
-    force_exclude  = [s.upper().strip() for s in (force_exclude or []) if s]
+    force_include  = set(s.upper().strip() for s in (force_include or []) if s)
+    force_exclude  = set(s.upper().strip() for s in (force_exclude or []) if s)
     include_sectors = [s.lower().strip() for s in (include_sectors or [])]
     exclude_sectors = [s.lower().strip() for s in (exclude_sectors or [])]
 
@@ -230,28 +230,30 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
     if not nightly_cache or not nightly_cache.get('stocks'):
         return {'error': 'Nightly cache unavailable — try again in a moment'}
 
-    # Build approximate mcap lookup from CSV (networth_cr × pb_ratio proxy)
+    # Build approximate mcap lookup from CSV using networth_cr as a size proxy.
+    # The CSV has no P/B column, so we use networth alone with conservative thresholds —
+    # market cap ≈ networth × P/B, and for most listed stocks P/B ≥ 1, so networth is a
+    # lower bound. This pre-filter only rejects obvious micro-caps; Phase 3 uses the real
+    # market cap from the NSE quote for the definitive check.
     _csv_mcap = {}
     if csv_data is not None:
         try:
-            import pandas as _pd
-            _df = csv_data
-            for _, row in _df.iterrows():
+            for _, row in csv_data.iterrows():
                 sym = str(row.get('symbol') or row.iloc[0] or '').strip().upper()
                 if not sym:
                     continue
                 try:
                     nw = float(row.get('networth_cr') or 0)
-                    pb = float(row.get('pb') or row.get('price_to_book') or 0)
-                    if nw > 0 and pb > 0:
-                        _csv_mcap[sym] = nw * pb
+                    if nw > 0:
+                        _csv_mcap[sym] = nw
                 except Exception:
                     pass
         except Exception:
             pass
 
-    # Mcap filter thresholds (generous — just reject obvious size mismatches)
-    _mcap_min = {'large': 30000, 'mid': 3000, 'small': 0, 'any': 0}.get(
+    # Lower thresholds vs. true mcap thresholds because networth < market cap.
+    # Goal: only reject obvious mismatches; let Phase 3 do the precise check.
+    _mcap_min = {'large': 15000, 'mid': 1500, 'small': 0, 'any': 0}.get(
         profile.get('min_market_cap', 'any'), 0
     )
 
@@ -337,10 +339,13 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
         except Exception as e:
             logger.warning(f"portfolio_builder analyze fail {sym}: {e}")
 
-    threads = [threading.Thread(target=_analyze_one, args=(c['symbol'],))
+    threads = [threading.Thread(target=_analyze_one, args=(c['symbol'],), daemon=True)
                for c in top_for_analysis]
     for t in threads: t.start()
     for t in threads: t.join(timeout=20)
+    # Snapshot after all joins — daemon threads can't write to analyzed after this point
+    # because the main thread owns the reference and moves on immediately.
+    analyzed = list(analyzed)
 
     # ── Phase 3: Apply hard filters on full data ───────────────────────────────
     survivors = []
@@ -563,24 +568,37 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
                 s['raw_weight'] += excess * (s['raw_weight'] / under_total)
             capped = True
 
-    # Cap sector weights
-    sector_w = defaultdict(float)
-    for s in selected:
-        sector_w[s['industry']] += s['raw_weight']
-
-    sector_cap = profile['sector_max']
-    for sector, w in list(sector_w.items()):
-        if w > sector_cap:
-            scale = sector_cap / w
-            for s in selected:
-                if s['industry'] == sector:
-                    s['raw_weight'] *= scale
-
-    # Normalize to invested_pct
+    # Normalize weights to sum=1 first, then apply sector cap iteratively.
+    # Doing it in this order means the cap holds in the final portfolio.
     total_w = sum(s['raw_weight'] for s in selected)
     if total_w > 0:
         for s in selected:
-            s['raw_weight'] = s['raw_weight'] * invested_pct / total_w
+            s['raw_weight'] /= total_w
+
+    sector_cap = profile['sector_max']
+    for _iter in range(20):
+        sector_w = defaultdict(float)
+        for s in selected:
+            sector_w[s['industry']] += s['raw_weight']
+        over = {sec: w for sec, w in sector_w.items() if w > sector_cap}
+        if not over:
+            break
+        freed = 0.0
+        for sec, w in over.items():
+            scale = sector_cap / w
+            for s in selected:
+                if s['industry'] == sec:
+                    freed += s['raw_weight'] * (1.0 - scale)
+                    s['raw_weight'] *= scale
+        non_over = [s for s in selected if sector_w[s['industry']] <= sector_cap]
+        if non_over and freed > 0:
+            nc_total = sum(s['raw_weight'] for s in non_over) or 1.0
+            for s in non_over:
+                s['raw_weight'] += freed * (s['raw_weight'] / nc_total)
+
+    # Scale down to invested_pct (cash buffer sits outside the stock allocation)
+    for s in selected:
+        s['raw_weight'] *= invested_pct
 
     # ── Phase 7: Allocations ───────────────────────────────────────────────────
     holdings = []
@@ -621,7 +639,7 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
     # ── Phase 8: Portfolio-level metrics ──────────────────────────────────────
     cash_inr        = round(amount * profile['cash_buffer_pct'], 0)
     total_invested  = sum(h['actual_invested'] for h in holdings)
-    leftover        = amount - total_invested - cash_inr
+    leftover        = max(0.0, amount - total_invested - cash_inr)
 
     sector_breakdown = defaultdict(lambda: {'count': 0, 'weight': 0.0, 'inr': 0})
     for h in holdings:
