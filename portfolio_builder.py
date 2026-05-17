@@ -259,9 +259,18 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
         if fs not in forced_present:
             candidates.append({'symbol': fs, 'ml_score_fast': 50, 'forced': True})
 
-    # Take top ~50 for full analysis (forced stocks always in)
-    candidates.sort(key=lambda c: (not c['forced'], -c['ml_score_fast']))
-    top_for_analysis = candidates[:50]
+    # Pre-filter using cached combined_score to avoid analyzing stocks that won't survive
+    target_count = profile['target_stocks']
+    pool_size = min(20, target_count * 2)  # 2x oversample for sector diversity
+
+    # Add combined_score from cache for better pre-ranking (where available)
+    for c in candidates:
+        cached = nightly_cache['stocks'].get(c['symbol'], {})
+        # Cache has 'ml' and 'valuation' but not full combined_score; use ml_score as proxy
+        c['pre_rank'] = c['ml_score_fast']
+
+    candidates.sort(key=lambda c: (not c['forced'], -c['pre_rank']))
+    top_for_analysis = candidates[:pool_size]
 
     # ── Phase 2: Full /stock-analysis via test_client for finalists ────────────
     analyzed = []
@@ -286,7 +295,7 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
     threads = [threading.Thread(target=_analyze_one, args=(c['symbol'],))
                for c in top_for_analysis]
     for t in threads: t.start()
-    for t in threads: t.join(timeout=30)
+    for t in threads: t.join(timeout=20)
 
     # ── Phase 3: Apply hard filters on full data ───────────────────────────────
     survivors = []
