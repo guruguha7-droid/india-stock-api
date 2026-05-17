@@ -507,16 +507,26 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
         selected_symbols.add(s['symbol'])
         sector_counts[s['industry']] += 1
 
-    # Third pass: relax sector cap if still under target
+    # Third pass: relax sector cap BUT still respect min_score and valuation
+    # Better to ship 10 high-quality stocks than 12 with a low-quality filler.
     if len(selected) < target:
         for s in survivors:
             if len(selected) >= target:
                 break
             if s['symbol'] in selected_symbols:
                 continue
+            # Phase 3 already enforced min_score; if a stock got through, it's eligible.
+            # But ALSO avoid stocks with overvalued labels in this fallback pass.
+            val_label = (s['data'].get('combined') or {}).get('valuation_signal', {}).get('label', '')
+            if val_label in ('Overvalued Quality', 'Overpriced Weak Business',
+                             'Severely Overvalued Quality', 'Value Trap Risk'):
+                continue
             selected.append(s)
             selected_symbols.add(s['symbol'])
             sector_counts[s['industry']] += 1
+
+    # If we still don't have target, that's fine — quality over quantity.
+    # Minimum 5 is enforced earlier; 10+ is the goal but not mandatory.
 
     if len(selected) < 5:
         return {
