@@ -3169,6 +3169,60 @@ def portfolio_vs_nifty():
     return jsonify(result)
 
 
+# ── Portfolio Builder ─────────────────────────────────────────────────────────
+@app.route("/portfolio-builder", methods=['GET', 'POST'])
+def portfolio_builder_endpoint():
+    """Goal-based portfolio construction. Accepts GET (query params) or POST (JSON)."""
+    try:
+        from portfolio_builder import build_portfolio
+
+        if request.method == 'POST':
+            params = request.get_json() or {}
+        else:
+            params = request.args.to_dict(flat=True)
+
+        amount       = float(params.get('amount', 100000))
+        horizon      = int(params.get('horizon', 5))
+        risk_appetite = params.get('risk_appetite', 'Balanced')
+        goal         = params.get('goal', 'Capital growth')
+
+        def _parse_list(val):
+            if not val: return []
+            if isinstance(val, list): return val
+            return [s.strip() for s in str(val).split(',') if s.strip()]
+
+        include_sectors = _parse_list(params.get('include_sectors'))
+        exclude_sectors = _parse_list(params.get('exclude_sectors'))
+        force_include   = _parse_list(params.get('force_include'))
+        force_exclude   = _parse_list(params.get('force_exclude'))
+
+        exclude_psu         = str(params.get('exclude_psu',         'false')).lower() == 'true'
+        exclude_high_debt   = str(params.get('exclude_high_debt',   'false')).lower() == 'true'
+        exclude_loss_makers = str(params.get('exclude_loss_makers', 'true')).lower()  == 'true'
+        exclude_high_pledge = str(params.get('exclude_high_pledge', 'false')).lower() == 'true'
+        min_market_cap = params.get('min_market_cap', 'any')
+        min_score = int(params['min_score']) if params.get('min_score') else None
+
+        nightly_cache = get_nightly_cache()
+
+        result = build_portfolio(
+            amount=amount, horizon=horizon,
+            risk_appetite=risk_appetite, goal=goal,
+            include_sectors=include_sectors, exclude_sectors=exclude_sectors,
+            exclude_psu=exclude_psu, exclude_high_debt=exclude_high_debt,
+            exclude_loss_makers=exclude_loss_makers,
+            exclude_high_pledge=exclude_high_pledge,
+            min_market_cap=min_market_cap, min_score=min_score,
+            force_include=force_include, force_exclude=force_exclude,
+            nightly_cache=nightly_cache, app=app,
+        )
+
+        return jsonify(result)
+    except Exception as e:
+        _log_exc('portfolio_builder_endpoint', '-')
+        return jsonify({'error': str(e)}), 500
+
+
 # ── Portfolio X-Ray (refactored: calls /stock-analysis per holding) ──────────
 @app.route("/portfolio-xray")
 def portfolio_xray():
