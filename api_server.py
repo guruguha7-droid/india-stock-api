@@ -3169,6 +3169,52 @@ def portfolio_vs_nifty():
     return jsonify(result)
 
 
+# ── Mutual Funds endpoints ────────────────────────────────────────────────────
+
+@app.route("/funds/refresh", methods=['POST', 'GET'])
+def funds_refresh_endpoint():
+    """Trigger AMFI data refresh. Should be called daily via cron or manually."""
+    try:
+        from mutual_fund_data import refresh_amfi_data, init_schema
+        init_schema()
+        result = refresh_amfi_data()
+        status = 200 if result.get('status') == 'ok' else 500
+        return jsonify(result), status
+    except Exception as e:
+        _log_exc('funds_refresh', '-')
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@app.route("/funds/list")
+def funds_list_endpoint():
+    """List mutual fund schemes with optional filters."""
+    try:
+        from mutual_fund_data import list_schemes
+        params = request.args
+        result = list_schemes(
+            limit=min(int(params.get('limit', 50)), 200),
+            offset=int(params.get('offset', 0)),
+            search=params.get('search'),
+            amc=params.get('amc'),
+            category=params.get('category'),
+        )
+        return jsonify({'count': len(result), 'schemes': result})
+    except Exception as e:
+        _log_exc('funds_list', '-')
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@app.route("/funds/health")
+def funds_health_endpoint():
+    """DB connectivity check + data freshness."""
+    try:
+        from mutual_fund_data import health_check
+        return jsonify(health_check())
+    except Exception as e:
+        _log_exc('funds_health', '-')
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
 # ── Portfolio Builder ─────────────────────────────────────────────────────────
 @app.route("/portfolio-builder", methods=['GET', 'POST'])
 def portfolio_builder_endpoint():
