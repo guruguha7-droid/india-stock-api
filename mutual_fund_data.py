@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS schemes (
 
 CREATE INDEX IF NOT EXISTS idx_schemes_amc ON schemes(amc_name);
 CREATE INDEX IF NOT EXISTS idx_schemes_category ON schemes(category);
+CREATE INDEX IF NOT EXISTS idx_schemes_sub_cat ON schemes(sub_category);
 
 CREATE TABLE IF NOT EXISTS nav_history (
     scheme_code     VARCHAR(20) NOT NULL REFERENCES schemes(scheme_code),
@@ -119,6 +120,18 @@ CREATE TABLE IF NOT EXISTS fetch_log (
     status          VARCHAR(20),
     error           TEXT
 );
+
+CREATE TABLE IF NOT EXISTS scheme_backfill_meta (
+    scheme_code         VARCHAR(20) PRIMARY KEY REFERENCES schemes(scheme_code),
+    oldest_nav_date     DATE,
+    newest_nav_date     DATE,
+    nav_count           INTEGER DEFAULT 0,
+    last_backfill_at    TIMESTAMP,
+    last_backfill_status VARCHAR(20),
+    last_error          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_backfill_oldest ON scheme_backfill_meta(oldest_nav_date);
 """
 
 
@@ -174,6 +187,19 @@ def parse_amfi(text):
                     # Skip dead/discontinued schemes (no NAV in 6+ months)
                     if (date.today() - nav_date).days > 180:
                         continue
+
+                    # Skip non-investable variants (only keep Growth + Direct plans)
+                    name_upper = parts[3].upper()
+                    if 'DIRECT' not in name_upper or 'GROWTH' not in name_upper:
+                        continue
+                    if any(kw in name_upper for kw in (
+                        'IDCW', 'DIVIDEND', 'BONUS',
+                        'WEEKLY', 'MONTHLY', 'QUARTERLY', 'DAILY',
+                        'PAYOUT', 'REINVESTMENT',
+                        'FMP', 'FIXED MATURITY',
+                    )):
+                        continue
+
                     rows.append({
                         'scheme_code':    parts[0],
                         'isin_growth':    parts[1] if parts[1] not in ('-', '') else None,
@@ -235,7 +261,7 @@ def upsert_schemes_and_navs(parsed_rows):
             for r in parsed_rows
         ]
 
-        psycopg2.extras.execute_values(
+        scheme_results = psycopg2.extras.execute_values(
             cur,
             """
             INSERT INTO schemes
@@ -254,8 +280,11 @@ def upsert_schemes_and_navs(parsed_rows):
             """,
             scheme_records,
             page_size=500,
+            fetch=True,
         )
-        for row in cur.fetchall():
+        # fetch=True aggregates RETURNING across all batches.
+        # Without it, cur.fetchall() only sees the last batch's results.
+        for row in scheme_results:
             if row['inserted']:
                 schemes_added += 1
             else:
@@ -265,17 +294,23 @@ def upsert_schemes_and_navs(parsed_rows):
             (r['scheme_code'], r['nav_date'], r['nav_value'])
             for r in parsed_rows
         ]
-        psycopg2.extras.execute_values(
+        nav_results = psycopg2.extras.execute_values(
             cur,
             """
             INSERT INTO nav_history (scheme_code, nav_date, nav_value)
             VALUES %s
             ON CONFLICT (scheme_code, nav_date) DO NOTHING
+            RETURNING 1
             """,
             nav_records,
             page_size=1000,
+            fetch=True,
         )
-        navs_added = cur.rowcount
+        # cur.rowcount only reflects the final batch with page_size set.
+        # RETURNING 1 + fetch=True gives the true insert count across all batches.
+        # ON CONFLICT DO NOTHING only emits a row when an insert actually happens,
+        # so len(nav_results) excludes conflicted (already-present) rows.
+        navs_added = len(nav_results)
 
     return {
         'schemes_added':   schemes_added,

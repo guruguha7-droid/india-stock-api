@@ -1437,7 +1437,23 @@ def stock_analysis():
         _quote_raw = result.get("quote", {})
         _sec_str   = str(_quote_raw.get("industry", "") or "").lower()
 
-        _is_bank    = any(x in _sec_str for x in ['bank','nbfc','financ','insurance','microfinance'])
+        # Known financial entities whose sector classification can be ambiguous
+        # (holding cos, specialized lenders, NBFCs missing/mistagged in sector data) —
+        # force these onto the bank/financial scoring path.
+        _FINANCIAL_SYMBOL_OVERRIDES = {
+            'BAJAJFINSV', 'BAJFINANCE', 'IRFC', 'PFC', 'RECLTD', 'HUDCO', 'JIOFIN',
+            'MUTHOOTFIN', 'MANAPPURAM', 'CHOLAFIN', 'CHOLAHLDNG', 'SHRIRAMFIN',
+            'L&TFH', 'LTF', 'LICHSGFIN', 'CANFINHOME', 'POONAWALLA', 'ABCAPITAL',
+            'PEL', 'PIRAMALENT', 'IIFL', 'IIFLFIN', 'IIFLSEC',
+            'ICICIGI', 'ICICIPRULI', 'SBILIFE', 'HDFCLIFE', 'LICI',
+            'GICRE', 'NIACL', 'STARHEALTH', 'NIVABUPA', 'MFSL',
+            'BSE', 'MCX', 'CDSL', 'CAMS', 'KFINTECH',
+            'ANGELONE', 'MOTILALOFS', 'NUVAMA', '360ONE', 'EDELWEISS',
+        }
+        _is_bank    = (
+            any(x in _sec_str for x in ['bank','nbfc','financ','insurance','microfinance','holding'])
+            or (symbol or '').upper() in _FINANCIAL_SYMBOL_OVERRIDES
+        )
         _is_it      = any(x in _sec_str for x in ['it','software','technolog','computer'])
         _is_fmcg    = any(x in _sec_str for x in ['fmcg','consumer','food','beverag'])
         _is_pharma  = any(x in _sec_str for x in ['pharma','health','medical','hospital'])

@@ -431,7 +431,7 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
             'symbol':         sym,
             'data':           data,
             'combined_score': combined_score,
-            'industry':       quote.get('industry') or 'Other',
+            'industry':       quote.get('industry') or quote.get('sector') or 'Uncategorized',
             'market_cap_cr':  mc_cr,
             'mc_bucket':      _market_cap_bucket(mc_cr),
             'forced':         is_forced,
@@ -649,9 +649,21 @@ def build_portfolio(amount, horizon, risk_appetite, goal,
 
     expected_return = _estimate_expected_return(holdings, horizon, risk_appetite)
 
-    avg_vol    = sum(s['volatility'] for s in selected) / len(selected)
-    risk_label = ('Low'    if avg_vol < 0.35 else
-                  'Medium' if avg_vol < 0.60 else 'High')
+    avg_vol = sum(s['volatility'] for s in selected) / len(selected)
+    # Volatility-based label from averaged stock risks
+    vol_label = ('Low'    if avg_vol < 0.35 else
+                 'Medium' if avg_vol < 0.60 else 'High')
+    # Anchor the label to the user's risk_appetite — an Aggressive portfolio
+    # shouldn't display as 'Low Risk' just because averaged stock vols are modest.
+    _RISK_FLOOR = {
+        'Conservative': 'Low',
+        'Balanced':     'Medium',
+        'Growth':       'Medium',
+        'Aggressive':   'High',
+    }
+    _ORDER = ['Low', 'Medium', 'High']
+    floor = _RISK_FLOOR.get(risk_appetite, 'Medium')
+    risk_label = floor if _ORDER.index(vol_label) < _ORDER.index(floor) else vol_label
 
     return {
         'status':   'ok',
