@@ -1809,14 +1809,16 @@ def stock_analysis():
         macro_score = max(0, min(100, 50 + macro_raw * 0.5))
 
         # ── Sentiment gated by magnitude ──────────────────────────────
-        # Small daily noise (|score| < 15) → excluded from combined
-        # Significant news (15-40) → small weight
+        # Intraday noise (|score| < 25) → excluded from combined score.
+        # Raising the threshold from 15 → 25 prevents 1-2 headlines from
+        # toggling the formula and causing 5-7 point intraday score drift.
+        # Significant news (25-40) → small weight adjustment
         # Crisis-level news (>40) → hard override applied after
         sent_impact  = 0
         macro_impact = 0
-        if abs(sent_raw) >= 15:
+        if abs(sent_raw) >= 25:
             sent_impact  = max(0, min(100, 50 + sent_raw * 0.5))
-        if abs(macro_raw) >= 15:
+        if abs(macro_raw) >= 25:
             macro_impact = max(0, min(100, 50 + macro_raw * 0.5))
 
         if sent_impact or macro_impact:
@@ -1845,7 +1847,7 @@ def stock_analysis():
             combined      = min(combined, 35)
             verdict       = 'SELL'
             verdict_color = 'red'
-        elif sent_raw < -25 and combined >= 50:
+        elif sent_raw < -25 and combined >= 50 and scr_raw < 70:  # exempt strong fundamentals
             combined      = min(combined, 49)
 
         grade = 'A+' if combined >= 82 else 'A' if combined >= 68 else 'B' if combined >= 58 else 'C' if combined >= 48 else 'D'
@@ -3212,6 +3214,17 @@ def funds_health_endpoint():
         return jsonify(health_check())
     except Exception as e:
         _log_exc('funds_health', '-')
+        return jsonify({'status': 'error', 'error': str(e)}), 500
+
+
+@app.route("/funds/backfill-status")
+def funds_backfill_status_endpoint():
+    """Check progress of mutual fund backfill."""
+    try:
+        from mutual_fund_backfill import get_backfill_status
+        return jsonify(get_backfill_status())
+    except Exception as e:
+        _log_exc('funds_backfill_status', '-')
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
