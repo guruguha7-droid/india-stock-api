@@ -3244,6 +3244,23 @@ def funds_backfill_status_endpoint():
         return jsonify({'status': 'error', 'error': str(e)}), 500
 
 
+@app.route("/funds/analyze")
+def funds_analyze_endpoint():
+    """Returns CAGR, volatility, drawdown, and Sharpe for a single scheme.
+    Query param: scheme_code (AMFI numeric code)."""
+    scheme_code = (request.args.get("scheme_code") or "").strip()
+    if not scheme_code:
+        return jsonify({"status": "error", "error": "scheme_code parameter required"}), 400
+    try:
+        from mutual_fund_analytics import analyze_fund
+        return jsonify(analyze_fund(scheme_code))
+    except ValueError as e:
+        return jsonify({"status": "error", "error": str(e)}), 404
+    except Exception as e:
+        logger.exception("fund-analysis failed for %s", scheme_code)
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
 # ── Portfolio Builder ─────────────────────────────────────────────────────────
 @app.route("/portfolio-builder", methods=['GET', 'POST'])
 def portfolio_builder_endpoint():
