@@ -3261,6 +3261,31 @@ def funds_analyze_endpoint():
         return jsonify({"status": "error", "error": "internal error"}), 500
 
 
+# ── Category Rankings refresh (Phase 2.1) ────────────────────────────────────
+@app.route("/funds/refresh-rankings")
+def funds_refresh_rankings():
+    """Recomputes category rankings for the full mutual fund universe.
+    Takes ~2-3 min on Render; runs in background thread.
+    Requires ?secret=<CACHE_SECRET> for auth."""
+    secret = request.args.get("secret", "")
+    if secret != os.environ.get("CACHE_SECRET", "graham2024"):
+        return jsonify({"error": "unauthorized"}), 401
+
+    def _refresh():
+        import traceback
+        try:
+            from mutual_fund_analytics import compute_category_rankings
+            print("  [rankings] Starting category rankings rebuild...", flush=True)
+            result = compute_category_rankings()
+            print(f"  [rankings] Done: {result}", flush=True)
+        except Exception:
+            print("  [rankings] FATAL — traceback follows:", flush=True)
+            traceback.print_exc()
+
+    threading.Thread(target=_refresh, daemon=True).start()
+    return jsonify({"status": "ok", "message": "Category rankings rebuild started in background"})
+
+
 # ── Portfolio Builder ─────────────────────────────────────────────────────────
 @app.route("/portfolio-builder", methods=['GET', 'POST'])
 def portfolio_builder_endpoint():
