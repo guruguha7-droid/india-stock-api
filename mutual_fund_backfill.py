@@ -106,17 +106,21 @@ def upsert_navs_for_scheme(scheme_code, nav_pairs, cutoff_date):
     records = [(scheme_code, d, v) for d, v in filtered]
 
     with db_cursor() as cur:
-        psycopg2.extras.execute_values(
+        # fetch=True aggregates RETURNING across all batches; cur.rowcount would
+        # only reflect the final page_size batch, undercounting multi-page inserts.
+        results = psycopg2.extras.execute_values(
             cur,
             """
             INSERT INTO nav_history (scheme_code, nav_date, nav_value)
             VALUES %s
             ON CONFLICT (scheme_code, nav_date) DO NOTHING
+            RETURNING 1
             """,
             records,
             page_size=1000,
+            fetch=True,
         )
-        return cur.rowcount
+        return len(results)
 
 
 def update_backfill_meta(scheme_code, status='ok', error=None):

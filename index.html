@@ -491,6 +491,7 @@ body{
   <button class="pf-tab active" id="tab-search" onclick="showTab('search')">🔍 Stock Analysis</button>
   <button class="pf-tab" id="tab-portfolio" onclick="showTab('portfolio')">📊 Portfolio X-Ray</button>
   <button class="pf-tab" id="tab-builder" onclick="showTab('builder')">🛠 Portfolio Builder</button>
+  <button class="pf-tab" id="tab-funds" onclick="showTab('funds')">💰 Funds</button>
 </div>
 
 <!-- Search tab -->
@@ -664,6 +665,1214 @@ body{
   </div>
 </div>
 
+<!-- Funds tab (Phase 3.1) -->
+<div id="pane-funds" class="pf-section">
+  <div style="max-width:1200px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--text)">Mutual Funds</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3);margin-top:4px">Top performers by 5-year CAGR across major categories</div>
+      </div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">
+        <span id="funds-coverage-text">1,693 funds · 5y history</span>
+      </div>
+    </div>
+
+    <!-- Landing view (default) -->
+    <div id="funds-landing-view">
+      <div id="funds-landing-grid" class="funds-grid">
+        <!-- Categories populated by loadFundsLanding() -->
+      </div>
+
+      <div style="margin-top:24px;text-align:center">
+        <button class="funds-screener-link" onclick="goToFundsScreener()">📊 Explore all 949 funds with filters →</button>
+      </div>
+    </div>
+
+    <!-- Detail view (shown when a fund is clicked) -->
+    <div id="funds-detail-view" style="display:none">
+      <!-- Populated by loadFundDetail() -->
+    </div>
+
+    <!-- Screener view (Phase 3.3) -->
+    <div id="funds-screener-view" style="display:none">
+      <!-- Populated by loadFundsScreener() -->
+    </div>
+  </div>
+</div>
+
+<style>
+/* Funds tab styles (scoped to #pane-funds) */
+#pane-funds .funds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 14px;
+}
+#pane-funds .funds-cat-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+#pane-funds .funds-cat-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+#pane-funds .funds-cat-name {
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+#pane-funds .funds-cat-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+#pane-funds .funds-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+#pane-funds .funds-mini-table th {
+  text-align: left;
+  padding: 4px 6px;
+  color: var(--text3);
+  font-size: 9px;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+#pane-funds .funds-mini-table th.num { text-align: right; }
+#pane-funds .funds-mini-table td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+#pane-funds .funds-mini-table tr:last-child td { border-bottom: none; }
+#pane-funds .funds-mini-table tr:hover td { background: rgba(255,255,255,0.03); cursor: pointer; }
+#pane-funds .funds-mini-table td.num { text-align: right; color: var(--text); }
+#pane-funds .funds-mini-table td.rank {
+  color: var(--orange);
+  font-weight: 700;
+  width: 24px;
+}
+#pane-funds .funds-mini-table td.name {
+  color: var(--text);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pane-funds .funds-mini-table td.amc {
+  color: var(--text3);
+  font-size: 10px;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pane-funds .funds-mini-table td.cagr { color: var(--green); }
+#pane-funds .funds-mini-table td.sharpe { color: var(--text2); }
+#pane-funds .funds-loading,
+#pane-funds .funds-error {
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+#pane-funds .funds-error { color: var(--red); }
+</style>
+
+<script>
+// Phase 3.1 — Funds landing data + render
+const FUNDS_LANDING_CATEGORIES = [
+  { name: 'Flexi Cap',         sub_category: 'Equity Scheme - Flexi Cap Fund' },
+  { name: 'Mid Cap',           sub_category: 'Equity Scheme - Mid Cap Fund' },
+  { name: 'Large Cap',         sub_category: 'Equity Scheme - Large Cap Fund' },
+  { name: 'Tax Saver (ELSS)',  sub_category: 'Equity Scheme - ELSS' },
+  { name: 'Liquid',            sub_category: 'Debt Scheme - Liquid Fund' },
+];
+
+async function loadFundsLanding() {
+  const grid = document.getElementById('funds-landing-grid');
+  if (!grid) return;
+
+  // Render skeleton cards immediately so user sees structure
+  grid.innerHTML = FUNDS_LANDING_CATEGORIES.map(cat => `
+    <div class="funds-cat-card" data-cat="${cat.sub_category}">
+      <div class="funds-cat-header">
+        <div class="funds-cat-name">${cat.name}</div>
+        <div class="funds-cat-meta">Loading...</div>
+      </div>
+      <div class="funds-loading">Fetching top funds…</div>
+    </div>
+  `).join('');
+
+  // Fire all 5 fetches in parallel
+  const results = await Promise.all(
+    FUNDS_LANDING_CATEGORIES.map(cat =>
+      fetch(`${API}/funds/category-leaders?sub_category=${encodeURIComponent(cat.sub_category)}&metric=cagr_5y&top=5`)
+        .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+        .then(data => ({ cat, data, error: null }))
+        .catch(err => ({ cat, data: null, error: String(err) }))
+    )
+  );
+
+  // Render each category card with its data (or error state)
+  grid.innerHTML = results.map(({ cat, data, error }) => {
+    if (error) {
+      return `
+        <div class="funds-cat-card">
+          <div class="funds-cat-header">
+            <div class="funds-cat-name">${cat.name}</div>
+            <div class="funds-cat-meta">—</div>
+          </div>
+          <div class="funds-error">Failed to load: ${error}</div>
+        </div>`;
+    }
+
+    const leaders = (data && data.leaders) || [];
+    if (leaders.length === 0) {
+      return `
+        <div class="funds-cat-card">
+          <div class="funds-cat-header">
+            <div class="funds-cat-name">${cat.name}</div>
+            <div class="funds-cat-meta">No data</div>
+          </div>
+          <div class="funds-loading">No ranked funds in this category</div>
+        </div>`;
+    }
+
+    const peerCount = leaders[0].peer_count || '—';
+    return `
+      <div class="funds-cat-card">
+        <div class="funds-cat-header">
+          <div class="funds-cat-name">${cat.name}</div>
+          <div class="funds-cat-meta">Top 5 of ${peerCount}</div>
+        </div>
+        <table class="funds-mini-table">
+          <thead><tr>
+            <th>#</th>
+            <th>Fund</th>
+            <th>AMC</th>
+            <th class="num">5y CAGR</th>
+            <th class="num">Sharpe</th>
+          </tr></thead>
+          <tbody>
+            ${leaders.map(f => `
+              <tr onclick="goToFundDetail('${f.scheme_code}')" title="${f.scheme_name}">
+                <td class="rank">${f.rank_on_metric}</td>
+                <td class="name">${f.scheme_name.replace(/ - Direct Plan.*$/i,'').replace(/-Direct Plan.*$/i,'').replace(/ - Growth.*$/i,'').replace(/-Growth.*$/i,'')}</td>
+                <td class="amc">${f.amc_name.replace(/ Mutual Fund$/,'')}</td>
+                <td class="num cagr">${f.cagr_5y_pct != null ? f.cagr_5y_pct.toFixed(1) + '%' : '—'}</td>
+                <td class="num sharpe">${f.sharpe_ratio != null ? f.sharpe_ratio.toFixed(2) : '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+// Phase 3.2 — Detail page navigation
+function goToFundDetail(schemeCode) {
+  const landing = document.getElementById('funds-landing-view');
+  const detail  = document.getElementById('funds-detail-view');
+  if (!landing || !detail) return;
+  landing.style.display = 'none';
+  detail.style.display  = 'block';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  loadFundDetail(schemeCode);
+}
+
+function backToFundsLanding() {
+  const landing = document.getElementById('funds-landing-view');
+  const detail  = document.getElementById('funds-detail-view');
+  if (!landing || !detail) return;
+  detail.style.display  = 'none';
+  landing.style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+async function loadFundDetail(schemeCode) {
+  const view = document.getElementById('funds-detail-view');
+  if (!view) return;
+
+  // Skeleton state
+  view.innerHTML = `
+    <button class="funds-back-btn" onclick="backToFundsLanding()">← Back to all funds</button>
+    <div class="funds-detail-loading">Loading fund details…</div>
+  `;
+
+  let data;
+  try {
+    const r = await fetch(`${API}/funds/analyze?scheme_code=${encodeURIComponent(schemeCode)}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    data = await r.json();
+  } catch (err) {
+    view.innerHTML = `
+      <button class="funds-back-btn" onclick="backToFundsLanding()">← Back to all funds</button>
+      <div class="funds-detail-error">Failed to load fund details: ${err.message}</div>
+    `;
+    return;
+  }
+
+  if (data.status === 'insufficient_data') {
+    view.innerHTML = `
+      <button class="funds-back-btn" onclick="backToFundsLanding()">← Back to all funds</button>
+      <div class="funds-detail-loading">${data.message || 'Insufficient data for analysis'}</div>
+    `;
+    return;
+  }
+
+  // Helpers
+  const fmt    = (n, d=2) => (n == null || isNaN(n)) ? '—' : Number(n).toFixed(d);
+  const pct    = (n, d=2) => (n == null || isNaN(n)) ? '—' : Number(n).toFixed(d) + '%';
+  const inr    = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 4 });
+  const dateStr= (s) => { if (!s) return '—'; const d=new Date(s); return isNaN(d) ? s : d.toLocaleDateString('en-IN', {year:'numeric', month:'short', day:'numeric'}); };
+  const cagrColor = (v) => v == null ? 'var(--text3)' : (v >= 0 ? 'var(--green)' : 'var(--red)');
+  const ddColor   = (v) => v == null ? 'var(--text3)' : (v > -10 ? 'var(--green)' : v > -25 ? 'var(--gold)' : 'var(--red)');
+
+  const r  = data.returns || {};
+  const rk = data.risk || {};
+  const dd = (rk.max_drawdown) || {};
+  const dc = data.data_coverage || {};
+  const pc = data.peer_context || null;
+
+  // Returns cards (1y/3y/5y)
+  const returnsCards = ['1y','3y','5y'].map(k => {
+    const v = r['cagr_' + k + '_pct'];
+    return `
+      <div class="fd-stat-card">
+        <div class="fd-stat-label">${k.toUpperCase()} CAGR</div>
+        <div class="fd-stat-value" style="color:${cagrColor(v)}">${pct(v, 1)}</div>
+      </div>`;
+  }).join('');
+
+  // Rolling stats table
+  const rollingRow = (label, stats) => {
+    if (!stats) return `<tr><td>${label}</td><td colspan="4" style="color:var(--text3)">Insufficient history</td></tr>`;
+    const spct = (v, d=1) => (v == null || isNaN(v)) ? '—' : (Number(v) >= 0 ? '+' : '') + Number(v).toFixed(d) + '%';
+    const worstColor = (stats.min_pct < 0) ? 'var(--red)' : 'var(--text2)';
+    return `
+      <tr>
+        <td>${label}</td>
+        <td class="num">${spct(stats.mean_pct)}</td>
+        <td class="num" style="color:${worstColor}">${spct(stats.min_pct)}</td>
+        <td class="num" style="color:var(--green)">${spct(stats.max_pct)}</td>
+        <td class="num">${fmt(stats.stdev_pct, 1)}%</td>
+      </tr>`;
+  };
+
+  // Peer context block
+  const peerBlock = (() => {
+    if (!pc) return `<div class="fd-peer-na">Peer rankings not yet computed for this fund</div>`;
+    if (pc.status === 'insufficient_peers') {
+      return `<div class="fd-peer-na">Only ${pc.peer_count} fund(s) in "${pc.sub_category}" — need ≥5 for meaningful rankings</div>`;
+    }
+    const metrics = [
+      { key: 'cagr_5y',      label: '5y CAGR',      higherBetter: true  },
+      { key: 'cagr_3y',      label: '3y CAGR',      higherBetter: true  },
+      { key: 'cagr_1y',      label: '1y CAGR',      higherBetter: true  },
+      { key: 'sharpe',       label: 'Sharpe',       higherBetter: true  },
+      { key: 'max_drawdown', label: 'Max Drawdown', higherBetter: false },
+      { key: 'volatility',   label: 'Volatility',   higherBetter: false },
+    ];
+    return metrics.map(m => {
+      const rank = pc.rankings && pc.rankings[m.key];
+      if (!rank) return `
+        <div class="fd-peer-row">
+          <div class="fd-peer-label">${m.label}</div>
+          <div class="fd-peer-bar-wrap"><div class="fd-peer-bar-empty">—</div></div>
+          <div class="fd-peer-rank">—</div>
+        </div>`;
+      const p = rank.percentile || 0;
+      const barColor = p >= 75 ? 'var(--green)' : p >= 50 ? 'var(--gold)' : p >= 25 ? 'var(--orange)' : 'var(--red)';
+      return `
+        <div class="fd-peer-row">
+          <div class="fd-peer-label">${m.label}</div>
+          <div class="fd-peer-bar-wrap">
+            <div class="fd-peer-bar" style="width:${p}%;background:${barColor}"></div>
+            <div class="fd-peer-bar-pct">${p}th pct</div>
+          </div>
+          <div class="fd-peer-rank">#${rank.rank} <span style="color:var(--text3)">of ${rank.of}</span></div>
+        </div>`;
+    }).join('');
+  })();
+
+  // Drawdown subblock
+  const ddBlock = (!dd || dd.max_dd_pct == null) ? `<div style="color:var(--text3)">No drawdown data</div>` : `
+    <div class="fd-dd-grid">
+      <div>
+        <div class="fd-mini-label">Max DD</div>
+        <div class="fd-mini-value" style="color:${ddColor(dd.max_dd_pct)}">${fmt(dd.max_dd_pct, 1)}%</div>
+      </div>
+      <div>
+        <div class="fd-mini-label">Peak → Trough</div>
+        <div class="fd-mini-value-small">${dateStr(dd.peak_date)} → ${dateStr(dd.trough_date)}</div>
+        <div class="fd-mini-sub">${dd.drawdown_days} days</div>
+      </div>
+      <div>
+        <div class="fd-mini-label">Recovery</div>
+        <div class="fd-mini-value-small">${dd.days_to_recover != null ? dd.days_to_recover + ' days' : 'Not yet recovered'}</div>
+      </div>
+    </div>`;
+
+  // Build full detail HTML
+  view.innerHTML = `
+    <button class="funds-back-btn" onclick="backToFundsLanding()">← Back to all funds</button>
+
+    <!-- Header -->
+    <div class="fd-header">
+      <div class="fd-header-main">
+        <div class="fd-fund-name">${data.scheme_name || 'Unknown fund'}</div>
+        <div class="fd-fund-meta">
+          ${data.amc_name || '—'} · ${data.sub_category || data.category || '—'} · Scheme ${data.scheme_code}
+        </div>
+      </div>
+      <div class="fd-header-nav">
+        <div class="fd-nav-label">LATEST NAV (${dateStr(data.latest_nav && data.latest_nav.date)})</div>
+        <div class="fd-nav-value">${inr(data.latest_nav && data.latest_nav.value)}</div>
+      </div>
+    </div>
+
+    <!-- Returns + Risk side-by-side -->
+    <div class="fd-twin-grid">
+      <div class="fd-card">
+        <div class="pf-card-title">RETURNS (POINT-TO-POINT CAGR)</div>
+        <div class="fd-returns-grid">${returnsCards}</div>
+
+        <div class="pf-card-title" style="margin-top:18px">ROLLING CAGR (CONSISTENCY)</div>
+        <table class="fd-rolling-table">
+          <thead><tr>
+            <th>Window</th><th class="num">Mean</th><th class="num">Worst</th><th class="num">Best</th><th class="num">Stdev</th>
+          </tr></thead>
+          <tbody>
+            ${rollingRow('1y rolling', r.rolling_1y_cagr)}
+            ${rollingRow('3y rolling', r.rolling_3y_cagr)}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="fd-card">
+        <div class="pf-card-title">RISK METRICS</div>
+        <div class="fd-risk-grid">
+          <div>
+            <div class="fd-mini-label">Annual Volatility</div>
+            <div class="fd-mini-value">${pct(rk.annual_volatility_pct, 2)}</div>
+          </div>
+          <div>
+            <div class="fd-mini-label">Sharpe Ratio</div>
+            <div class="fd-mini-value" style="color:${rk.sharpe_ratio >= 1 ? 'var(--green)' : rk.sharpe_ratio >= 0 ? 'var(--gold)' : 'var(--red)'}">${fmt(rk.sharpe_ratio, 2)}</div>
+            <div class="fd-mini-sub">vs ${pct(rk.risk_free_rate_used_pct, 1)} G-Sec</div>
+          </div>
+        </div>
+
+        <div class="pf-card-title" style="margin-top:18px">MAXIMUM DRAWDOWN</div>
+        ${ddBlock}
+      </div>
+    </div>
+
+    <!-- Peer rankings (full width) -->
+    <div class="fd-card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+        <div class="pf-card-title" style="margin:0">CATEGORY RANKINGS${pc && pc.sub_category ? ' · ' + pc.sub_category : ''}</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">
+          ${pc && pc.peer_count ? pc.peer_count + ' peers' : ''} ${pc && pc.ranking_note ? '· ' + pc.ranking_note : ''}
+        </div>
+      </div>
+      <div class="fd-peer-grid">${peerBlock}</div>
+    </div>
+
+    <!-- Data coverage footer -->
+    <div class="fd-footer">
+      Data: ${dc.nav_count || '—'} NAVs over ${fmt(dc.years_of_history, 1)} years (${dateStr(dc.oldest_nav_date)} → ${dateStr(dc.newest_nav_date)})
+      · Computed ${dateStr(data.computed_at)}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 3.3 — Screener
+// ─────────────────────────────────────────────────────────────────────────
+const SCREENER_STATE = {
+  sub_category:   '',
+  amc:            '',
+  min_cagr_5y:    null,
+  max_volatility: null,
+  min_sharpe:     null,
+  max_drawdown:   null,
+  sort:           'cagr_5y',
+  order:          'desc',
+  limit:          50,
+  offset:         0,
+  total:          0,
+};
+let _categoriesCache = null;
+
+function goToFundsScreener() {
+  document.getElementById('funds-landing-view').style.display  = 'none';
+  document.getElementById('funds-detail-view').style.display   = 'none';
+  document.getElementById('funds-screener-view').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  renderScreenerShell();
+  loadCategoriesThenSearch();
+}
+
+function backToFundsFromScreener() {
+  document.getElementById('funds-screener-view').style.display = 'none';
+  document.getElementById('funds-landing-view').style.display  = 'block';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+async function loadCategoriesThenSearch() {
+  if (!_categoriesCache) {
+    try {
+      const r = await fetch(`${API}/funds/categories`);
+      const d = await r.json();
+      _categoriesCache = d.categories || [];
+    } catch (e) {
+      _categoriesCache = [];
+    }
+    populateCategoryDropdown();
+  }
+  runScreenerSearch();
+}
+
+function populateCategoryDropdown() {
+  const sel = document.getElementById('sc-sub-category');
+  if (!sel || !_categoriesCache) return;
+  sel.innerHTML = '<option value="">All categories</option>' +
+    _categoriesCache.map(c =>
+      `<option value="${c.sub_category.replace(/"/g, '&quot;')}">${c.sub_category} (${c.fund_count})</option>`
+    ).join('');
+}
+
+function renderScreenerShell() {
+  const view = document.getElementById('funds-screener-view');
+  if (!view) return;
+  view.innerHTML = `
+    <button class="funds-back-btn" onclick="backToFundsFromScreener()">← Back to funds</button>
+
+    <div class="sc-header">
+      <div class="sc-title">Fund Screener</div>
+      <div class="sc-subtitle">Filter and sort across 949 funds with ≥5y history</div>
+    </div>
+
+    <div class="sc-filter-panel">
+      <div class="sc-filter-grid">
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">CATEGORY</label>
+          <select id="sc-sub-category" class="sc-input">
+            <option value="">All categories</option>
+          </select>
+        </div>
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">AMC (CONTAINS)</label>
+          <input id="sc-amc" type="text" class="sc-input" placeholder="e.g. HDFC, ICICI"/>
+        </div>
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">MIN 5Y CAGR %</label>
+          <input id="sc-min-cagr" type="number" step="0.5" class="sc-input" placeholder="e.g. 15"/>
+        </div>
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">MAX VOLATILITY %</label>
+          <input id="sc-max-vol" type="number" step="0.5" class="sc-input" placeholder="e.g. 18"/>
+        </div>
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">MIN SHARPE</label>
+          <input id="sc-min-sharpe" type="number" step="0.1" class="sc-input" placeholder="e.g. 0.8"/>
+        </div>
+        <div class="sc-filter-cell">
+          <label class="sc-filter-label">MAX DRAWDOWN % <span style="color:var(--text3)">(eg -25)</span></label>
+          <input id="sc-max-dd" type="number" step="1" class="sc-input" placeholder="e.g. -25"/>
+        </div>
+      </div>
+      <div class="sc-filter-actions">
+        <button class="sc-btn-primary" onclick="onScreenerApply()">Apply filters</button>
+        <button class="sc-btn-secondary" onclick="onScreenerReset()">Reset</button>
+        <div class="sc-meta" id="sc-result-meta">Loading…</div>
+      </div>
+    </div>
+
+    <div class="sc-results-wrap">
+      <table class="sc-table" id="sc-table">
+        <thead>
+          <tr>
+            <th class="sc-th-rank">CAT<br/>RANK</th>
+            <th>FUND</th>
+            <th>AMC</th>
+            <th>CATEGORY</th>
+            <th class="num sc-sort" onclick="setScreenerSort('cagr_5y')">5Y CAGR ▼</th>
+            <th class="num sc-sort" onclick="setScreenerSort('cagr_3y')">3Y CAGR</th>
+            <th class="num sc-sort" onclick="setScreenerSort('volatility')">VOL</th>
+            <th class="num sc-sort" onclick="setScreenerSort('max_dd')">MAX DD</th>
+            <th class="num sc-sort" onclick="setScreenerSort('sharpe')">SHARPE</th>
+          </tr>
+        </thead>
+        <tbody id="sc-tbody">
+          <tr><td colspan="9" class="sc-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="sc-pagination" id="sc-pagination"></div>
+  `;
+}
+
+function readFiltersFromUI() {
+  const num = (id) => {
+    const v = (document.getElementById(id)?.value || '').trim();
+    return v === '' ? null : Number(v);
+  };
+  const str = (id) => (document.getElementById(id)?.value || '').trim() || '';
+  SCREENER_STATE.sub_category   = str('sc-sub-category');
+  SCREENER_STATE.amc            = str('sc-amc');
+  SCREENER_STATE.min_cagr_5y    = num('sc-min-cagr');
+  SCREENER_STATE.max_volatility = num('sc-max-vol');
+  SCREENER_STATE.min_sharpe     = num('sc-min-sharpe');
+  SCREENER_STATE.max_drawdown   = num('sc-max-dd');
+}
+
+function onScreenerApply() {
+  readFiltersFromUI();
+  SCREENER_STATE.offset = 0;
+  runScreenerSearch();
+}
+
+function onScreenerReset() {
+  document.getElementById('sc-sub-category').value = '';
+  document.getElementById('sc-amc').value          = '';
+  document.getElementById('sc-min-cagr').value     = '';
+  document.getElementById('sc-max-vol').value      = '';
+  document.getElementById('sc-min-sharpe').value   = '';
+  document.getElementById('sc-max-dd').value       = '';
+  SCREENER_STATE.sub_category   = '';
+  SCREENER_STATE.amc            = '';
+  SCREENER_STATE.min_cagr_5y    = null;
+  SCREENER_STATE.max_volatility = null;
+  SCREENER_STATE.min_sharpe     = null;
+  SCREENER_STATE.max_drawdown   = null;
+  SCREENER_STATE.sort           = 'cagr_5y';
+  SCREENER_STATE.order          = 'desc';
+  SCREENER_STATE.offset         = 0;
+  runScreenerSearch();
+}
+
+function setScreenerSort(metric) {
+  if (SCREENER_STATE.sort === metric) {
+    SCREENER_STATE.order = (SCREENER_STATE.order === 'desc' || SCREENER_STATE.order === '') ? 'asc_worst' : 'desc';
+  } else {
+    SCREENER_STATE.sort  = metric;
+    SCREENER_STATE.order = 'desc';
+  }
+  SCREENER_STATE.offset = 0;
+  runScreenerSearch();
+}
+
+async function runScreenerSearch() {
+  const tbody = document.getElementById('sc-tbody');
+  const meta  = document.getElementById('sc-result-meta');
+  if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="sc-loading">Searching…</td></tr>`;
+  if (meta) meta.textContent = 'Searching…';
+
+  const params = new URLSearchParams();
+  if (SCREENER_STATE.sub_category)              params.set('sub_category',   SCREENER_STATE.sub_category);
+  if (SCREENER_STATE.amc)                       params.set('amc',            SCREENER_STATE.amc);
+  if (SCREENER_STATE.min_cagr_5y    != null)    params.set('min_cagr_5y',    SCREENER_STATE.min_cagr_5y);
+  if (SCREENER_STATE.max_volatility != null)    params.set('max_volatility', SCREENER_STATE.max_volatility);
+  if (SCREENER_STATE.min_sharpe     != null)    params.set('min_sharpe',     SCREENER_STATE.min_sharpe);
+  if (SCREENER_STATE.max_drawdown   != null)    params.set('max_drawdown',   SCREENER_STATE.max_drawdown);
+  params.set('sort',   SCREENER_STATE.sort);
+  params.set('order',  SCREENER_STATE.order);
+  params.set('limit',  SCREENER_STATE.limit);
+  params.set('offset', SCREENER_STATE.offset);
+
+  let data;
+  try {
+    const r = await fetch(`${API}/funds/screener?${params.toString()}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    data = await r.json();
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" class="sc-error">Failed: ${e.message}</td></tr>`;
+    if (meta) meta.textContent = '';
+    return;
+  }
+
+  SCREENER_STATE.total = data.total || 0;
+  renderScreenerResults(data.funds || []);
+  renderScreenerPagination();
+  updateSortHeaders();
+  if (meta) {
+    const from = SCREENER_STATE.offset + 1;
+    const to   = Math.min(SCREENER_STATE.offset + SCREENER_STATE.limit, SCREENER_STATE.total);
+    meta.textContent = SCREENER_STATE.total === 0
+      ? 'No funds match these filters'
+      : `Showing ${from}–${to} of ${SCREENER_STATE.total} funds`;
+  }
+}
+
+function renderScreenerResults(funds) {
+  const tbody = document.getElementById('sc-tbody');
+  if (!tbody) return;
+  if (funds.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="sc-loading">No funds match these filters. Try relaxing them.</td></tr>`;
+    return;
+  }
+  const pct  = (v, d=1) => v == null ? '—' : Number(v).toFixed(d) + '%';
+  const num  = (v, d=2) => v == null ? '—' : Number(v).toFixed(d);
+  const trimName = (n) => (n || '').replace(/\s*-?\s*Direct Plan.*$/i,'').replace(/\s*-?\s*Growth.*$/i,'').replace(/\(erstwhile.*$/i,'').trim();
+  const trimAmc  = (a) => (a || '').replace(/\s*Mutual Fund$/i,'').trim();
+  const cagrColor   = (v) => v == null ? 'var(--text3)' : (v >= 15 ? 'var(--green)' : v >= 0 ? 'var(--text)' : 'var(--red)');
+  const sharpeColor = (v) => v == null ? 'var(--text3)' : (v >= 1 ? 'var(--green)' : v >= 0 ? 'var(--text)' : 'var(--red)');
+  tbody.innerHTML = funds.map(f => `
+    <tr onclick="goToFundDetailFromScreener('${f.scheme_code}')" title="${(f.scheme_name || '').replace(/"/g, '&quot;')}">
+      <td class="sc-rank-cell">#${f.rank_cagr_5y || '—'}<br/><span class="sc-rank-peer">of ${f.peer_count || '—'}</span></td>
+      <td class="sc-fund-name">${trimName(f.scheme_name)}</td>
+      <td class="sc-amc">${trimAmc(f.amc_name)}</td>
+      <td class="sc-cat">${f.sub_category || '—'}</td>
+      <td class="num" style="color:${cagrColor(f.cagr_5y_pct)}">${pct(f.cagr_5y_pct)}</td>
+      <td class="num" style="color:${cagrColor(f.cagr_3y_pct)}">${pct(f.cagr_3y_pct)}</td>
+      <td class="num">${pct(f.annual_vol_pct, 1)}</td>
+      <td class="num">${pct(f.max_dd_pct, 1)}</td>
+      <td class="num" style="color:${sharpeColor(f.sharpe_ratio)}">${num(f.sharpe_ratio, 2)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderScreenerPagination() {
+  const wrap = document.getElementById('sc-pagination');
+  if (!wrap) return;
+  const total  = SCREENER_STATE.total;
+  const limit  = SCREENER_STATE.limit;
+  const offset = SCREENER_STATE.offset;
+  if (total <= limit) { wrap.innerHTML = ''; return; }
+  const pageNum   = Math.floor(offset / limit) + 1;
+  const pageCount = Math.ceil(total / limit);
+  const canPrev   = offset > 0;
+  const canNext   = offset + limit < total;
+  wrap.innerHTML = `
+    <button class="sc-btn-page" ${canPrev ? '' : 'disabled'} onclick="screenerPage(-1)">← Prev</button>
+    <span class="sc-page-info">Page ${pageNum} of ${pageCount}</span>
+    <button class="sc-btn-page" ${canNext ? '' : 'disabled'} onclick="screenerPage(1)">Next →</button>
+  `;
+}
+
+function screenerPage(direction) {
+  SCREENER_STATE.offset = Math.max(0, SCREENER_STATE.offset + direction * SCREENER_STATE.limit);
+  runScreenerSearch();
+  document.getElementById('sc-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateSortHeaders() {
+  const allHeaders = document.querySelectorAll('#sc-table th.sc-sort');
+  if (!allHeaders) return;
+  const labelMap = {
+    'cagr_5y':    '5Y CAGR',
+    'cagr_3y':    '3Y CAGR',
+    'volatility': 'VOL',
+    'max_dd':     'MAX DD',
+    'sharpe':     'SHARPE',
+  };
+  allHeaders.forEach(th => {
+    const onclick = th.getAttribute('onclick') || '';
+    const m = onclick.match(/setScreenerSort\('([^']+)'\)/);
+    if (!m) return;
+    const metric   = m[1];
+    const isActive = (metric === SCREENER_STATE.sort);
+    const arrow    = isActive ? (SCREENER_STATE.order === 'desc' ? ' ▼' : ' ▲') : '';
+    th.innerHTML   = (labelMap[metric] || metric) + arrow;
+    th.classList.toggle('sc-sort-active', isActive);
+  });
+}
+
+function goToFundDetailFromScreener(schemeCode) {
+  document.getElementById('funds-screener-view').style.display = 'none';
+  document.getElementById('funds-detail-view').style.display   = 'block';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  loadFundDetail(schemeCode);
+}
+</script>
+
+<style>
+/* Phase 3.3 — Screener styles (scoped to #pane-funds) */
+#pane-funds .funds-screener-link {
+  background: var(--bg3);
+  border: 1px solid var(--orange);
+  color: var(--orange);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .15s;
+}
+#pane-funds .funds-screener-link:hover {
+  background: var(--orange);
+  color: #fff;
+}
+#pane-funds .sc-header { margin-bottom: 16px; }
+#pane-funds .sc-title {
+  font-family: var(--font-head);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+#pane-funds .sc-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+#pane-funds .sc-filter-panel {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+#pane-funds .sc-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 800px) {
+  #pane-funds .sc-filter-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 500px) {
+  #pane-funds .sc-filter-grid { grid-template-columns: 1fr; }
+}
+#pane-funds .sc-filter-cell { display: flex; flex-direction: column; }
+#pane-funds .sc-filter-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+#pane-funds .sc-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: border-color .15s;
+}
+#pane-funds .sc-input:focus { border-color: var(--orange); }
+#pane-funds select.sc-input {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 24px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text3) 50%), linear-gradient(135deg, var(--text3) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+#pane-funds .sc-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+#pane-funds .sc-btn-primary {
+  background: var(--orange);
+  border: none;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+}
+#pane-funds .sc-btn-primary:hover { opacity: .85; }
+#pane-funds .sc-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+#pane-funds .sc-btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+#pane-funds .sc-meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+#pane-funds .sc-results-wrap {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+#pane-funds .sc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-width: 900px;
+}
+#pane-funds .sc-table th {
+  text-align: left;
+  padding: 10px 8px;
+  color: var(--text3);
+  font-size: 9px;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+  background: rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+}
+#pane-funds .sc-table th.num { text-align: right; }
+#pane-funds .sc-table th.sc-sort { cursor: pointer; user-select: none; }
+#pane-funds .sc-table th.sc-sort:hover { color: var(--text); }
+#pane-funds .sc-table th.sc-sort-active { color: var(--orange); }
+#pane-funds .sc-table th.sc-th-rank { text-align: center; }
+#pane-funds .sc-table td {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+}
+#pane-funds .sc-table td.num { text-align: right; }
+#pane-funds .sc-table tr:hover td { background: rgba(255,255,255,0.03); cursor: pointer; }
+#pane-funds .sc-table .sc-rank-cell {
+  text-align: center;
+  font-weight: 700;
+  color: var(--orange);
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+#pane-funds .sc-table .sc-rank-peer {
+  font-weight: 400;
+  color: var(--text3);
+  font-size: 9px;
+}
+#pane-funds .sc-table .sc-fund-name {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+#pane-funds .sc-table .sc-amc {
+  color: var(--text2);
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#pane-funds .sc-table .sc-cat {
+  color: var(--text3);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+}
+#pane-funds .sc-table .sc-loading,
+#pane-funds .sc-table .sc-error {
+  text-align: center !important;
+  padding: 30px !important;
+  color: var(--text3);
+  font-style: italic;
+}
+#pane-funds .sc-table .sc-error { color: var(--red); }
+#pane-funds .sc-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+}
+#pane-funds .sc-btn-page {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+#pane-funds .sc-btn-page:hover:not([disabled]) { border-color: var(--orange); color: var(--orange); }
+#pane-funds .sc-btn-page[disabled] { opacity: .4; cursor: not-allowed; }
+#pane-funds .sc-page-info {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+</style>
+
+<style>
+/* Phase 3.2 — Fund detail page styles (scoped to #pane-funds) */
+#pane-funds .funds-back-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  transition: all .15s;
+}
+#pane-funds .funds-back-btn:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+}
+#pane-funds .funds-detail-loading,
+#pane-funds .funds-detail-error {
+  padding: 60px 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text3);
+}
+#pane-funds .funds-detail-error { color: var(--red); }
+#pane-funds .fd-header {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+#pane-funds .fd-fund-name {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+#pane-funds .fd-fund-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+#pane-funds .fd-header-nav { text-align: right; }
+#pane-funds .fd-nav-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+#pane-funds .fd-nav-value {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--orange);
+  margin-top: 4px;
+}
+#pane-funds .fd-twin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  #pane-funds .fd-twin-grid { grid-template-columns: 1fr; }
+}
+#pane-funds .fd-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+#pane-funds .fd-returns-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+#pane-funds .fd-stat-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+#pane-funds .fd-stat-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+#pane-funds .fd-stat-value {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+#pane-funds .fd-rolling-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+#pane-funds .fd-rolling-table th {
+  text-align: left;
+  padding: 6px;
+  color: var(--text3);
+  font-size: 9px;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 500;
+}
+#pane-funds .fd-rolling-table th.num { text-align: right; }
+#pane-funds .fd-rolling-table td {
+  padding: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+}
+#pane-funds .fd-rolling-table td.num { text-align: right; }
+#pane-funds .fd-rolling-table tr:last-child td { border-bottom: none; }
+#pane-funds .fd-risk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+#pane-funds .fd-mini-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+#pane-funds .fd-mini-value {
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 4px;
+}
+#pane-funds .fd-mini-value-small {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  margin-top: 6px;
+}
+#pane-funds .fd-mini-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+#pane-funds .fd-dd-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 600px) {
+  #pane-funds .fd-dd-grid { grid-template-columns: 1fr; }
+}
+#pane-funds .fd-peer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+#pane-funds .fd-peer-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 110px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+@media (max-width: 600px) {
+  #pane-funds .fd-peer-row { grid-template-columns: 100px 1fr 90px; gap: 8px; }
+}
+#pane-funds .fd-peer-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+#pane-funds .fd-peer-bar-wrap {
+  position: relative;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  height: 18px;
+  overflow: hidden;
+}
+#pane-funds .fd-peer-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 4px;
+  transition: width .3s ease;
+}
+#pane-funds .fd-peer-bar-pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text);
+  font-weight: 600;
+  text-shadow: 0 0 4px rgba(0,0,0,.8);
+  letter-spacing: .5px;
+}
+#pane-funds .fd-peer-bar-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+#pane-funds .fd-peer-rank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  text-align: right;
+  font-weight: 600;
+}
+#pane-funds .fd-peer-na {
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text3);
+  background: rgba(255,255,255,0.02);
+  border-radius: 6px;
+}
+#pane-funds .fd-footer {
+  margin-top: 14px;
+  padding: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+</style>
+
 <div class="disc">⚠ Prices are real-time from NSE India. Educational use only — not financial advice. Consult a SEBI-registered advisor before investing.</div>
 
 <script>
@@ -765,12 +1974,18 @@ function setActivePriceSubscription(symbol, onUpdate) {
 
 // ── Portfolio X-Ray ──────────────────────────────────────────────────────────
 function showTab(tab) {
-  ['search', 'portfolio', 'builder'].forEach(t => {
+  ['search', 'portfolio', 'builder', 'funds'].forEach(t => {
     const pane = document.getElementById('pane-' + t);
     const btn  = document.getElementById('tab-' + t);
     if (pane) pane.classList.toggle('visible', tab === t);
     if (btn)  btn.classList.toggle('active', tab === t);
   });
+
+  // Lazy-load funds landing on first activation
+  if (tab === 'funds' && !window._fundsLandingLoaded) {
+    window._fundsLandingLoaded = true;
+    loadFundsLanding();
+  }
 }
 
 window._pfHoldings = [];

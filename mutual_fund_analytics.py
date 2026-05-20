@@ -180,7 +180,7 @@ def _rolling_stats(cagrs):
         'mean_pct':     round(statistics.mean(cagrs) * 100, 2),
         'min_pct':      round(min(cagrs) * 100, 2),
         'max_pct':      round(max(cagrs) * 100, 2),
-        'stdev_pct':    round(statistics.stdev(cagrs) * 100, 2) if len(cagrs) >= 2 else 0.0,
+        'stdev_pct':    round(statistics.stdev(cagrs) * 100, 2) if len(cagrs) >= 2 else None,
         'window_count': len(cagrs),
     }
 
@@ -317,12 +317,13 @@ def compute_category_rankings(min_peers=5):
 
     logger.info("compute_category_rankings: %d schemes to process", len(scheme_meta))
 
-    # 2. Pull all NAVs in one big query, group by scheme_code in Python.
-    # Single connection vs ~1700 = vastly less pooler pressure.
+    # 2. Pull all NAVs in one query, streaming in chunks to avoid a multi-GB fetchall().
+    # Named cursor = server-side cursor; itersize controls how many rows are fetched
+    # per network round-trip. Single connection vs ~1700 individual queries.
     from collections import defaultdict
     cutoff = date.today() - timedelta(days=int(5 * 365.25) + 30)
     nav_by_scheme = defaultdict(list)
-    with db_cursor() as cur:
+    with db_cursor(name='nav_bulk_load', itersize=20_000) as cur:
         cur.execute(
             """
             SELECT scheme_code, nav_date, nav_value::float AS nav
@@ -332,7 +333,7 @@ def compute_category_rankings(min_peers=5):
             """,
             (cutoff,),
         )
-        for r in cur.fetchall():
+        for r in cur:
             nav_by_scheme[r['scheme_code']].append((r['nav_date'], r['nav']))
     logger.info("compute_category_rankings: loaded NAVs for %d schemes in one query", len(nav_by_scheme))
 

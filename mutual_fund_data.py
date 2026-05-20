@@ -64,11 +64,19 @@ def _get_db_url():
 
 
 @contextmanager
-def db_cursor():
-    """Context manager that yields a cursor. Commits on success, rolls back on error."""
+def db_cursor(name=None, itersize=2000):
+    """
+    Context manager that yields a cursor. Commits on success, rolls back on error.
+
+    Pass name= to get a server-side cursor (streams rows in chunks of itersize,
+    avoiding loading the full result set into Python memory at once). Useful for
+    large SELECT queries like the bulk NAV load in compute_category_rankings.
+    """
     conn = psycopg2.connect(_get_db_url(), connect_timeout=10)
     try:
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = conn.cursor(name=name, cursor_factory=psycopg2.extras.RealDictCursor)
+        if name:
+            cur.itersize = itersize
         yield cur
         conn.commit()
     except Exception:
@@ -132,6 +140,34 @@ CREATE TABLE IF NOT EXISTS scheme_backfill_meta (
 );
 
 CREATE INDEX IF NOT EXISTS idx_backfill_oldest ON scheme_backfill_meta(oldest_nav_date);
+
+CREATE TABLE IF NOT EXISTS category_rankings (
+    scheme_code     VARCHAR(20) PRIMARY KEY REFERENCES schemes(scheme_code),
+    sub_category    TEXT,
+    peer_count      INTEGER,
+    cagr_1y_pct     NUMERIC(10,6),
+    cagr_3y_pct     NUMERIC(10,6),
+    cagr_5y_pct     NUMERIC(10,6),
+    annual_vol_pct  NUMERIC(10,4),
+    max_dd_pct      NUMERIC(10,4),
+    sharpe_ratio    NUMERIC(10,4),
+    rank_cagr_1y    INTEGER,
+    rank_cagr_3y    INTEGER,
+    rank_cagr_5y    INTEGER,
+    rank_sharpe     INTEGER,
+    rank_max_dd     INTEGER,
+    rank_volatility INTEGER,
+    pct_cagr_1y     INTEGER,
+    pct_cagr_3y     INTEGER,
+    pct_cagr_5y     INTEGER,
+    pct_sharpe      INTEGER,
+    pct_max_dd      INTEGER,
+    pct_volatility  INTEGER,
+    computed_at     TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_cr_sub_cat ON category_rankings(sub_category);
+CREATE INDEX IF NOT EXISTS idx_cr_rank_5y ON category_rankings(sub_category, rank_cagr_5y);
 """
 
 
