@@ -3395,6 +3395,181 @@ def funds_category_leaders():
         return jsonify({"status": "error", "error": "internal error"}), 500
 
 
+# ── Screener: filterable/sortable fund list (Phase 3.3) ──────────────────────
+@app.route("/funds/screener")
+def funds_screener():
+    """Filterable, sortable fund list. Returns flattened rows for table display.
+
+    Query params (all optional):
+      sub_category    exact match (e.g. "Equity Scheme - Mid Cap Fund")
+      amc             substring match on amc_name (case-insensitive)
+      min_cagr_5y     decimal pct, e.g. 15.0
+      max_volatility  decimal pct, e.g. 20.0
+      min_sharpe      decimal, e.g. 0.5
+      max_drawdown    decimal pct (negative number), e.g. -25.0  (rejects funds with worse drawdown)
+      sort            one of: cagr_5y, cagr_3y, cagr_1y, sharpe, max_dd, volatility (default cagr_5y)
+      order           asc or desc (default desc; ignored for volatility/max_dd where asc = best)
+      limit           default 50, max 200
+      offset          default 0
+    """
+    from mutual_fund_data import db_cursor
+
+    sub_cat       = (request.args.get("sub_category") or "").strip() or None
+    amc           = (request.args.get("amc") or "").strip() or None
+    sort          = (request.args.get("sort") or "cagr_5y").strip()
+    order         = (request.args.get("order") or "desc").strip().lower()
+    limit         = min(int(request.args.get("limit", 50)), 200)
+    offset        = max(int(request.args.get("offset", 0)), 0)
+
+    def _f(name):
+        v = request.args.get(name)
+        return float(v) if v not in (None, "") else None
+
+    min_cagr_5y   = _f("min_cagr_5y")
+    max_vol       = _f("max_volatility")
+    min_sharpe    = _f("min_sharpe")
+    max_dd        = _f("max_drawdown")
+
+    sort_map = {
+        "cagr_5y":    ("r.cagr_5y_pct", 100),
+        "cagr_3y":    ("r.cagr_3y_pct", 100),
+        "cagr_1y":    ("r.cagr_1y_pct", 100),
+        "sharpe":     ("r.sharpe_ratio", 1),
+        "max_dd":     ("r.max_dd_pct", 1),
+        "volatility": ("r.annual_vol_pct", 1),
+    }
+    if sort not in sort_map:
+        return jsonify({"status": "error", "error": f"sort must be one of {list(sort_map.keys())}"}), 400
+
+    sort_col, _ = sort_map[sort]
+    if sort == "volatility":
+        sql_order = "ASC" if order != "asc_worst" else "DESC"
+    elif sort == "max_dd":
+        sql_order = "DESC" if order != "asc_worst" else "ASC"
+    else:
+        sql_order = "DESC" if order == "desc" else "ASC"
+
+    where_clauses = []
+    params        = []
+    if sub_cat:
+        where_clauses.append("r.sub_category = %s")
+        params.append(sub_cat)
+    if amc:
+        where_clauses.append("LOWER(s.amc_name) LIKE %s")
+        params.append(f"%{amc.lower()}%")
+    if min_cagr_5y is not None:
+        where_clauses.append("r.cagr_5y_pct >= %s")
+        params.append(min_cagr_5y / 100.0)
+    if max_vol is not None:
+        where_clauses.append("r.annual_vol_pct <= %s")
+        params.append(max_vol)
+    if min_sharpe is not None:
+        where_clauses.append("r.sharpe_ratio >= %s")
+        params.append(min_sharpe)
+    if max_dd is not None:
+        where_clauses.append("r.max_dd_pct >= %s")
+        params.append(max_dd)
+    where_clauses.append(f"{sort_col} IS NOT NULL")
+    # Exclude funds with <3y history — their Sharpe/vol metrics use short windows
+    # that produce misleading values (e.g. recent commodity FoFs with Sharpe > 3).
+    # Users wanting young funds can filter by sub_category directly.
+    where_clauses.append("r.cagr_5y_pct IS NOT NULL")
+
+    where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+
+    sql = f"""
+        SELECT
+          r.scheme_code,
+          s.scheme_name,
+          s.amc_name,
+          r.sub_category,
+          r.peer_count,
+          r.cagr_1y_pct,
+          r.cagr_3y_pct,
+          r.cagr_5y_pct,
+          r.annual_vol_pct,
+          r.max_dd_pct,
+          r.sharpe_ratio,
+          r.rank_cagr_5y,
+          r.rank_sharpe
+        FROM category_rankings r
+        JOIN schemes s ON s.scheme_code = r.scheme_code
+        {where_sql}
+        ORDER BY {sort_col} {sql_order} NULLS LAST, r.scheme_code ASC
+        LIMIT %s OFFSET %s
+    """
+    count_sql = f"SELECT COUNT(*) AS n FROM category_rankings r JOIN schemes s ON s.scheme_code = r.scheme_code {where_sql}"
+
+    try:
+        with db_cursor() as cur:
+            cur.execute(count_sql, params)
+            total = cur.fetchone()['n']
+            cur.execute(sql, params + [limit, offset])
+            raw = [dict(r) for r in cur.fetchall()]
+
+        def _ff(v, mult=1.0):
+            return None if v is None else round(float(v) * mult, 2)
+
+        results = [{
+            'scheme_code':    r['scheme_code'],
+            'scheme_name':    r['scheme_name'],
+            'amc_name':       r['amc_name'],
+            'sub_category':   r['sub_category'],
+            'peer_count':     r['peer_count'],
+            'cagr_1y_pct':    _ff(r['cagr_1y_pct'],   100),
+            'cagr_3y_pct':    _ff(r['cagr_3y_pct'],   100),
+            'cagr_5y_pct':    _ff(r['cagr_5y_pct'],   100),
+            'annual_vol_pct': _ff(r['annual_vol_pct'], 1),
+            'max_dd_pct':     _ff(r['max_dd_pct'],     1),
+            'sharpe_ratio':   _ff(r['sharpe_ratio'],   1),
+            'rank_cagr_5y':   r['rank_cagr_5y'],
+            'rank_sharpe':    r['rank_sharpe'],
+        } for r in raw]
+
+        return jsonify({
+            "status":  "ok",
+            "total":   total,
+            "limit":   limit,
+            "offset":  offset,
+            "sort":    sort,
+            "order":   order,
+            "filters": {
+                "sub_category":   sub_cat,
+                "amc":            amc,
+                "min_cagr_5y":    min_cagr_5y,
+                "max_volatility": max_vol,
+                "min_sharpe":     min_sharpe,
+                "max_drawdown":   max_dd,
+            },
+            "funds":   results,
+        })
+    except Exception as e:
+        logger.exception("screener failed")
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
+# ── Categories list (for screener dropdown) — Phase 3.3 ──────────────────────
+@app.route("/funds/categories")
+def funds_categories():
+    """Returns distinct sub_categories with fund counts. Used to populate screener dropdown."""
+    from mutual_fund_data import db_cursor
+    try:
+        with db_cursor() as cur:
+            cur.execute("""
+                SELECT sub_category, COUNT(*) AS fund_count
+                FROM category_rankings
+                WHERE rank_cagr_5y IS NOT NULL
+                GROUP BY sub_category
+                ORDER BY fund_count DESC
+            """)
+            cats = [{"sub_category": r['sub_category'], "fund_count": r['fund_count']}
+                    for r in cur.fetchall()]
+        return jsonify({"status": "ok", "categories": cats, "total": len(cats)})
+    except Exception as e:
+        logger.exception("categories failed")
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
 # ── Portfolio Builder ─────────────────────────────────────────────────────────
 @app.route("/portfolio-builder", methods=['GET', 'POST'])
 def portfolio_builder_endpoint():
