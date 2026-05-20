@@ -3286,6 +3286,115 @@ def funds_refresh_rankings():
     return jsonify({"status": "ok", "message": "Category rankings rebuild started in background"})
 
 
+# ── Curated category leaders (Phase 3.1) ─────────────────────────────────────
+@app.route("/funds/category-leaders")
+def funds_category_leaders():
+    """Returns top N funds in a sub_category by a chosen metric.
+    Reads precomputed rankings from category_rankings table.
+
+    Query params:
+      sub_category  (required)  exact match against schemes.sub_category
+      metric        (optional)  one of: cagr_5y, cagr_3y, cagr_1y, sharpe, max_dd, volatility
+                                default: cagr_5y
+      top           (optional)  default 5, max 25
+    """
+    sub_cat = (request.args.get("sub_category") or "").strip()
+    metric  = (request.args.get("metric") or "cagr_5y").strip()
+    top_n   = min(int(request.args.get("top", 5)), 25)
+
+    if not sub_cat:
+        return jsonify({"status": "error", "error": "sub_category parameter required"}), 400
+
+    metric_to_rank_col = {
+        "cagr_5y":    "rank_cagr_5y",
+        "cagr_3y":    "rank_cagr_3y",
+        "cagr_1y":    "rank_cagr_1y",
+        "sharpe":     "rank_sharpe",
+        "max_dd":     "rank_max_dd",
+        "volatility": "rank_volatility",
+    }
+    if metric not in metric_to_rank_col:
+        return jsonify({
+            "status": "error",
+            "error":  f"metric must be one of {list(metric_to_rank_col.keys())}"
+        }), 400
+
+    rank_col = metric_to_rank_col[metric]
+
+    try:
+        from mutual_fund_data import db_cursor
+        with db_cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                    r.scheme_code,
+                    s.scheme_name,
+                    s.amc_name,
+                    r.sub_category,
+                    r.peer_count,
+                    r.cagr_1y_pct,
+                    r.cagr_3y_pct,
+                    r.cagr_5y_pct,
+                    r.annual_vol_pct,
+                    r.max_dd_pct,
+                    r.sharpe_ratio,
+                    r.{rank_col} AS rank_on_metric,
+                    r.computed_at
+                FROM category_rankings r
+                JOIN schemes s ON s.scheme_code = r.scheme_code
+                WHERE r.sub_category = %s
+                  AND r.{rank_col} IS NOT NULL
+                ORDER BY r.{rank_col} ASC
+                LIMIT %s
+                """,
+                (sub_cat, top_n),
+            )
+            raw = [dict(r) for r in cur.fetchall()]
+            # Normalize: CAGR and DD are stored as raw decimals despite the _pct
+            # column names; multiply by 100 here. Vol is already pct. Cast Decimal
+            # to float so JSON output is numeric, not stringly-typed.
+            def _f(v, mult=1.0):
+                return None if v is None else round(float(v) * mult, 2)
+            leaders = []
+            for r in raw:
+                leaders.append({
+                    'scheme_code':     r['scheme_code'],
+                    'scheme_name':     r['scheme_name'],
+                    'amc_name':        r['amc_name'],
+                    'sub_category':    r['sub_category'],
+                    'peer_count':      r['peer_count'],
+                    'cagr_1y_pct':     _f(r['cagr_1y_pct'],   100),
+                    'cagr_3y_pct':     _f(r['cagr_3y_pct'],   100),
+                    'cagr_5y_pct':     _f(r['cagr_5y_pct'],   100),
+                    'annual_vol_pct':  _f(r['annual_vol_pct'], 1),   # already pct
+                    'max_dd_pct':      _f(r['max_dd_pct'],      1),   # already pct
+                    'sharpe_ratio':    _f(r['sharpe_ratio'],   1),
+                    'rank_on_metric':  r['rank_on_metric'],
+                    'computed_at':     str(r['computed_at']),
+                })
+
+        if not leaders:
+            return jsonify({
+                "status":       "no_data",
+                "sub_category": sub_cat,
+                "metric":       metric,
+                "message":      "No ranked funds found (sub_category may not exist or has <5 peers)",
+                "leaders":      [],
+            })
+
+        return jsonify({
+            "status":       "ok",
+            "sub_category": sub_cat,
+            "metric":       metric,
+            "top":          top_n,
+            "leaders":      leaders,
+            "computed_at":  leaders[0]['computed_at'] if leaders else None,
+        })
+    except Exception as e:
+        logger.exception("category-leaders failed")
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
 # ── Portfolio Builder ─────────────────────────────────────────────────────────
 @app.route("/portfolio-builder", methods=['GET', 'POST'])
 def portfolio_builder_endpoint():
