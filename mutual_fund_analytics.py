@@ -267,5 +267,227 @@ def analyze_fund(scheme_code):
             'sharpe_ratio':             sharpe,
             'risk_free_rate_used_pct':  round(RISK_FREE_RATE * 100, 2),
         },
+        'peer_context': _fetch_peer_context(scheme_code),
         'computed_at': datetime.now().isoformat(timespec='seconds'),
     }
+
+
+# ── Category Rankings (Phase 2.1) ────────────────────────────────────────────
+
+def _compute_one_scheme_lite(scheme_code, navs):
+    """Returns just the 6 metrics we rank on. Skips orchestration overhead."""
+    if len(navs) < MIN_NAVS_FOR_ANY_METRIC:
+        return None
+    return {
+        'scheme_code':    scheme_code,
+        'cagr_1y_pct':    _point_to_point_cagr(navs, 1),
+        'cagr_3y_pct':    _point_to_point_cagr(navs, 3),
+        'cagr_5y_pct':    _point_to_point_cagr(navs, 5),
+        'annual_vol':     _annualized_volatility(navs),
+        'max_dd':         _max_drawdown(navs),
+        'sharpe':         None,  # filled below to reuse the CAGR/vol we just computed
+    }
+
+
+def _percentile(rank, n):
+    """Rank 1 of n → 100th percentile; rank n of n → 0th percentile."""
+    if n <= 1:
+        return 100
+    return round(100 * (n - rank) / (n - 1))
+
+
+def compute_category_rankings(min_peers=5):
+    """
+    Batch-computes metrics + rankings for the full universe and upserts to
+    category_rankings table.
+
+    Sub-categories with peer_count < min_peers get peer_count stored truthfully
+    but ranks/percentiles set to NULL (the API surfaces this as 'insufficient_peers').
+
+    Returns: {schemes_processed, sub_categories, sub_cats_with_rankings, elapsed_s}.
+    """
+    import time
+    start = time.time()
+    logger.info("compute_category_rankings: starting batch")
+
+    # 1. Load every scheme's sub_category and NAV history
+    with db_cursor() as cur:
+        cur.execute("SELECT scheme_code, sub_category FROM schemes WHERE sub_category IS NOT NULL")
+        scheme_meta = {r['scheme_code']: r['sub_category'] for r in cur.fetchall()}
+
+    logger.info("compute_category_rankings: %d schemes to process", len(scheme_meta))
+
+    # 2. Pull all NAVs in one big query, group by scheme_code in Python.
+    # Single connection vs ~1700 = vastly less pooler pressure.
+    from collections import defaultdict
+    cutoff = date.today() - timedelta(days=int(5 * 365.25) + 30)
+    nav_by_scheme = defaultdict(list)
+    with db_cursor() as cur:
+        cur.execute(
+            """
+            SELECT scheme_code, nav_date, nav_value::float AS nav
+            FROM nav_history
+            WHERE nav_date >= %s AND nav_value > 0
+            ORDER BY scheme_code, nav_date ASC
+            """,
+            (cutoff,),
+        )
+        for r in cur.fetchall():
+            nav_by_scheme[r['scheme_code']].append((r['nav_date'], r['nav']))
+    logger.info("compute_category_rankings: loaded NAVs for %d schemes in one query", len(nav_by_scheme))
+
+    # 3. Compute metrics for each scheme using the in-memory NAV groups
+    all_metrics = []
+    skipped_thin = 0
+    for sc, sub_cat in scheme_meta.items():
+        navs = nav_by_scheme.get(sc, [])
+        m = _compute_one_scheme_lite(sc, navs)
+        if m is None:
+            skipped_thin += 1
+            continue
+        cagr_for_sharpe = m['cagr_5y_pct'] if m['cagr_5y_pct'] is not None else (
+            m['cagr_3y_pct'] if m['cagr_3y_pct'] is not None else m['cagr_1y_pct']
+        )
+        m['sharpe'] = _sharpe(cagr_for_sharpe, m['annual_vol']) if cagr_for_sharpe is not None else None
+        m['sub_category'] = sub_cat
+        m['max_dd_pct'] = m['max_dd']['max_dd_pct'] if m['max_dd'] else None
+        all_metrics.append(m)
+
+    logger.info("compute_category_rankings: %d scored, %d skipped (thin history)", len(all_metrics), skipped_thin)
+
+    # 4. Group by sub_category and rank within each group
+    from collections import defaultdict
+    by_subcat = defaultdict(list)
+    for m in all_metrics:
+        by_subcat[m['sub_category']].append(m)
+
+    upserts = []
+    subcats_with_rankings = 0
+
+    for sub_cat, group in by_subcat.items():
+        n = len(group)
+        has_rankings = n >= min_peers
+
+        if has_rankings:
+            subcats_with_rankings += 1
+            rank_maps = {}
+            for metric_key, ascending in [
+                ('cagr_1y_pct',  False),  # higher is better
+                ('cagr_3y_pct',  False),
+                ('cagr_5y_pct',  False),
+                ('sharpe',       False),
+                ('max_dd_pct',   False),  # less negative = better → desc
+                ('annual_vol',   True),   # lower vol is better → asc
+            ]:
+                valid   = [m for m in group if m.get(metric_key) is not None]
+                missing = [m for m in group if m.get(metric_key) is None]
+                valid.sort(key=lambda m: m[metric_key], reverse=not ascending)
+                ranks = {}
+                for i, m in enumerate(valid, start=1):
+                    ranks[m['scheme_code']] = i
+                for m in missing:
+                    ranks[m['scheme_code']] = None
+                rank_maps[metric_key] = ranks
+
+        for m in group:
+            scheme_code = m['scheme_code']
+            if has_rankings:
+                rk  = lambda key: rank_maps[key].get(scheme_code)
+                pct = lambda key: _percentile(rk(key), n) if rk(key) is not None else None
+                row = (
+                    scheme_code, sub_cat, n,
+                    m['cagr_1y_pct'], m['cagr_3y_pct'], m['cagr_5y_pct'],
+                    m['annual_vol'] * 100 if m['annual_vol'] is not None else None,
+                    m['max_dd_pct'],
+                    m['sharpe'],
+                    rk('cagr_1y_pct'), rk('cagr_3y_pct'), rk('cagr_5y_pct'),
+                    rk('sharpe'), rk('max_dd_pct'), rk('annual_vol'),
+                    pct('cagr_1y_pct'), pct('cagr_3y_pct'), pct('cagr_5y_pct'),
+                    pct('sharpe'), pct('max_dd_pct'), pct('annual_vol'),
+                )
+            else:
+                row = (
+                    scheme_code, sub_cat, n,
+                    m['cagr_1y_pct'], m['cagr_3y_pct'], m['cagr_5y_pct'],
+                    m['annual_vol'] * 100 if m['annual_vol'] is not None else None,
+                    m['max_dd_pct'],
+                    m['sharpe'],
+                    None, None, None, None, None, None,
+                    None, None, None, None, None, None,
+                )
+            upserts.append(row)
+
+    # 5. Bulk upsert
+    import psycopg2.extras
+    with db_cursor() as cur:
+        cur.execute("TRUNCATE TABLE category_rankings")
+        psycopg2.extras.execute_values(
+            cur,
+            """
+            INSERT INTO category_rankings (
+                scheme_code, sub_category, peer_count,
+                cagr_1y_pct, cagr_3y_pct, cagr_5y_pct,
+                annual_vol_pct, max_dd_pct, sharpe_ratio,
+                rank_cagr_1y, rank_cagr_3y, rank_cagr_5y,
+                rank_sharpe, rank_max_dd, rank_volatility,
+                pct_cagr_1y, pct_cagr_3y, pct_cagr_5y,
+                pct_sharpe, pct_max_dd, pct_volatility
+            )
+            VALUES %s
+            """,
+            upserts,
+            page_size=500,
+        )
+
+    elapsed = round(time.time() - start, 1)
+    logger.info("compute_category_rankings: done in %ss (%d rows, %d sub_cats ranked)",
+                elapsed, len(upserts), subcats_with_rankings)
+
+    return {
+        'schemes_processed':      len(upserts),
+        'schemes_skipped_thin':   skipped_thin,
+        'sub_categories':         len(by_subcat),
+        'sub_cats_with_rankings': subcats_with_rankings,
+        'min_peers_threshold':    min_peers,
+        'elapsed_s':              elapsed,
+    }
+
+
+def _fetch_peer_context(scheme_code):
+    """Returns peer_context dict for analyze_fund, or None if not in rankings table yet."""
+    with db_cursor() as cur:
+        cur.execute("SELECT * FROM category_rankings WHERE scheme_code = %s", (scheme_code,))
+        row = cur.fetchone()
+        if not row:
+            return None
+
+        if row['rank_cagr_5y'] is None and row['rank_cagr_3y'] is None and row['rank_cagr_1y'] is None:
+            return {
+                'status':       'insufficient_peers',
+                'sub_category': row['sub_category'],
+                'peer_count':   row['peer_count'],
+                'computed_at':  row['computed_at'].isoformat(timespec='seconds'),
+            }
+
+        def block(rank_key, pct_key):
+            r = row[rank_key]
+            p = row[pct_key]
+            if r is None:
+                return None
+            return {'rank': r, 'percentile': p, 'of': row['peer_count']}
+
+        return {
+            'status':       'ok',
+            'sub_category': row['sub_category'],
+            'peer_count':   row['peer_count'],
+            'rankings': {
+                'cagr_1y':      block('rank_cagr_1y',    'pct_cagr_1y'),
+                'cagr_3y':      block('rank_cagr_3y',    'pct_cagr_3y'),
+                'cagr_5y':      block('rank_cagr_5y',    'pct_cagr_5y'),
+                'sharpe':       block('rank_sharpe',     'pct_sharpe'),
+                'max_drawdown': block('rank_max_dd',     'pct_max_dd'),
+                'volatility':   block('rank_volatility', 'pct_volatility'),
+            },
+            'ranking_note':  'rank 1 = best. For max_drawdown/volatility, lower magnitude = better.',
+            'computed_at':   row['computed_at'].isoformat(timespec='seconds'),
+        }
