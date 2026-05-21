@@ -1287,20 +1287,22 @@ function renderCalcResults(elId, type, amt, yrs, bear, base, bull) {
 // ─────────────────────────────────────────────────────────────────────────
 // Phase 3.5 — Fund search autocomplete (client-side after one preload)
 // ─────────────────────────────────────────────────────────────────────────
-let _allFundNames  = null;   // preloaded once, reused for every keystroke
+let _allFundNames    = null;   // null = not fetched yet; Array = ready
+let _fundNamesPromise = null;  // the in-flight fetch promise; prevents double-fetch
 let _fundSuggestions = [];
 let _fundSugIdx = -1;
 
 async function preloadFundNames() {
-  if (_allFundNames !== null) return;   // already loaded or loading
-  _allFundNames = [];                   // mark as loading so parallel calls don't double-fetch
-  try {
-    const r = await fetch(`${API}/funds/names`);
-    const data = r.ok ? await r.json() : {};
-    _allFundNames = data.funds || [];
-  } catch (_) {
-    _allFundNames = [];
+  if (_allFundNames !== null) return;   // already loaded — fast path
+  if (!_fundNamesPromise) {
+    // Start the fetch and store the promise so concurrent callers await the
+    // same request instead of firing multiple fetches.
+    _fundNamesPromise = fetch(`${API}/funds/names`)
+      .then(r => r.ok ? r.json() : { funds: [] })
+      .catch(() => ({ funds: [] }))
+      .then(data => { _allFundNames = data.funds || []; });
   }
+  await _fundNamesPromise;
 }
 
 function onFundSearchInput() {
@@ -1313,7 +1315,9 @@ function onFundSearchInput() {
 }
 
 async function filterFundSuggestions(q) {
-  if (_allFundNames === null) await preloadFundNames();
+  // Always await — if preload is in flight this waits for it; if already done
+  // preloadFundNames() returns immediately (fast path above).
+  await preloadFundNames();
   const ql = q.toLowerCase();
   _fundSuggestions = _allFundNames
     .filter(f => f.scheme_name.toLowerCase().includes(ql))
