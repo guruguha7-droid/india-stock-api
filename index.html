@@ -1096,8 +1096,8 @@ async function loadFundDetail(schemeCode) {
     <div class="fd-card" style="margin-top:14px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:8px">
         <div class="pf-card-title" style="margin:0">PROJECTIONS</div>
-        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">
-          Based on 5y CAGR ${pct(r.cagr_5y_pct, 1)} · vol ${pct(rk.annual_volatility_pct, 1)} · educational only
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3);max-width:60%;text-align:right" id="fd-calc-basis-note">
+          —
         </div>
       </div>
 
@@ -1155,8 +1155,9 @@ async function loadFundDetail(schemeCode) {
 
   // Stash fund's metrics on the view element so updateProjections can read them
   view._fundMetrics = {
-    cagr_5y: r.cagr_5y_pct,
-    vol:     rk.annual_volatility_pct,
+    cagr_5y:      r.cagr_5y_pct,
+    vol:          rk.annual_volatility_pct,
+    sub_category: data.sub_category || data.category,
   };
   updateProjections();
 }
@@ -1164,6 +1165,32 @@ async function loadFundDetail(schemeCode) {
 // ─────────────────────────────────────────────────────────────────────────
 // Phase 3.4 — Calculators
 // ─────────────────────────────────────────────────────────────────────────
+
+// Long-term realistic base-case CAGR assumptions by category.
+// These are intentionally conservative — they DO NOT extrapolate hot
+// recent runs. Mean reversion is the norm in mutual fund returns.
+const CATEGORY_LONG_TERM_CAP = [
+  { match: /Debt Scheme/i,                              cap: 7.5,  label: 'debt funds' },
+  { match: /Hybrid Scheme/i,                            cap: 11,   label: 'hybrid funds' },
+  { match: /Equity Scheme - Large Cap/i,                cap: 13,   label: 'large-cap equity' },
+  { match: /Equity Scheme - (Flexi|Multi|Focused)/i,    cap: 14,   label: 'flexi/multi-cap equity' },
+  { match: /Equity Scheme - Mid Cap/i,                  cap: 15,   label: 'mid-cap equity' },
+  { match: /Equity Scheme - Small Cap/i,                cap: 16,   label: 'small-cap equity' },
+  { match: /Equity Scheme - ELSS/i,                     cap: 14,   label: 'ELSS / tax saver' },
+  { match: /Equity Scheme - Sectoral|Thematic/i,        cap: 12,   label: 'sectoral/thematic (mean-reverts hard)' },
+  { match: /Other Scheme - Index/i,                     cap: 13,   label: 'index funds' },
+  { match: /FoF (Overseas|Gold|Silver)/i,               cap: 9,    label: 'FoF / commodity (volatile)' },
+  { match: /Solution Oriented/i,                        cap: 13,   label: 'solution-oriented' },
+];
+
+function _categoryCap(subCategory) {
+  if (!subCategory) return { cap: 12, label: 'default' };
+  for (const entry of CATEGORY_LONG_TERM_CAP) {
+    if (entry.match.test(subCategory)) return entry;
+  }
+  return { cap: 12, label: 'default' };
+}
+
 function updateProjections() {
   const view = document.getElementById('funds-detail-view');
   if (!view || !view._fundMetrics) return;
@@ -1174,16 +1201,32 @@ function updateProjections() {
   if (!customEl || !customRateEl) return;
   customRateEl.disabled = !customEl.checked;
 
+  const trailingCagr = m.cagr_5y != null ? m.cagr_5y : 12;
+  const catInfo = _categoryCap(m.sub_category);
+  const cappedCagr = Math.min(trailingCagr, catInfo.cap);
+  const wasCapped = cappedCagr < trailingCagr - 0.5;
+
   let baseCagr;
+  let basisNote;
   if (customEl.checked) {
     const v = parseFloat(customRateEl.value);
-    baseCagr = isNaN(v) ? (m.cagr_5y || 12) : v;
+    baseCagr = isNaN(v) ? cappedCagr : v;
+    basisNote = `Custom assumption: ${baseCagr.toFixed(1)}% p.a.`;
   } else {
-    baseCagr = m.cagr_5y != null ? m.cagr_5y : 12;
+    baseCagr = cappedCagr;
+    if (wasCapped) {
+      basisNote = `Trailing 5y was ${trailingCagr.toFixed(1)}%, capped at ${catInfo.cap}% (long-term norm for ${catInfo.label}). Toggle override to use a different rate.`;
+    } else {
+      basisNote = `Using fund's trailing 5y CAGR of ${baseCagr.toFixed(1)}%. Within long-term norm for ${catInfo.label}.`;
+    }
   }
-  const halfBand = (m.vol != null ? m.vol : 12) * 0.5;
+
+  const halfBand = Math.max(2, baseCagr * 0.25);
   const bearCagr = Math.max(-2, baseCagr - halfBand);
   const bullCagr = baseCagr + halfBand;
+
+  const noteEl = document.getElementById('fd-calc-basis-note');
+  if (noteEl) noteEl.textContent = basisNote;
 
   const sipAmt = parseFloat(document.getElementById('fd-sip-amt')?.value) || 0;
   const sipYrs = parseFloat(document.getElementById('fd-sip-yrs')?.value) || 0;
