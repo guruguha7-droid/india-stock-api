@@ -1092,11 +1092,151 @@ async function loadFundDetail(schemeCode) {
       <div class="fd-peer-grid">${peerBlock}</div>
     </div>
 
+    <!-- Projections (Phase 3.4) -->
+    <div class="fd-card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div class="pf-card-title" style="margin:0">PROJECTIONS</div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">
+          Based on 5y CAGR ${pct(r.cagr_5y_pct, 1)} · vol ${pct(rk.annual_volatility_pct, 1)} · educational only
+        </div>
+      </div>
+
+      <div class="fd-calc-toggle">
+        <label class="fd-calc-toggle-label">
+          <input type="checkbox" id="fd-calc-custom" onchange="updateProjections()"/>
+          Override return assumption
+        </label>
+        <input type="number" id="fd-calc-custom-rate" step="0.5" placeholder="annual %" class="fd-calc-mini-input" oninput="updateProjections()" disabled/>
+      </div>
+
+      <div class="fd-calc-twin">
+
+        <!-- SIP Calculator -->
+        <div class="fd-calc-panel">
+          <div class="fd-calc-panel-title">SIP CALCULATOR</div>
+          <div class="fd-calc-inputs">
+            <div class="fd-calc-input-cell">
+              <label>Monthly amount</label>
+              <input type="number" id="fd-sip-amt" value="5000" step="500" oninput="updateProjections()"/>
+            </div>
+            <div class="fd-calc-input-cell">
+              <label>Years</label>
+              <input type="number" id="fd-sip-yrs" value="10" min="1" max="40" oninput="updateProjections()"/>
+            </div>
+          </div>
+          <div class="fd-calc-results" id="fd-sip-results"></div>
+        </div>
+
+        <!-- Lumpsum Calculator -->
+        <div class="fd-calc-panel">
+          <div class="fd-calc-panel-title">LUMPSUM CALCULATOR</div>
+          <div class="fd-calc-inputs">
+            <div class="fd-calc-input-cell">
+              <label>Investment amount</label>
+              <input type="number" id="fd-lump-amt" value="100000" step="10000" oninput="updateProjections()"/>
+            </div>
+            <div class="fd-calc-input-cell">
+              <label>Years</label>
+              <input type="number" id="fd-lump-yrs" value="10" min="1" max="40" oninput="updateProjections()"/>
+            </div>
+          </div>
+          <div class="fd-calc-results" id="fd-lump-results"></div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Data coverage footer -->
     <div class="fd-footer">
       Data: ${dc.nav_count || '—'} NAVs over ${fmt(dc.years_of_history, 1)} years (${dateStr(dc.oldest_nav_date)} → ${dateStr(dc.newest_nav_date)})
       · Computed ${dateStr(data.computed_at)}
     </div>
+  `;
+
+  // Stash fund's metrics on the view element so updateProjections can read them
+  view._fundMetrics = {
+    cagr_5y: r.cagr_5y_pct,
+    vol:     rk.annual_volatility_pct,
+  };
+  updateProjections();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 3.4 — Calculators
+// ─────────────────────────────────────────────────────────────────────────
+function updateProjections() {
+  const view = document.getElementById('funds-detail-view');
+  if (!view || !view._fundMetrics) return;
+  const m = view._fundMetrics;
+
+  const customEl = document.getElementById('fd-calc-custom');
+  const customRateEl = document.getElementById('fd-calc-custom-rate');
+  if (!customEl || !customRateEl) return;
+  customRateEl.disabled = !customEl.checked;
+
+  let baseCagr;
+  if (customEl.checked) {
+    const v = parseFloat(customRateEl.value);
+    baseCagr = isNaN(v) ? (m.cagr_5y || 12) : v;
+  } else {
+    baseCagr = m.cagr_5y != null ? m.cagr_5y : 12;
+  }
+  const halfBand = (m.vol != null ? m.vol : 12) * 0.5;
+  const bearCagr = Math.max(-2, baseCagr - halfBand);
+  const bullCagr = baseCagr + halfBand;
+
+  const sipAmt = parseFloat(document.getElementById('fd-sip-amt')?.value) || 0;
+  const sipYrs = parseFloat(document.getElementById('fd-sip-yrs')?.value) || 0;
+  renderCalcResults('fd-sip-results', 'sip', sipAmt, sipYrs, bearCagr, baseCagr, bullCagr);
+
+  const lumpAmt = parseFloat(document.getElementById('fd-lump-amt')?.value) || 0;
+  const lumpYrs = parseFloat(document.getElementById('fd-lump-yrs')?.value) || 0;
+  renderCalcResults('fd-lump-results', 'lump', lumpAmt, lumpYrs, bearCagr, baseCagr, bullCagr);
+}
+
+function _sipCorpus(monthly, years, annualPct) {
+  if (years <= 0 || monthly <= 0) return { invested: 0, corpus: 0 };
+  const r = annualPct / 100 / 12;
+  const n = years * 12;
+  const invested = monthly * n;
+  if (Math.abs(r) < 1e-9) return { invested, corpus: invested };
+  const corpus = monthly * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+  return { invested, corpus };
+}
+
+function _lumpCorpus(amt, years, annualPct) {
+  if (years <= 0 || amt <= 0) return { invested: 0, corpus: 0 };
+  const corpus = amt * Math.pow(1 + annualPct / 100, years);
+  return { invested: amt, corpus };
+}
+
+function renderCalcResults(elId, type, amt, yrs, bear, base, bull) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (amt <= 0 || yrs <= 0) {
+    el.innerHTML = `<div class="fd-calc-empty">Enter amount and years</div>`;
+    return;
+  }
+  const calc = type === 'sip' ? _sipCorpus : _lumpCorpus;
+  const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
+  const make = (label, rate, color) => {
+    const { invested, corpus } = calc(amt, yrs, rate);
+    const returns = corpus - invested;
+    return `
+      <div class="fd-calc-card">
+        <div class="fd-calc-card-label">${label}</div>
+        <div class="fd-calc-card-rate">@ ${rate.toFixed(1)}% p.a.</div>
+        <div class="fd-calc-card-corpus" style="color:${color}">${inr(corpus)}</div>
+        <div class="fd-calc-card-breakdown">
+          <span>Invested ${inr(invested)}</span> ·
+          <span>Returns ${inr(returns)}</span>
+        </div>
+      </div>`;
+  };
+  el.innerHTML = `
+    ${make('Bear case', bear, 'var(--red)')}
+    ${make('Base case', base, 'var(--green)')}
+    ${make('Bull case', bull, 'var(--green)')}
   `;
 }
 
@@ -1869,6 +2009,131 @@ function goToFundDetailFromScreener(schemeCode) {
   text-align: center;
   font-family: var(--font-mono);
   font-size: 10px;
+  color: var(--text3);
+}
+/* Phase 3.4 — Calculator styles */
+#pane-funds .fd-calc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+#pane-funds .fd-calc-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+#pane-funds .fd-calc-toggle input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--orange);
+}
+#pane-funds .fd-calc-mini-input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  width: 90px;
+  outline: none;
+}
+#pane-funds .fd-calc-mini-input:disabled { opacity: 0.4; cursor: not-allowed; }
+#pane-funds .fd-calc-mini-input:focus { border-color: var(--orange); }
+#pane-funds .fd-calc-twin {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 800px) {
+  #pane-funds .fd-calc-twin { grid-template-columns: 1fr; }
+}
+#pane-funds .fd-calc-panel {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+}
+#pane-funds .fd-calc-panel-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+#pane-funds .fd-calc-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+#pane-funds .fd-calc-input-cell { display: flex; flex-direction: column; gap: 4px; }
+#pane-funds .fd-calc-input-cell label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: .5px;
+}
+#pane-funds .fd-calc-input-cell input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+}
+#pane-funds .fd-calc-input-cell input:focus { border-color: var(--orange); }
+#pane-funds .fd-calc-results {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  #pane-funds .fd-calc-results { grid-template-columns: 1fr; }
+}
+#pane-funds .fd-calc-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+}
+#pane-funds .fd-calc-card-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+#pane-funds .fd-calc-card-rate {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 2px;
+}
+#pane-funds .fd-calc-card-corpus {
+  font-family: var(--font-head);
+  font-size: 18px;
+  font-weight: 700;
+  margin-top: 8px;
+}
+#pane-funds .fd-calc-card-breakdown {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+#pane-funds .fd-calc-empty {
+  padding: 20px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
   color: var(--text3);
 }
 </style>
