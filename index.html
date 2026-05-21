@@ -1172,6 +1172,7 @@ async function loadFundDetail(schemeCode) {
 const CATEGORY_LONG_TERM_CAP = [
   { match: /Debt Scheme/i,                              cap: 7.5,  label: 'debt funds' },
   { match: /Hybrid Scheme/i,                            cap: 11,   label: 'hybrid funds' },
+  { match: /Equity Scheme - Large.*Mid Cap/i,           cap: 14,   label: 'large & mid cap equity' },
   { match: /Equity Scheme - Large Cap/i,                cap: 13,   label: 'large-cap equity' },
   { match: /Equity Scheme - (Flexi|Multi|Focused)/i,    cap: 14,   label: 'flexi/multi-cap equity' },
   { match: /Equity Scheme - Mid Cap/i,                  cap: 15,   label: 'mid-cap equity' },
@@ -1179,7 +1180,7 @@ const CATEGORY_LONG_TERM_CAP = [
   { match: /Equity Scheme - ELSS/i,                     cap: 14,   label: 'ELSS / tax saver' },
   { match: /Equity Scheme - Sectoral|Thematic/i,        cap: 12,   label: 'sectoral/thematic (mean-reverts hard)' },
   { match: /Other Scheme - Index/i,                     cap: 13,   label: 'index funds' },
-  { match: /FoF (Overseas|Gold|Silver)/i,               cap: 9,    label: 'FoF / commodity (volatile)' },
+  { match: /Other Scheme - FoF/i,                       cap: 9,    label: 'FoF / commodity / overseas (volatile)' },
   { match: /Solution Oriented/i,                        cap: 13,   label: 'solution-oriented' },
 ];
 
