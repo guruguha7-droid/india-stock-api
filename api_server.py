@@ -3588,13 +3588,15 @@ def funds_search():
         return jsonify({"status": "ok", "results": []})
     try:
         with db_cursor() as cur:
+            # Query schemes directly — no JOIN on category_rankings so this works
+            # even before /funds/refresh-rankings has been run.
             cur.execute(
                 """
-                SELECT s.scheme_code, s.scheme_name, s.amc_name, s.sub_category
-                FROM schemes s
-                JOIN category_rankings r USING (scheme_code)
-                WHERE LOWER(s.scheme_name) LIKE %s
-                ORDER BY s.scheme_name
+                SELECT scheme_code, scheme_name, amc_name, sub_category
+                FROM schemes
+                WHERE LOWER(scheme_name) LIKE %s
+                  AND sub_category IS NOT NULL
+                ORDER BY scheme_name
                 LIMIT 10
                 """,
                 (f"%{q.lower()}%",),
