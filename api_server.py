@@ -3574,7 +3574,39 @@ def funds_categories():
         return jsonify({"status": "error", "error": "internal error"}), 500
 
 
-# ── Fund name autocomplete — Phase 3.5 ───────────────────────────────────────
+# ── Fund name preload for client-side autocomplete — Phase 3.5 ───────────────
+@app.route("/funds/names")
+def funds_names():
+    """Returns all scheme names for client-side autocomplete.
+    Called once when the screener opens; ~1700 records, filtered client-side.
+    """
+    from mutual_fund_data import db_cursor
+    try:
+        with db_cursor() as cur:
+            cur.execute(
+                """
+                SELECT scheme_code, scheme_name, amc_name, sub_category
+                FROM schemes
+                WHERE sub_category IS NOT NULL
+                ORDER BY scheme_name
+                """
+            )
+            funds = [
+                {
+                    "scheme_code":  r["scheme_code"],
+                    "scheme_name":  r["scheme_name"],
+                    "amc_name":     r["amc_name"],
+                    "sub_category": r["sub_category"],
+                }
+                for r in cur.fetchall()
+            ]
+        return jsonify({"status": "ok", "funds": funds})
+    except Exception as e:
+        logger.exception("funds/names failed")
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
+# ── Fund name search (server-side, used as fallback) — Phase 3.5 ─────────────
 @app.route("/funds/search")
 def funds_search():
     """Lightweight name autocomplete. Returns up to 10 matching funds.

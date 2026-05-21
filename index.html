@@ -1241,31 +1241,41 @@ function renderCalcResults(elId, type, amt, yrs, bear, base, bull) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Phase 3.5 — Fund search autocomplete
+// Phase 3.5 — Fund search autocomplete (client-side after one preload)
 // ─────────────────────────────────────────────────────────────────────────
-let _fundSearchTimer = null;
+let _allFundNames  = null;   // preloaded once, reused for every keystroke
 let _fundSuggestions = [];
 let _fundSugIdx = -1;
+
+async function preloadFundNames() {
+  if (_allFundNames !== null) return;   // already loaded or loading
+  _allFundNames = [];                   // mark as loading so parallel calls don't double-fetch
+  try {
+    const r = await fetch(`${API}/funds/names`);
+    const data = r.ok ? await r.json() : {};
+    _allFundNames = data.funds || [];
+  } catch (_) {
+    _allFundNames = [];
+  }
+}
 
 function onFundSearchInput() {
   const input = document.getElementById('sc-name-search');
   const clear = document.getElementById('sc-search-clear');
   const q = (input?.value || '').trim();
   if (clear) clear.style.display = q ? 'flex' : 'none';
-  clearTimeout(_fundSearchTimer);
   if (q.length < 2) { hideFundSuggestions(); return; }
-  _fundSearchTimer = setTimeout(() => fetchFundSuggestions(q), 200);
+  filterFundSuggestions(q);
 }
 
-async function fetchFundSuggestions(q) {
-  try {
-    const r = await fetch(`${API}/funds/search?q=${encodeURIComponent(q)}`);
-    if (!r.ok) return;
-    const data = await r.json();
-    _fundSuggestions = data.results || [];
-    _fundSugIdx = -1;
-    renderFundSuggestions(q);
-  } catch (_) {}
+async function filterFundSuggestions(q) {
+  if (_allFundNames === null) await preloadFundNames();
+  const ql = q.toLowerCase();
+  _fundSuggestions = _allFundNames
+    .filter(f => f.scheme_name.toLowerCase().includes(ql))
+    .slice(0, 10);
+  _fundSugIdx = -1;
+  renderFundSuggestions(q);
 }
 
 function renderFundSuggestions(q) {
@@ -1394,6 +1404,7 @@ function goToFundsScreener() {
   window.scrollTo({ top: 0, behavior: 'instant' });
   renderScreenerShell();
   loadCategoriesThenSearch();
+  preloadFundNames();   // warm the autocomplete cache in the background
 }
 
 function backToFundsFromScreener() {
