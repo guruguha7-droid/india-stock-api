@@ -1241,9 +1241,138 @@ function renderCalcResults(elId, type, amt, yrs, bear, base, bull) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Phase 3.5 — Fund search autocomplete
+// ─────────────────────────────────────────────────────────────────────────
+let _fundSearchTimer = null;
+let _fundSuggestions = [];
+let _fundSugIdx = -1;
+
+function onFundSearchInput() {
+  const input = document.getElementById('sc-name-search');
+  const clear = document.getElementById('sc-search-clear');
+  const q = (input?.value || '').trim();
+  if (clear) clear.style.display = q ? 'flex' : 'none';
+  clearTimeout(_fundSearchTimer);
+  if (q.length < 2) { hideFundSuggestions(); return; }
+  _fundSearchTimer = setTimeout(() => fetchFundSuggestions(q), 200);
+}
+
+async function fetchFundSuggestions(q) {
+  try {
+    const r = await fetch(`${API}/funds/search?q=${encodeURIComponent(q)}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    _fundSuggestions = data.results || [];
+    _fundSugIdx = -1;
+    renderFundSuggestions(q);
+  } catch (_) {}
+}
+
+function renderFundSuggestions(q) {
+  const box = document.getElementById('sc-autocomplete');
+  if (!box) return;
+  if (_fundSuggestions.length === 0) { hideFundSuggestions(); return; }
+
+  const trimName = (n) => (n || '')
+    .replace(/\s*-?\s*Direct Plan.*$/i, '')
+    .replace(/\s*-?\s*Growth.*$/i, '')
+    .trim();
+  const trimAmc = (a) => (a || '').replace(/\s*Mutual Fund$/i, '').trim();
+  const ql = q.toLowerCase();
+
+  box.innerHTML = _fundSuggestions.map((f, i) => {
+    const name = trimName(f.scheme_name);
+    const hi = name.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'),
+                            '<mark>$1</mark>');
+    return `<div class="sc-ac-item" data-idx="${i}"
+              onmousedown="selectFundSuggestion(${i})"
+              onmouseenter="highlightFundSug(${i})">
+      <div class="sc-ac-name">${hi}</div>
+      <div class="sc-ac-meta">${trimAmc(f.amc_name)} · ${f.sub_category || ''}</div>
+    </div>`;
+  }).join('');
+
+  // Footer: filter the table instead of jumping to detail
+  box.innerHTML += `<div class="sc-ac-footer" onmousedown="applyFundNameFilter()">
+    Search all results for "${q}" in table →
+  </div>`;
+
+  box.classList.add('show');
+}
+
+function highlightFundSug(idx) {
+  _fundSugIdx = idx;
+  document.querySelectorAll('#sc-autocomplete .sc-ac-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+function selectFundSuggestion(idx) {
+  const f = _fundSuggestions[idx];
+  if (!f) return;
+  hideFundSuggestions();
+  // Navigate directly to this fund's detail view
+  goToFundDetailFromScreener(f.scheme_code);
+}
+
+function applyFundNameFilter() {
+  const q = (document.getElementById('sc-name-search')?.value || '').trim();
+  SCREENER_STATE.name = q;
+  SCREENER_STATE.offset = 0;
+  hideFundSuggestions();
+  runScreenerSearch();
+}
+
+function onFundSearchKeydown(e) {
+  const items = document.querySelectorAll('#sc-autocomplete .sc-ac-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _fundSugIdx = Math.min(_fundSugIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('active', i === _fundSugIdx));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _fundSugIdx = Math.max(_fundSugIdx - 1, -1);
+    items.forEach((el, i) => el.classList.toggle('active', i === _fundSugIdx));
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_fundSugIdx >= 0 && _fundSuggestions[_fundSugIdx]) {
+      selectFundSuggestion(_fundSugIdx);
+    } else {
+      applyFundNameFilter();
+    }
+  } else if (e.key === 'Escape') {
+    hideFundSuggestions();
+  }
+}
+
+function hideFundSuggestions() {
+  const box = document.getElementById('sc-autocomplete');
+  if (box) { box.innerHTML = ''; box.classList.remove('show'); }
+  _fundSuggestions = [];
+  _fundSugIdx = -1;
+}
+
+function clearFundSearch() {
+  const input = document.getElementById('sc-name-search');
+  const clear = document.getElementById('sc-search-clear');
+  if (input) input.value = '';
+  if (clear) clear.style.display = 'none';
+  SCREENER_STATE.name = '';
+  hideFundSuggestions();
+}
+
+// Close autocomplete when clicking outside
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('sc-search-wrap')?.contains(e.target)) {
+    hideFundSuggestions();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Phase 3.3 — Screener
 // ─────────────────────────────────────────────────────────────────────────
 const SCREENER_STATE = {
+  name:           '',
   sub_category:   '',
   amc:            '',
   min_cagr_5y:    null,
@@ -1305,6 +1434,27 @@ function renderScreenerShell() {
     <div class="sc-header">
       <div class="sc-title">Fund Screener</div>
       <div class="sc-subtitle">Filter and sort across 949 funds with ≥5y history</div>
+    </div>
+
+    <!-- Search bar with autocomplete -->
+    <div class="sc-search-wrap" id="sc-search-wrap">
+      <div class="sc-search-inner">
+        <svg class="sc-search-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M13.5 13.5L17 17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <input
+          type="text"
+          id="sc-name-search"
+          class="sc-search-input"
+          placeholder="Search funds by name — Mirae, Parag, HDFC Flexi..."
+          autocomplete="off"
+          oninput="onFundSearchInput()"
+          onkeydown="onFundSearchKeydown(event)"
+        />
+        <button class="sc-search-clear" id="sc-search-clear" onclick="clearFundSearch()" title="Clear search" style="display:none">✕</button>
+      </div>
+      <div class="sc-autocomplete" id="sc-autocomplete"></div>
     </div>
 
     <div class="sc-filter-panel">
@@ -1374,6 +1524,7 @@ function readFiltersFromUI() {
     return v === '' ? null : Number(v);
   };
   const str = (id) => (document.getElementById(id)?.value || '').trim() || '';
+  SCREENER_STATE.name           = str('sc-name-search');
   SCREENER_STATE.sub_category   = str('sc-sub-category');
   SCREENER_STATE.amc            = str('sc-amc');
   SCREENER_STATE.min_cagr_5y    = num('sc-min-cagr');
@@ -1389,12 +1540,14 @@ function onScreenerApply() {
 }
 
 function onScreenerReset() {
+  clearFundSearch();
   document.getElementById('sc-sub-category').value = '';
   document.getElementById('sc-amc').value          = '';
   document.getElementById('sc-min-cagr').value     = '';
   document.getElementById('sc-max-vol').value      = '';
   document.getElementById('sc-min-sharpe').value   = '';
   document.getElementById('sc-max-dd').value       = '';
+  SCREENER_STATE.name           = '';
   SCREENER_STATE.sub_category   = '';
   SCREENER_STATE.amc            = '';
   SCREENER_STATE.min_cagr_5y    = null;
@@ -1425,6 +1578,7 @@ async function runScreenerSearch() {
   if (meta) meta.textContent = 'Searching…';
 
   const params = new URLSearchParams();
+  if (SCREENER_STATE.name)                      params.set('name',           SCREENER_STATE.name);
   if (SCREENER_STATE.sub_category)              params.set('sub_category',   SCREENER_STATE.sub_category);
   if (SCREENER_STATE.amc)                       params.set('amc',            SCREENER_STATE.amc);
   if (SCREENER_STATE.min_cagr_5y    != null)    params.set('min_cagr_5y',    SCREENER_STATE.min_cagr_5y);
@@ -1543,6 +1697,111 @@ function goToFundDetailFromScreener(schemeCode) {
 </script>
 
 <style>
+/* Phase 3.5 — Fund search autocomplete */
+#pane-funds .sc-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+#pane-funds .sc-search-inner {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.04);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  gap: 10px;
+  transition: border-color .15s;
+}
+#pane-funds .sc-search-inner:focus-within {
+  border-color: var(--orange);
+  background: rgba(255,255,255,0.06);
+}
+#pane-funds .sc-search-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+#pane-funds .sc-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 13px 0;
+  min-width: 0;
+}
+#pane-funds .sc-search-input::placeholder { color: var(--text3); }
+#pane-funds .sc-search-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+#pane-funds .sc-search-clear:hover { color: var(--text); background: rgba(255,255,255,0.08); }
+#pane-funds .sc-autocomplete {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 999;
+  box-shadow: 0 12px 40px rgba(0,0,0,.6);
+}
+#pane-funds .sc-autocomplete.show { display: block; }
+#pane-funds .sc-ac-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background .1s;
+}
+#pane-funds .sc-ac-item:hover,
+#pane-funds .sc-ac-item.active { background: rgba(255,255,255,0.07); }
+#pane-funds .sc-ac-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#pane-funds .sc-ac-name mark {
+  background: none;
+  color: var(--orange);
+  font-weight: 700;
+}
+#pane-funds .sc-ac-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#pane-funds .sc-ac-footer {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--orange);
+  cursor: pointer;
+  background: rgba(255,255,255,0.02);
+  text-align: center;
+}
+#pane-funds .sc-ac-footer:hover { background: rgba(255,255,255,0.06); }
+
 /* Phase 3.3 — Screener styles (scoped to #pane-funds) */
 #pane-funds .funds-screener-link {
   background: var(--bg3);

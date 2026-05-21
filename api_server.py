@@ -3416,6 +3416,7 @@ def funds_screener():
 
     sub_cat       = (request.args.get("sub_category") or "").strip() or None
     amc           = (request.args.get("amc") or "").strip() or None
+    name          = (request.args.get("name") or "").strip() or None
     sort          = (request.args.get("sort") or "cagr_5y").strip()
     order         = (request.args.get("order") or "desc").strip().lower()
     limit         = min(int(request.args.get("limit", 50)), 200)
@@ -3457,6 +3458,9 @@ def funds_screener():
     if amc:
         where_clauses.append("LOWER(s.amc_name) LIKE %s")
         params.append(f"%{amc.lower()}%")
+    if name:
+        where_clauses.append("LOWER(s.scheme_name) LIKE %s")
+        params.append(f"%{name.lower()}%")
     if min_cagr_5y is not None:
         where_clauses.append("r.cagr_5y_pct >= %s")
         params.append(min_cagr_5y / 100.0)
@@ -3567,6 +3571,46 @@ def funds_categories():
         return jsonify({"status": "ok", "categories": cats, "total": len(cats)})
     except Exception as e:
         logger.exception("categories failed")
+        return jsonify({"status": "error", "error": "internal error"}), 500
+
+
+# ── Fund name autocomplete — Phase 3.5 ───────────────────────────────────────
+@app.route("/funds/search")
+def funds_search():
+    """Lightweight name autocomplete. Returns up to 10 matching funds.
+
+    Query params:
+      q   substring to match against scheme_name (case-insensitive, min 2 chars)
+    """
+    from mutual_fund_data import db_cursor
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify({"status": "ok", "results": []})
+    try:
+        with db_cursor() as cur:
+            cur.execute(
+                """
+                SELECT s.scheme_code, s.scheme_name, s.amc_name, s.sub_category
+                FROM schemes s
+                JOIN category_rankings r USING (scheme_code)
+                WHERE LOWER(s.scheme_name) LIKE %s
+                ORDER BY s.scheme_name
+                LIMIT 10
+                """,
+                (f"%{q.lower()}%",),
+            )
+            results = [
+                {
+                    "scheme_code":  r["scheme_code"],
+                    "scheme_name":  r["scheme_name"],
+                    "amc_name":     r["amc_name"],
+                    "sub_category": r["sub_category"],
+                }
+                for r in cur.fetchall()
+            ]
+        return jsonify({"status": "ok", "results": results})
+    except Exception as e:
+        logger.exception("funds/search failed")
         return jsonify({"status": "error", "error": "internal error"}), 500
 
 
